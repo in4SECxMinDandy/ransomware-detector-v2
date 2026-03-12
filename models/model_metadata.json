@@ -1,0 +1,54 @@
+{
+  "version": "2.0",
+  "n_features": 16,
+  "accuracy": 1.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1_score": 1.0,
+  "auc_roc": 1.0,
+  "false_positive_rate": 0.0,
+  "cv_mean": 0.9996,
+  "cv_std": 0.00049,
+  "confusion_matrix": [
+    [
+      500,
+      0
+    ],
+    [
+      0,
+      500
+    ]
+  ],
+  "n_train": 4000,
+  "n_test": 1000,
+  "optimal_threshold": 0.5933,
+  "class_weight": {
+    "0": 3.0,
+    "1": 1.0
+  },
+  "cost_fp": 3.0,
+  "cost_fn": 10.0,
+  "feature_importances": {
+    "Shannon Entropy": 0.017078230672570603,
+    "Chi-Square (log)": 0.03267323899666167,
+    "Mean Byte": 0.2571123451535591,
+    "Byte Variance": 0.03130740643580413,
+    "Serial Correlation": 0.0447181609782858,
+    "Chunk Entropy StdDev": 0.10989515044306052,
+    "Chunk Entropy Max": 0.07463743342546271,
+    "Chunk Entropy Min": 0.012804200206656348,
+    "High Entropy Ratio": 0.022952654549187348,
+    "Magic Bytes Mismatch": 0.0438428121023357,
+    "Ext Entropy Z-Score": 0.022843642852308516,
+    "Byte Mode Frequency": 0.01914466479237797,
+    "Compression Estimate": 0.018654406973516228,
+    "Structural Consistency": 0.09310725872599261,
+    "Ext Entropy Delta": 0.03043910661759802,
+    "Is Known Benign Format": 0.1687892870746228
+  },
+  "threshold_report": {
+    "precision": 0.998,
+    "recall": 1.0,
+    "f1": 0.999
+  }
+}
