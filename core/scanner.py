@@ -57,6 +57,9 @@ class ScanResult:
         "fp_adjusted",           # True nếu probability đã được điều chỉnh
         "effective_threshold",   # threshold thực tế áp dụng cho file này
         "fp_reason",             # lý do FP adjustment (debug)
+        # v2.1: YARA  ← thêm vào __slots__ để tránh AttributeError
+        "yara_matches",          # list of YaraMatch objects
+        "yara_boosted",          # True nếu probability được boost bởi YARA
     ]
 
     def __init__(self, path: str):
@@ -76,7 +79,7 @@ class ScanResult:
         self.effective_threshold = 0.65
         self.fp_reason           = ""
         # v2.1: YARA
-        self.yara_matches: list  = []   # list of YaraMatch objects
+        self.yara_matches: list  = []
         self.yara_boosted: bool  = False
 
     def to_dict(self) -> Dict[str, Any]:
