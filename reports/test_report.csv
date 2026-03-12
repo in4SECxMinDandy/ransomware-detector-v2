@@ -1,0 +1,9 @@
+﻿Path,Filename,Size (KB),Extension,Risk Level,Probability (%),Entropy (bits/byte),Scan Time (ms),Status,Error
+/tmp/test_scan_dir2/enc_01.bin,enc_01.bin,8.0,.bin,CRITICAL,99.67,7.9802,836.98,ENCRYPTED,
+/tmp/test_scan_dir2/safe_04.txt,safe_04.txt,3.91,.txt,SAFE,12.33,3.3842,841.04,SAFE,
+/tmp/test_scan_dir2/enc_00.bin,enc_00.bin,8.0,.bin,CRITICAL,100.0,7.9767,845.52,ENCRYPTED,
+/tmp/test_scan_dir2/safe_03.txt,safe_03.txt,3.91,.txt,SAFE,12.33,3.3842,848.62,SAFE,
+/tmp/test_scan_dir2/safe_02.txt,safe_02.txt,3.91,.txt,SAFE,12.33,3.3842,849.6,SAFE,
+/tmp/test_scan_dir2/safe_01.txt,safe_01.txt,3.91,.txt,SAFE,12.33,3.3842,852.32,SAFE,
+/tmp/test_scan_dir2/enc_02.bin,enc_02.bin,8.0,.bin,CRITICAL,100.0,7.9764,856.53,ENCRYPTED,
+/tmp/test_scan_dir2/safe_00.txt,safe_00.txt,3.91,.txt,SAFE,12.33,3.3842,862.43,SAFE,
