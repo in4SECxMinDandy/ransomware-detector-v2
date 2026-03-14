@@ -28,22 +28,22 @@ import customtkinter as ctk
 
 # ─── Color Palette (đồng bộ main_window) ───
 C = {
-    "bg_dark":  "#0D1117",
-    "bg_panel": "#161B22",
-    "bg_card":  "#1C2128",
-    "border":   "#30363D",
-    "text":     "#C9D1D9",
-    "text_dim": "#8B949E",
-    "green":    "#00FF88",
-    "red":      "#FF2D2D",
-    "orange":   "#FF8C00",
-    "yellow":   "#FFD700",
-    "blue":     "#58A6FF",
-    "cyan":     "#00BFFF",
-    "accent":   "#238636",
-    "accent_h": "#2EA043",
-    "danger":   "#DA3633",
-    "purple":   "#BC8CFF",
+    "bg_dark":  "#0B0F14",
+    "bg_panel": "#121821",
+    "bg_card":  "#161E29",
+    "border":   "#263042",
+    "text":     "#E6EAF0",
+    "text_dim": "#A3ADBD",
+    "green":    "#22C55E",
+    "red":      "#EF4444",
+    "orange":   "#F59E0B",
+    "yellow":   "#FACC15",
+    "blue":     "#60A5FA",
+    "cyan":     "#22D3EE",
+    "accent":   "#3B82F6",
+    "accent_h": "#2563EB",
+    "danger":   "#B91C1C",
+    "purple":   "#A78BFA",
 }
 
 # ─── Whitelist storage path ───
@@ -145,8 +145,8 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Whitelist Editor — Quản lý Danh sách Trắng")
-        self.geometry("800x600")
+        self.title("Whitelist Editor — Premium Control")
+        self.geometry("820x620")
         self.configure(fg_color=C["bg_dark"])
         self.resizable(True, True)
         self.attributes("-topmost", False)
@@ -168,7 +168,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
         ctk.CTkLabel(
             hdr, text="◈  WHITELIST EDITOR",
             font=ctk.CTkFont(family="Consolas", size=15, weight="bold"),
-            text_color=C["cyan"]
+            text_color=C["blue"]
         ).pack(side="left", padx=15, pady=10)
 
         ctk.CTkLabel(
@@ -231,7 +231,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
             btn_frame, text="💾  Lưu Whitelist",
             font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
             fg_color=C["accent"], hover_color=C["accent_h"],
-            text_color="#FFF", height=36, width=160, corner_radius=6,
+            text_color="#FFF", height=38, width=160, corner_radius=8,
             command=self._save
         ).pack(side="left", padx=(12, 6), pady=9)
 

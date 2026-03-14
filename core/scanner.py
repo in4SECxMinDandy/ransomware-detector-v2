@@ -41,6 +41,48 @@ SKIP_EXTENSIONS = {
     ".ico", ".cur", ".ani", ".ttf", ".otf", ".woff", ".woff2",
 }
 
+# Extensions thường dùng bởi ransomware
+SUSPICIOUS_EXTENSIONS = {
+    ".locked", ".locky", ".crypt", ".crypted", ".enc", ".encrypted",
+    ".crypto", ".zepto", ".cerber", ".ryuk", ".conti", ".revil",
+    ".lockbit", ".blackcat", ".alphv", ".wncry",
+}
+
+# Heuristic thresholds (tăng nhạy nhưng tránh FP)
+HEURISTIC_ENTROPY_HIGH = 7.35
+HEURISTIC_ENTROPY_EXT_Z = 2.0
+HEURISTIC_LOW_COMPRESS  = 0.15
+HEURISTIC_LOW_STRUCT    = 0.35
+
+SENSITIVITY_PROFILES = {
+    "balanced": {
+        "threshold_delta": 0.00,
+        "heuristic_boost": 0.08,
+        "entropy_high": 7.35,
+        "entropy_z": 2.0,
+        "low_compress": 0.15,
+        "low_struct": 0.35,
+    },
+    "high_sensitivity": {
+        "threshold_delta": -0.05,
+        "heuristic_boost": 0.12,
+        "entropy_high": 7.25,
+        "entropy_z": 1.7,
+        "low_compress": 0.18,
+        "low_struct": 0.40,
+    },
+    "paranoid": {
+        "threshold_delta": -0.10,
+        "heuristic_boost": 0.18,
+        "entropy_high": 7.15,
+        "entropy_z": 1.4,
+        "low_compress": 0.22,
+        "low_struct": 0.45,
+    },
+}
+
+DEFAULT_SENSITIVITY_PROFILE = "high_sensitivity"
+
 MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024  # 2 GB
 MIN_FILE_SIZE = 64                        # 64 bytes
 MAX_THREADS   = 8
@@ -176,6 +218,12 @@ class Scanner:
         result  = ScanResult(file_path)
         t_start = time.perf_counter()
 
+        # Sensitivity profile
+        profile = SENSITIVITY_PROFILES.get(
+            DEFAULT_SENSITIVITY_PROFILE,
+            SENSITIVITY_PROFILES["balanced"],
+        )
+
         try:
             result.size = os.path.getsize(file_path)
 
@@ -204,15 +252,35 @@ class Scanner:
             result.raw_probability = raw_proba
             result.entropy         = float(features[0])
 
+            # ── Heuristic signal (fast) ──
+            ext = os.path.splitext(file_path)[1].lower()
+            entropy_z = float(features[10]) if len(features) > 10 else 0.0
+            compression_est = float(features[12]) if len(features) > 12 else 0.0
+            structural_consistency = float(features[13]) if len(features) > 13 else 0.0
+            suspicious_ext = ext in SUSPICIOUS_EXTENSIONS
+            heuristic_hit = (
+                entropy_z >= profile["entropy_z"] and
+                features[0] >= profile["entropy_high"] and
+                compression_est <= profile["low_compress"] and
+                structural_consistency <= profile["low_struct"]
+            ) or suspicious_ext
+
             # ── Bước 4: FP Reduction ──
             adjusted_proba, eff_threshold, fp_reason = apply_fp_reduction(
                 file_path, raw_proba, base_threshold
             )
+            # Sensitivity profile: hạ threshold hiệu dụng (không thấp hơn 0.35)
+            eff_threshold = max(0.35, eff_threshold + profile["threshold_delta"])
 
-            result.probability        = adjusted_proba
+            # Heuristic boost (không vượt quá 0.90, không ghi đè FP reducer)
+            if heuristic_hit:
+                adjusted_proba = min(max(adjusted_proba, raw_proba + profile["heuristic_boost"]), 0.90)
+                fp_reason += " | heuristic_boost"
+
+            result.probability         = adjusted_proba
             result.effective_threshold = eff_threshold
-            result.fp_reason          = fp_reason
-            result.fp_adjusted        = (adjusted_proba != raw_proba or eff_threshold != base_threshold)
+            result.fp_reason           = fp_reason
+            result.fp_adjusted         = (adjusted_proba != raw_proba or eff_threshold != base_threshold)
 
             # ── Bước 5: YARA Signature Scan (v2.1) ──
             yara_eng = get_yara_engine()
