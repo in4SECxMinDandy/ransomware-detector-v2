@@ -80,6 +80,8 @@ rule LockBit_3_Marker
         $note1  = "LockBit" nocase
         $note2  = "Restore-My-Files.txt" nocase
         $marker = { 4C 6F 63 6B 42 69 74 }   // "LockBit"
+        $lb3    = "lockbit 3.0" nocase
+        $lb4    = "lockbit 2.0" nocase
 
     condition:
         2 of them
@@ -122,6 +124,25 @@ rule Ryuk_Marker
         any of them
 }
 
+rule Clop_Marker
+{
+    meta:
+        description = "Cl0p ransomware markers"
+        author      = "Ransomware Entropy Detector v2"
+        severity    = "CRITICAL"
+        family      = "Cl0p"
+
+    strings:
+        $ext1 = ".clop" nocase
+        $ext2 = ".cl0p" nocase
+        $note1 = "Cl0pReadMe.txt" nocase
+        $note2 = "Clop^_^" nocase
+        $mark  = "CLOP" nocase
+
+    condition:
+        any of them
+}
+
 rule REvil_Sodinokibi
 {
     meta:
@@ -153,6 +174,114 @@ rule Conti_Marker
         $note1 = "readme.txt" nocase
         $note2 = "CONTI_README.txt" nocase
         $str1  = "Conti Decryptor" nocase
+
+    condition:
+        any of them
+}
+
+rule Play_Marker
+{
+    meta:
+        description = "Play ransomware markers"
+        author      = "Ransomware Entropy Detector v2"
+        severity    = "CRITICAL"
+        family      = "Play"
+
+    strings:
+        $ext1  = ".play" nocase
+        $note1 = "PLAY ransomware" nocase
+        $note2 = "Your data has been locked" nocase
+        $note3 = "ReadMe.txt" nocase
+
+    condition:
+        any of them
+}
+
+rule Rhysida_Marker
+{
+    meta:
+        description = "Rhysida ransomware markers"
+        author      = "Ransomware Entropy Detector v2"
+        severity    = "CRITICAL"
+        family      = "Rhysida"
+
+    strings:
+        $ext1  = ".rhysida" nocase
+        $note1 = "Rhysida" nocase
+        $note2 = "README_RHYSIDA.txt" nocase
+        $note3 = "rhysida" nocase
+
+    condition:
+        any of them
+}
+
+rule Akira_Marker
+{
+    meta:
+        description = "Akira ransomware markers"
+        author      = "Ransomware Entropy Detector v2"
+        severity    = "CRITICAL"
+        family      = "Akira"
+
+    strings:
+        $ext1  = ".akira" nocase
+        $note1 = "AKIRA" nocase
+        $note2 = "akira_readme.txt" nocase
+        $note3 = "how_to_decrypt" nocase
+
+    condition:
+        any of them
+}
+
+rule BianLian_Marker
+{
+    meta:
+        description = "BianLian ransomware markers"
+        author      = "Ransomware Entropy Detector v2"
+        severity    = "CRITICAL"
+        family      = "BianLian"
+
+    strings:
+        $ext1  = ".bianlian" nocase
+        $note1 = "BianLian" nocase
+        $note2 = "BianLian" wide nocase
+        $note3 = "readme_bianlian" nocase
+
+    condition:
+        any of them
+}
+
+rule Medusa_Marker
+{
+    meta:
+        description = "Medusa ransomware markers"
+        author      = "Ransomware Entropy Detector v2"
+        severity    = "CRITICAL"
+        family      = "Medusa"
+
+    strings:
+        $ext1  = ".medusa" nocase
+        $note1 = "MEDUSA" nocase
+        $note2 = "READ_ME_MEDUSA" nocase
+        $note3 = "medusa" wide nocase
+
+    condition:
+        any of them
+}
+
+rule Qilin_Marker
+{
+    meta:
+        description = "Qilin ransomware markers"
+        author      = "Ransomware Entropy Detector v2"
+        severity    = "CRITICAL"
+        family      = "Qilin"
+
+    strings:
+        $ext1  = ".qilin" nocase
+        $note1 = "QILIN" nocase
+        $note2 = "readme_qilin" nocase
+        $note3 = "Qilin" wide nocase
 
     condition:
         any of them
@@ -255,7 +384,7 @@ PYTHON_SIGNATURES: List[Dict] = [
         "description": "LockBit 3.0 ransomware",
         "severity": "CRITICAL",
         "family": "LockBit",
-        "byte_patterns": [b"LockBit", b"Restore-My-Files", b".lockbit"],
+        "byte_patterns": [b"LockBit", b"Restore-My-Files", b".lockbit", b"lockbit 3.0", b"lockbit 2.0"],
         "ext_patterns": [".lockbit", ".lock"],
         "min_matches": 1,
     },
@@ -278,6 +407,15 @@ PYTHON_SIGNATURES: List[Dict] = [
         "min_matches": 1,
     },
     {
+        "name": "Clop_Marker",
+        "description": "Cl0p ransomware",
+        "severity": "CRITICAL",
+        "family": "Cl0p",
+        "byte_patterns": [b"clop", b"cl0p", b"Cl0pReadMe", b"Clop^_^"],
+        "ext_patterns": [".clop", ".cl0p"],
+        "min_matches": 1,
+    },
+    {
         "name": "REvil_Sodinokibi",
         "description": "REvil/Sodinokibi ransomware",
         "severity": "CRITICAL",
@@ -296,6 +434,24 @@ PYTHON_SIGNATURES: List[Dict] = [
         "min_matches": 1,
     },
     {
+        "name": "Play_Marker",
+        "description": "Play ransomware",
+        "severity": "CRITICAL",
+        "family": "Play",
+        "byte_patterns": [b"PLAY ransomware", b"Your data has been locked", b".play"],
+        "ext_patterns": [".play"],
+        "min_matches": 1,
+    },
+    {
+        "name": "Rhysida_Marker",
+        "description": "Rhysida ransomware",
+        "severity": "CRITICAL",
+        "family": "Rhysida",
+        "byte_patterns": [b"Rhysida", b"README_RHYSIDA", b".rhysida"],
+        "ext_patterns": [".rhysida"],
+        "min_matches": 1,
+    },
+    {
         "name": "Generic_RansomNote",
         "description": "Generic ransom note keywords",
         "severity": "HIGH",
@@ -311,6 +467,42 @@ PYTHON_SIGNATURES: List[Dict] = [
         ],
         "ext_patterns": [],
         "min_matches": 3,  # ít nhất 3 từ khóa
+    },
+    {
+        "name": "Akira_Marker",
+        "description": "Akira ransomware markers",
+        "severity": "CRITICAL",
+        "family": "Akira",
+        "byte_patterns": [b"AKIRA", b"akira_readme", b"how_to_decrypt"],
+        "ext_patterns": [".akira"],
+        "min_matches": 1,
+    },
+    {
+        "name": "BianLian_Marker",
+        "description": "BianLian ransomware markers",
+        "severity": "CRITICAL",
+        "family": "BianLian",
+        "byte_patterns": [b"BianLian", b"readme_bianlian"],
+        "ext_patterns": [".bianlian"],
+        "min_matches": 1,
+    },
+    {
+        "name": "Medusa_Marker",
+        "description": "Medusa ransomware markers",
+        "severity": "CRITICAL",
+        "family": "Medusa",
+        "byte_patterns": [b"MEDUSA", b"READ_ME_MEDUSA"],
+        "ext_patterns": [".medusa"],
+        "min_matches": 1,
+    },
+    {
+        "name": "Qilin_Marker",
+        "description": "Qilin ransomware markers",
+        "severity": "CRITICAL",
+        "family": "Qilin",
+        "byte_patterns": [b"QILIN", b"readme_qilin"],
+        "ext_patterns": [".qilin"],
+        "min_matches": 1,
     },
     {
         "name": "Encrypted_Header_Overwrite",

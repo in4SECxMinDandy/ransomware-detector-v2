@@ -60,23 +60,23 @@ ctk.set_default_color_theme("dark-blue")
 
 # ─── Color Palette ───
 C = {
-    "bg_dark":   "#0D1117",
-    "bg_panel":  "#161B22",
-    "bg_card":   "#1C2128",
-    "border":    "#30363D",
-    "text":      "#C9D1D9",
-    "text_dim":  "#8B949E",
-    "green":     "#00FF88",
-    "red":       "#FF2D2D",
-    "orange":    "#FF8C00",
-    "yellow":    "#FFD700",
-    "blue":      "#58A6FF",
-    "cyan":      "#00BFFF",
-    "accent":    "#238636",
-    "accent_h":  "#2EA043",
-    "danger":    "#DA3633",
-    "warning":   "#9E6A03",
-    "purple":    "#BC8CFF",
+    "bg_dark":   "#0B0F14",
+    "bg_panel":  "#121821",
+    "bg_card":   "#161E29",
+    "border":    "#263042",
+    "text":      "#E6EAF0",
+    "text_dim":  "#A3ADBD",
+    "green":     "#22C55E",
+    "red":       "#EF4444",
+    "orange":    "#F59E0B",
+    "yellow":    "#FACC15",
+    "blue":      "#60A5FA",
+    "cyan":      "#22D3EE",
+    "accent":    "#3B82F6",
+    "accent_h":  "#2563EB",
+    "danger":    "#B91C1C",
+    "warning":   "#D97706",
+    "purple":    "#A78BFA",
 }
 
 RISK_COLORS = {
@@ -148,9 +148,9 @@ class RansomwareDetectorApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Ransomware Entropy Detector v2.0  |  Anti-FP Edition")
-        self.geometry("1450x920")
-        self.minsize(1150, 720)
+        self.title("Ransomware Entropy Detector v2.1  |  Premium Defense")
+        self.geometry("1500x940")
+        self.minsize(1200, 760)
         self.configure(fg_color=C["bg_dark"])
 
         # State
@@ -170,6 +170,7 @@ class RansomwareDetectorApp(ctk.CTk):
 
         self._build_ui()
         self._ensure_model_loaded()
+        self._ensure_threat_intel_loaded()
         self._poll_ui_queue()
         # v2.1: Load whitelist khi khởi động
         try:
@@ -198,22 +199,32 @@ class RansomwareDetectorApp(ctk.CTk):
         hdr.pack(fill="x", padx=0, pady=0)
         hdr.pack_propagate(False)
 
-        ctk.CTkLabel(
-            hdr,
-            text="◈  RANSOMWARE ENTROPY DETECTOR",
-            font=ctk.CTkFont(family="Consolas", size=20, weight="bold"),
-            text_color=C["green"]
-        ).pack(side="left", padx=20, pady=15)
+        title_block = ctk.CTkFrame(hdr, fg_color="transparent")
+        title_block.pack(side="left", padx=20, pady=10)
 
-        # v2 badge
+        ctk.CTkLabel(
+            title_block,
+            text="RANSOMWARE ENTROPY DETECTOR",
+            font=ctk.CTkFont(family="Consolas", size=21, weight="bold"),
+            text_color=C["blue"]
+        ).pack(anchor="w")
+
+        ctk.CTkLabel(
+            title_block,
+            text="Premium Defense Suite — Behavioral + YARA + ML",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            text_color=C["text_dim"]
+        ).pack(anchor="w")
+
+        # v2.1 badge
         ctk.CTkLabel(
             hdr,
-            text="v2.0  Anti-FP",
+            text="v2.1  Premium",
             font=ctk.CTkFont(family="Consolas", size=9, weight="bold"),
             text_color=C["bg_dark"],
             fg_color=C["purple"],
-            corner_radius=4,
-            width=80, height=22
+            corner_radius=6,
+            width=90, height=22
         ).pack(side="left", padx=(0, 10), pady=15)
 
         self._status_badge = ctk.CTkLabel(
@@ -222,14 +233,14 @@ class RansomwareDetectorApp(ctk.CTk):
             font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
             text_color=C["bg_dark"],
             fg_color=C["green"],
-            corner_radius=5,
-            width=120, height=28
+            corner_radius=8,
+            width=130, height=30
         )
         self._status_badge.pack(side="right", padx=20, pady=15)
 
         ctk.CTkLabel(
             hdr,
-            text="Calibrated Random Forest  |  Cost-Aware  |  16 Features  |  Cybersecurity Research Tool",
+            text="Calibrated RF  |  Cost-Aware  |  16 Features  |  YARA Fusion",
             font=ctk.CTkFont(family="Consolas", size=9),
             text_color=C["text_dim"]
         ).pack(side="right", padx=10, pady=15)
@@ -289,15 +300,29 @@ class RansomwareDetectorApp(ctk.CTk):
         ).pack(fill="x", padx=6, pady=(0, 6))
 
         # ── v2: Threshold Slider Panel ──
-        self._section_label(scroll, "◈ FP THRESHOLD CONTROL")
+        self._section_label(scroll, "◈ THREAT SENSITIVITY")
         self._build_threshold_panel(scroll)
+
+        # ── Threat Intelligence (new) ──
+        self._section_label(scroll, "◈ THREAT INTELLIGENCE")
+        intel_frame = ctk.CTkFrame(scroll, fg_color=C["bg_card"], corner_radius=8)
+        intel_frame.pack(fill="x", pady=(3, 8))
+
+        self._yara_info_lbl = ctk.CTkLabel(
+            intel_frame,
+            text="YARA: initializing…\nHeuristic: armed",
+            font=ctk.CTkFont(family="Consolas", size=8),
+            text_color=C["text_dim"],
+            justify="left"
+        )
+        self._yara_info_lbl.pack(anchor="w", padx=8, pady=6)
 
         # Scan button
         self._scan_btn = ctk.CTkButton(
             scroll, text="▶  START SCAN",
             font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
             fg_color=C["accent"], hover_color=C["accent_h"],
-            text_color="#FFFFFF", height=40, corner_radius=6,
+            text_color="#FFFFFF", height=42, corner_radius=10,
             command=self._start_scan
         )
         self._scan_btn.pack(fill="x", pady=(0, 4))
@@ -306,7 +331,7 @@ class RansomwareDetectorApp(ctk.CTk):
             scroll, text="◼  CANCEL",
             font=ctk.CTkFont(family="Consolas", size=10),
             fg_color=C["bg_card"], hover_color=C["danger"],
-            text_color=C["text_dim"], height=30, corner_radius=6,
+            text_color=C["text_dim"], height=30, corner_radius=8,
             command=self._cancel_scan, state="disabled"
         )
         self._cancel_btn.pack(fill="x", pady=(0, 8))
@@ -320,7 +345,7 @@ class RansomwareDetectorApp(ctk.CTk):
         self._progress_label.pack(anchor="w", pady=(0, 3))
 
         self._progress_bar = ctk.CTkProgressBar(
-            scroll, height=8, corner_radius=4,
+            scroll, height=10, corner_radius=8,
             fg_color=C["bg_dark"], progress_color=C["green"]
         )
         self._progress_bar.set(0)
@@ -443,7 +468,7 @@ class RansomwareDetectorApp(ctk.CTk):
         ).pack(fill="x", pady=(0, 8))
 
         # ── ML Engine Info ──
-        self._section_label(scroll, "◈ ML ENGINE  (v2.0)")
+        self._section_label(scroll, "◈ ML ENGINE  (v2.1)")
         self._ml_info_lbl = ctk.CTkLabel(
             scroll, text="Loading model...",
             font=ctk.CTkFont(family="Consolas", size=8),
@@ -509,7 +534,7 @@ class RansomwareDetectorApp(ctk.CTk):
         self._threshold_hint_lbl = ctk.CTkLabel(
             thresh_frame, text="Optimal (Auto-tuned)",
             font=ctk.CTkFont(family="Consolas", size=8),
-            text_color=C["purple"]
+            text_color=C["cyan"]
         )
         self._threshold_hint_lbl.pack(pady=(0, 4))
 
@@ -557,11 +582,11 @@ class RansomwareDetectorApp(ctk.CTk):
         panel = ctk.CTkFrame(parent, fg_color=C["bg_panel"], corner_radius=8)
         panel.grid(row=0, column=1, sticky="nsew", padx=(5, 0), pady=5)
 
-        tab_hdr = ctk.CTkFrame(panel, fg_color=C["bg_card"], corner_radius=6, height=35)
+        tab_hdr = ctk.CTkFrame(panel, fg_color=C["bg_card"], corner_radius=8, height=38)
         tab_hdr.pack(fill="x", padx=8, pady=(8, 4))
         tab_hdr.pack_propagate(False)
         ctk.CTkLabel(
-            tab_hdr, text="◈  SCAN RESULTS  —  Anti-FP Edition v2",
+            tab_hdr, text="◈  SCAN RESULTS  —  Premium Defense",
             font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
             text_color=C["accent"]
         ).pack(side="left", padx=12, pady=6)
@@ -601,7 +626,7 @@ class RansomwareDetectorApp(ctk.CTk):
         style.configure("Cyber.Treeview",
                         background=C["bg_dark"],
                         foreground=C["text"],
-                        rowheight=24,
+                        rowheight=26,
                         fieldbackground=C["bg_dark"],
                         borderwidth=0,
                         font=("Consolas", 9))
@@ -653,7 +678,7 @@ class RansomwareDetectorApp(ctk.CTk):
         self._tree.tag_configure("FP_ADJ",  foreground=C["purple"])  # v2: màu riêng cho FP adjusted
 
     def _build_log_console(self):
-        console_frame = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8, height=130)
+        console_frame = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=10, height=140)
         console_frame.pack(fill="x", padx=10, pady=(0, 8))
         console_frame.pack_propagate(False)
 
@@ -760,7 +785,7 @@ class RansomwareDetectorApp(ctk.CTk):
                     f"ML Engine loaded  |  Accuracy: {acc:.1f}%  |  "
                     f"Precision: {prec:.1f}%  |  FP Rate: {fpr:.1f}%"))
                 self._ui_queue.put(("ml_info",
-                    f"✓ Model v2.0 loaded\n"
+                    f"✓ Model v2.1 loaded\n"
                     f"Accuracy:   {acc:.2f}%\n"
                     f"Precision:  {prec:.2f}%  (target ≥95%)\n"
                     f"Recall:     {rec:.2f}%\n"
@@ -782,7 +807,7 @@ class RansomwareDetectorApp(ctk.CTk):
                     f"Model trained  |  Accuracy: {acc:.1f}%  |  "
                     f"Precision: {prec:.1f}%  |  FP Rate: {fpr:.1f}%"))
                 self._ui_queue.put(("ml_info",
-                    f"✓ Model v2.0 trained\n"
+                    f"✓ Model v2.1 trained\n"
                     f"Accuracy:  {acc:.2f}%\n"
                     f"Precision: {prec:.2f}%\n"
                     f"FP Rate:   {fpr:.2f}%\n"
@@ -791,6 +816,25 @@ class RansomwareDetectorApp(ctk.CTk):
 
         t = threading.Thread(target=_bg, daemon=True)
         t.start()
+
+    def _ensure_threat_intel_loaded(self):
+        """Load YARA info + update status label."""
+        def _bg():
+            try:
+                yara_engine = get_yara_engine()
+                engine_type = yara_engine.get_engine_type()
+                rules_count = yara_engine.get_rules_count()
+                self._ui_queue.put((
+                    "intel",
+                    f"YARA: {engine_type} ({rules_count} rules)\nHeuristic: armed",
+                ))
+            except Exception:
+                self._ui_queue.put((
+                    "intel",
+                    "YARA: unavailable\nHeuristic: armed",
+                ))
+
+        threading.Thread(target=_bg, daemon=True).start()
 
     def _start_scan(self):
         scan_dir = self._scan_dir.get().strip()
@@ -1004,6 +1048,10 @@ class RansomwareDetectorApp(ctk.CTk):
 
                 elif mtype == "ml_info":
                     self._ml_info_lbl.configure(text=msg[1])
+
+                elif mtype == "intel":
+                    if hasattr(self, "_yara_info_lbl"):
+                        self._yara_info_lbl.configure(text=msg[1])
 
                 elif mtype == "set_threshold":
                     # v2: auto-set threshold slider sau khi model load
