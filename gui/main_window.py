@@ -45,6 +45,7 @@ import customtkinter as ctk
 from core.scanner import Scanner, ScanResult
 from core.ml_engine import get_engine
 from core.watchdog_monitor import RealTimeMonitor, ThreatEvent
+from core.process_monitor import BehaviorAlert
 from core.report_generator import export_csv, export_report_png
 from core.fp_reducer import (
     EXTENSION_THRESHOLDS,
@@ -140,6 +141,115 @@ class AlertWindow(ctk.CTkToplevel):
             font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
             width=120, height=35, corner_radius=6
         ).pack(pady=15)
+
+
+class BehaviorAlertWindow(ctk.CTkToplevel):
+    """Cửa sổ cảnh báo behavior (Process Monitor) - v2.2"""
+
+    def __init__(self, parent, alert: BehaviorAlert):
+        super().__init__(parent)
+        self.title(f"⚠ {alert.behavior_type.value.upper()} DETECTED")
+        self.geometry("600x400")
+        self.configure(fg_color=C["bg_dark"])
+        self.attributes("-topmost", True)
+        self.resizable(True, True)
+
+        # Severity color
+        severity_colors = {
+            "low": C["blue"],
+            "medium": C["yellow"],
+            "high": C["orange"],
+            "critical": C["red"],
+        }
+        severity_color = severity_colors.get(alert.severity, C["red"])
+
+        # Header
+        ctk.CTkLabel(
+            self, text=f"⚠  {alert.behavior_type.value.upper()}",
+            font=ctk.CTkFont(family="Consolas", size=20, weight="bold"),
+            text_color=severity_color
+        ).pack(pady=(15, 5))
+
+        ctk.CTkLabel(
+            self, text=f"Severity: {alert.severity.upper()}",
+            font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
+            text_color=severity_color
+        ).pack(pady=(0, 10))
+
+        # Process Info Frame
+        proc_frame = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
+        proc_frame.pack(fill="x", padx=20, pady=5)
+
+        ctk.CTkLabel(
+            proc_frame, text="PROCESS INFORMATION",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["accent"]
+        ).pack(pady=(8, 5))
+
+        proc_info = [
+            ("Process Name", alert.process.name),
+            ("PID", str(alert.process.pid)),
+            ("Path", alert.process.path[:50] + "..." if len(alert.process.path) > 50 else alert.process.path),
+            ("Benign", "Yes" if alert.process.is_benign else "No"),
+            ("System", "Yes" if alert.process.is_system else "No"),
+        ]
+
+        for key, val in proc_info:
+            row = ctk.CTkFrame(proc_frame, fg_color="transparent")
+            row.pack(fill="x", padx=10, pady=2)
+            ctk.CTkLabel(row, text=f"{key}:", font=ctk.CTkFont(family="Consolas", size=10),
+                         text_color=C["text_dim"], width=100, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=val, font=ctk.CTkFont(family="Consolas", size=10),
+                         text_color=C["text"], anchor="w").pack(side="left")
+
+        # Description
+        desc_frame = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
+        desc_frame.pack(fill="x", padx=20, pady=5)
+
+        ctk.CTkLabel(
+            desc_frame, text="DESCRIPTION",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["accent"]
+        ).pack(pady=(8, 5))
+
+        ctk.CTkLabel(
+            desc_frame, text=alert.description,
+            font=ctk.CTkFont(family="Consolas", size=10),
+            text_color=C["text"], wraplength=550
+        ).pack(pady=(0, 8))
+
+        # Affected Files
+        files_frame = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
+        files_frame.pack(fill="both", expand=True, padx=20, pady=5)
+
+        ctk.CTkLabel(
+            files_frame, text=f"AFFECTED FILES ({len(alert.files)})",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["accent"]
+        ).pack(pady=(8, 5))
+
+        # Scrollable files list
+        files_scroll = ctk.CTkScrollableFrame(files_frame, fg_color="transparent", height=120)
+        files_scroll.pack(fill="both", expand=True, padx=10, pady=5)
+
+        for i, fpath in enumerate(alert.files[:20]):  # Show max 20 files
+            short_path = fpath[:70] + "..." if len(fpath) > 70 else fpath
+            ctk.CTkLabel(
+                files_scroll, text=f"{i+1}. {short_path}",
+                font=ctk.CTkFont(family="Consolas", size=9),
+                text_color=C["text_dim"], anchor="w"
+            ).pack(fill="x", pady=1)
+
+        # Buttons
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(pady=10)
+
+        ctk.CTkButton(
+            btn_frame, text="DISMISS", command=self.destroy,
+            fg_color=C["danger"], hover_color="#B22222",
+            font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
+            width=120, height=35, corner_radius=6
+        ).pack(side="left", padx=5)
 
 
 class RansomwareDetectorApp(ctk.CTk):
@@ -901,6 +1011,7 @@ class RansomwareDetectorApp(ctk.CTk):
 
         self._monitor.on_threat   = self._on_realtime_threat
         self._monitor.on_analyzed = self._on_realtime_analyzed
+        self._monitor.on_behavior = self._on_behavior_alert
         ok = self._monitor.start(watch_dir)
         if ok:
             self._watch_status_lbl.configure(text="● PROTECTION ON", text_color=C["green"])
@@ -924,6 +1035,12 @@ class RansomwareDetectorApp(ctk.CTk):
 
     def _on_realtime_analyzed(self, result: ScanResult, event_type: str):
         self._ui_queue.put(("watch_update",))
+
+    def _on_behavior_alert(self, alert: BehaviorAlert):
+        """Xử lý behavior alert từ Process Monitor."""
+        self._ui_queue.put(("behavior_alert", alert))
+        # Also log to console
+        self._log(f"[BEHAVIOR] {alert.severity.upper()}: {alert.description}")
 
     def _export_csv(self):
         if not self._results:
@@ -1073,6 +1190,11 @@ class RansomwareDetectorApp(ctk.CTk):
                     stats = self._monitor.get_stats()
                     self._watch_stats_lbl.configure(
                         text=f"Analyzed: {stats['total_analyzed']}  |  Threats: {stats['total_threats']}")
+
+                elif mtype == "behavior_alert":
+                    _, alert = msg
+                    # Show behavior alert window
+                    BehaviorAlertWindow(self, alert)
 
                 elif mtype == "msgbox":
                     _, title, body = msg
