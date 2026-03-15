@@ -25,6 +25,7 @@ import os
 import time
 import queue
 import threading
+import platform
 from typing import Callable, Optional, List, Dict, Any
 from datetime import datetime
 
@@ -38,6 +39,10 @@ from watchdog.events import (
 from core.feature_extractor import extract_features
 from core.ml_engine import get_engine
 from core.scanner import SKIP_EXTENSIONS, MIN_FILE_SIZE, MAX_FILE_SIZE, ScanResult
+from core.process_monitor import (
+    get_process_monitor, ProcessInfo, FileEvent, BehaviorAlert, BehaviorType
+)
+from core.notifications import get_notifier
 
 DEBOUNCE_SECONDS  = 2.0   # Cooldown mỗi file
 QUEUE_MAX_SIZE    = 500   # Tối đa 500 events trong queue
@@ -142,9 +147,16 @@ class RealTimeMonitor:
         self.total_analyzed: int                  = 0
         self.total_threats:  int                  = 0
 
+        # Process Monitor (v2.2)
+        self._process_monitor = get_process_monitor()
+
+        # Notifications (v2.2)
+        self._notifier = get_notifier()
+
         # Callbacks
         self.on_threat:   Optional[Callable[[ThreatEvent], None]] = None
         self.on_analyzed: Optional[Callable[[ScanResult, str], None]] = None
+        self.on_behavior: Optional[Callable[[BehaviorAlert], None]] = None
 
     @property
     def is_running(self) -> bool:
@@ -172,6 +184,10 @@ class RealTimeMonitor:
         self.threat_history.clear()
         self.total_analyzed = 0
         self.total_threats  = 0
+
+        # Khởi động Process Monitor (v2.2)
+        self._process_monitor.start()
+        self._process_monitor.on_behavior = self._handle_behavior_alert
 
         # Khởi động worker threads
         self._workers = []
@@ -215,6 +231,10 @@ class RealTimeMonitor:
             t.join(timeout=2)
 
         self._workers.clear()
+
+        # Stop Process Monitor (v2.2)
+        self._process_monitor.stop()
+
         self._is_running = False
 
     def _worker_loop(self):
@@ -247,6 +267,9 @@ class RealTimeMonitor:
                     result.probability = proba
                     result.risk_level = engine.get_risk_level(proba)
                     result.entropy    = float(features[0])
+
+                    # Record to Process Monitor (v2.2)
+                    self._record_process_event(file_path, event_type, features, result.size)
                 else:
                     result.error = "Không thể trích xuất features"
             except Exception as e:
@@ -267,6 +290,67 @@ class RealTimeMonitor:
                 if self.on_threat:
                     self.on_threat(threat)
 
+                # Send Windows notification (v2.2)
+                self._notifier.notify(
+                    title="Ransomware Detected!",
+                    message=f"{result.filename} - Risk: {result.risk_level}",
+                    severity=result.risk_level.lower()
+                )
+
+    def _record_process_event(self, file_path: str, event_type: str, features, size: int):
+        """Ghi nhận event vào Process Monitor."""
+        from datetime import datetime
+
+        # Get PID of process accessing the file (if available)
+        pid = self._get_file_process_pid(file_path)
+
+        file_event = FileEvent(
+            path=file_path,
+            event_type=event_type,
+            timestamp=datetime.now(),
+            pid=pid,
+            process_name="",
+            entropy=float(features[0]) if features is not None else 0.0,
+            size=size
+        )
+
+        self._process_monitor.record_event(file_event)
+
+    def _get_file_process_pid(self, file_path: str) -> Optional[int]:
+        """Lấy PID của process đang truy cập file (Windows only)."""
+        if platform.system() != "Windows":
+            return None
+
+        try:
+            import psutil
+            for proc in psutil.process_iter(['pid', 'name', 'open_files']):
+                try:
+                    open_files = proc.info.get('open_files')
+                    if open_files:
+                        for f in open_files:
+                            if f.path == file_path or file_path in f.path:
+                                return proc.info['pid']
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception:
+            pass
+
+        return None
+
+    def _handle_behavior_alert(self, alert: BehaviorAlert):
+        """Xử lý behavior alert từ Process Monitor."""
+        # Send notification
+        self._notifier.notify_ransomware_alert(
+            alert_type=alert.behavior_type.value,
+            process_name=alert.process.name,
+            file_count=len(alert.files),
+            details=alert.description
+        )
+
+        # Callback to GUI
+        if self.on_behavior:
+            self.on_behavior(alert)
+
     def get_stats(self) -> Dict[str, Any]:
         """Thống kê của phiên giám sát hiện tại."""
         return {
@@ -274,4 +358,16 @@ class RealTimeMonitor:
             "total_analyzed": self.total_analyzed,
             "total_threats":  self.total_threats,
             "queue_size":     self._queue.qsize(),
+            "process_monitor": self._process_monitor.get_all_stats(),
+            "notifications":  self._notifier.get_stats(),
         }
+
+    @property
+    def process_monitor(self):
+        """Lấy ProcessMonitor instance."""
+        return self._process_monitor
+
+    @property
+    def notifier(self):
+        """Lấy NotificationManager instance."""
+        return self._notifier
