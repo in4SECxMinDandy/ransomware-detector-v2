@@ -1,0 +1,9 @@
+[tool.pyright]
+include = ["core"]
+exclude = ["**/node_modules", "**/__pycache__"]
+reportMissingImports = true
+reportMissingTypeStubs = false
+pythonVersion = "3.10"
+
+[tool.pyre]
+include = ["core"]

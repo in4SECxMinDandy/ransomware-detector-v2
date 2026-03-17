@@ -25,10 +25,10 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List, Dict, Optional, Any
 
-from core.feature_extractor import extract_features
-from core.ml_engine import get_engine
-from core.yara_engine import get_yara_engine
-from core.fp_reducer import (
+from core.feature_extractor import extract_features  # type: ignore[import]
+from core.ml_engine import get_engine  # type: ignore[import]
+from core.yara_engine import get_yara_engine  # type: ignore[import]
+from core.fp_reducer import (  # type: ignore[import]
     check_path_whitelist,
     apply_fp_reduction,
     ALWAYS_SAFE_EXTENSIONS,
@@ -114,7 +114,7 @@ class ScanResult:
         self.risk_level          = "SAFE"
         self.entropy             = 0.0
         self.scan_time_ms        = 0.0
-        self.error               = None
+        self.error: Optional[str] = None
         # v2
         self.raw_probability     = 0.0
         self.fp_adjusted         = False
@@ -172,9 +172,19 @@ class Scanner:
         try:
             if recursive:
                 for root, dirs, filenames in os.walk(directory):
-                    dirs[:] = [d for d in dirs if not d.startswith(".") and d not in
-                                {"System Volume Information", "$Recycle.Bin", "Windows",
-                                 "__pycache__", "node_modules", ".git"}]
+                    # Filter out unwanted directories
+                    skip_dirs = {
+                        "System Volume Information",
+                        "$Recycle.Bin",
+                        "Windows",
+                        "__pycache__",
+                        "node_modules",
+                        ".git",
+                    }
+                    dirs[:] = [  # type: ignore[assignment]
+                        d for d in dirs
+                        if not d.startswith(".") and d not in skip_dirs
+                    ]
                     for fn in filenames:
                         fp  = os.path.join(root, fn)
                         ext = os.path.splitext(fn)[1].lower()
@@ -305,7 +315,8 @@ class Scanner:
         except PermissionError:
             result.error = "Không có quyền đọc file"
         except Exception as e:
-            result.error = str(e)[:100]
+            error_str = str(e)
+            result.error = error_str[:100] if len(error_str) > 100 else error_str  # type: ignore[index]
 
         result.scan_time_ms = (time.perf_counter() - t_start) * 1000
         return result
@@ -347,8 +358,10 @@ class Scanner:
                     return
 
                 with ThreadPoolExecutor(max_workers=max_threads) as executor:
+                    def scan_file_wrapper(fp: str) -> ScanResult:
+                        return self._scan_single_file(fp)
                     future_to_path = {
-                        executor.submit(self._scan_single_file, fp): fp
+                        executor.submit(scan_file_wrapper, fp): fp  # type: ignore[arg-type]
                         for fp in files
                     }
 
@@ -405,6 +418,6 @@ class Scanner:
             "high":             high,
             "medium":           medium,
             "errors":           errors,
-            "avg_entropy":      round(avg_entropy, 4),
+            "avg_entropy":      round(avg_entropy * 10000) / 10000,
             "fp_adjusted_count": fp_adjusted,  # v2: số file được điều chỉnh FP
         }
