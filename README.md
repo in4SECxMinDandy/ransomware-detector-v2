@@ -4,7 +4,7 @@
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](#)
+![Platform: Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
 
 ---
 
@@ -19,7 +19,7 @@
 7. [FP Reduction Pipeline](#fp-reduction-pipeline)
 8. [YARA Signatures](#yara-signatures)
 9. [Process Behavior Detection](#process-behavior-detection)
-10. [Real-time Protection](#real-time-protection)
+10. [Real-time Protection](#5-real-time-protection)
 11. [Windows Notifications](#windows-notifications)
 12. [GUI](#gui)
 13. [Performance](#performance)
@@ -28,7 +28,7 @@
 
 ---
 
-## 🎯 Tổng quan
+## Tổng quan
 
 **Ransomware Entropy Detector** là công cụ phòng thủ ransomware đa lớp (multi-layer) với khả năng:
 
@@ -42,7 +42,7 @@
 
 ---
 
-## 🚀 Tính năng chính
+## Tính năng chính
 
 ### 1. ML Engine (16 Features)
 
@@ -61,7 +61,7 @@
 ### 2. FP Reduction Pipeline (3 tầng)
 
 | Tầng | Chức năng |
-|------|-----------|
+| --- | --- |
 | **Whitelist** | Bỏ qua system files, fonts, logs, known benign |
 | **Per-extension Threshold** | PNG/ZIP/EXE dùng threshold cao hơn |
 | **Magic Bytes Validation** | File hợp lệ → giảm probability ×0.70 |
@@ -77,7 +77,7 @@
 Phát hiện ransomware đang hoạt động qua hành vi process:
 
 | Pattern | Mô tả | Severity |
-|---------|-------|----------|
+| --- | --- | --- |
 | `ENCRYPTION_BURST` | >10 files bị mã hóa trong 30s | 🔴 Critical |
 | `EXTENSION_CHANGE` | Đổi extension sang `.locked`, `.encrypted` | 🔴 Critical |
 | `RAPID_OPS` | >5 files/second được tạo/sửa | 🟠 High |
@@ -106,9 +106,9 @@ Phát hiện ransomware đang hoạt động qua hành vi process:
 
 ---
 
-## 🏗️ Kiến trúc
+## Kiến trúc
 
-```
+```text
 ransomware_detector_v2/
 ├── core/
 │   ├── feature_extractor.py    # 16 features extraction
@@ -136,7 +136,7 @@ ransomware_detector_v2/
 
 ---
 
-## 💾 Cài đặt
+## Cài đặt
 
 ### Yêu cầu
 
@@ -178,7 +178,7 @@ pip install yara-python
 
 ---
 
-## 📖 Hướng dẫn sử dụng
+## Hướng dẫn sử dụng
 
 ### Mode 1: Manual Scan
 
@@ -200,7 +200,7 @@ pip install yara-python
 ### Adjusting Sensitivity
 
 | Profile | Threshold Delta | Use Case |
-|---------|----------------|----------|
+| --- | --- | --- |
 | **Balanced** | +0.00 | Cân bằng FN/FP |
 | **High Sensitivity** | -0.05 | Ưu tiên bắt ransomware |
 | **Paranoid** | -0.10 | Giám sát nghiêm ngặt |
@@ -213,12 +213,12 @@ pip install yara-python
 
 ---
 
-## 🤖 ML Engine
+## ML Engine
 
 ### Features (16)
 
 | # | Feature | Mô tả |
-|---|---------|-------|
+| --- | --- | --- |
 | 1 | Shannon Entropy | Entropy trung bình |
 | 2 | Chi-Square (log) | Byte distribution uniformity |
 | 3 | Mean Byte | Giá trị trung bình byte |
@@ -244,7 +244,7 @@ pip install yara-python
 
 ---
 
-## 🔍 FP Reduction Pipeline
+## FP Reduction Pipeline
 
 ### Tầng 1: Whitelist
 
@@ -261,7 +261,7 @@ WHITELIST_PATHS = [
 ### Tầng 2: Per-extension Threshold
 
 | Extension | Threshold | Lý do |
-|-----------|-----------|-------|
+| --- | --- | --- |
 | `.png`, `.jpg` | 0.85 | Entropy cao tự nhiên |
 | `.zip`, `.7z` | 0.80 | Compressed files |
 | `.exe`, `.dll` | 0.75 | PE files |
@@ -282,12 +282,12 @@ Nếu magic bytes hợp lệ → `probability *= 0.70`
 
 ---
 
-## 🎯 YARA Signatures
+## YARA Signatures
 
 ### Built-in Rules
 
 | Family | Aliases |
-|--------|---------|
+| --- | --- |
 | WannaCry | wncry, wannacry |
 | LockBit | lockbit, lockbit2, lockbit3 |
 | BlackCat | blackcat, alphv |
@@ -320,11 +320,11 @@ rule custom_ransomware {
 
 ---
 
-## ⚙️ Process Behavior Detection
+## Process Behavior Detection
 
 ### Cách hoạt động
 
-```
+```text
 File Event → Get PID → Get Process Info → Check Patterns → Alert
 ```
 
@@ -361,7 +361,7 @@ KNOWN_BENIGN_PROCESSES = [
 
 ---
 
-## 🔔 Windows Notifications
+## Windows Notifications
 
 ### Requirements
 
@@ -372,7 +372,7 @@ pip install win10toast plyer
 ### Notification Levels
 
 | Level | Sound | Use Case |
-|-------|-------|----------|
+| --- | --- | --- |
 | LOW | None | Info messages |
 | MEDIUM | SystemAsterisk | Warnings |
 | HIGH | SystemExclamation | Threats |
@@ -393,11 +393,11 @@ notifier.notify(
 
 ---
 
-## 🖥️ GUI
+## GUI
 
 ### Layout
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  HEADER: Logo + Title + Version + Status badge              │
 ├──────────────┬──────────────────────────────────────────────┤
@@ -423,10 +423,10 @@ notifier.notify(
 
 ---
 
-## ⚡ Performance
+## Performance
 
 | Metric | Target |
-|--------|--------|
+| --- | --- |
 | Precision | ≥ 95% |
 | False Positive Rate | < 5% |
 | Recall | ≥ 90% |
@@ -441,7 +441,7 @@ notifier.notify(
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Retrain trên malware dataset thực tế (VirusTotal, MalwareBazaar)
 - [ ] Thêm dynamic behavior signals (file rename bursts, mass IO)
@@ -449,25 +449,25 @@ notifier.notify(
 - [ ] Export forensic bundle (hashes + IOC report)
 - [ ] **System Tray integration** (v2.3)
 - [ ] **Auto-response actions** (quarantine, kill process) (v2.3)
-- [   **Network traffic analysis** (v2.4)
+- [ ] **Network traffic analysis** (v2.4)
 
 ---
 
-## 📄 License
+## License
 
 MIT License - Xem [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ---
 
-## 👤 Author
+## Author
 
 - **Name**: Your Name
-- **Email**: your.email@example.com
+- **Email**: <your.email@example.com>
 - **GitHub**: [yourusername](https://github.com/yourusername)
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [scikit-learn](https://scikit-learn.org/) - ML framework
 - [YARA](https://virustotal.github.io/yara/) - Pattern matching
