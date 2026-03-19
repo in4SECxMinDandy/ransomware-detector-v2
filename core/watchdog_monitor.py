@@ -371,3 +371,25 @@ class RealTimeMonitor:
     def notifier(self):
         """Lấy NotificationManager instance."""
         return self._notifier
+
+    def get_current_io_rate(self) -> Dict[str, float]:
+        """Lấy current IO rates cho GUI chart."""
+        stats = {}
+        for pid, samples in self._process_monitor._io_samples.items():
+            if samples:
+                recent = samples[-1]
+                stats[pid] = {
+                    "write_mbps": recent["write_mbps"],
+                    "read_mbps": recent.get("read_mbps", 0.0),
+                    "timestamp": recent["timestamp"],
+                }
+        return stats
+
+    def get_signal_stats(self) -> Dict[str, Any]:
+        """Lấy behavior signal stats."""
+        pm_stats = self._process_monitor.get_all_stats()
+        sig_stats = self._process_monitor._signal_aggregator.get_signal_stats() if hasattr(self._process_monitor, "_signal_aggregator") else {}
+        return {
+            "process_monitor": pm_stats,
+            "signal_aggregator": sig_stats,
+        }

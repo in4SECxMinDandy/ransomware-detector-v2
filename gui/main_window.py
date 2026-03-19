@@ -49,7 +49,7 @@ from matplotlib.figure import Figure
 from core.scanner import Scanner, ScanResult
 from core.ml_engine import get_engine
 from core.watchdog_monitor import RealTimeMonitor, ThreatEvent
-from core.process_monitor import BehaviorAlert, DynamicSignalAggregator
+from core.process_monitor import BehaviorAlert, DynamicSignalAggregator, get_process_monitor
 from core.report_generator import export_csv, export_report_png
 from core.fp_reducer import (
     EXTENSION_THRESHOLDS,
@@ -61,6 +61,8 @@ from core.forensic_exporter import ForensicBundleExporter
 from core.rule_updater import YARARuleUpdater
 from core.auto_responder import AutoResponder, get_auto_responder
 from core.network_monitor import NetworkAnalyzer
+from core.config_manager import ConfigManager, get_config_manager
+from core.yara_engine import get_yara_engine
 from gui.whitelist_editor import WhitelistEditorWindow, load_whitelist, apply_whitelist_to_fp_reducer
 from gui.tray_manager import TrayManager, get_tray_manager
 
@@ -150,6 +152,122 @@ class AlertWindow(ctk.CTkToplevel):
             font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
             width=120, height=35, corner_radius=6
         ).pack(pady=15)
+
+
+class PEAnalysisWindow(ctk.CTkToplevel):
+    """v2.5: Hiển thị chi tiết PE Analysis khi double-click trên PE file."""
+
+    def __init__(self, parent, result):
+        super().__init__(parent)
+        self.title(f"PE Analysis: {result.filename}")
+        self.geometry("580x420")
+        self.configure(fg_color=C["bg_dark"])
+        self.resizable(True, True)
+
+        hdr = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
+        hdr.pack(fill="x", padx=12, pady=(12, 0))
+        ctk.CTkLabel(
+            hdr, text=f"PE ANALYSIS: {result.filename}",
+            font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+            text_color=C["cyan"]
+        ).pack(padx=12, pady=8)
+
+        content = ctk.CTkScrollableFrame(self, fg_color=C["bg_dark"])
+        content.pack(fill="both", expand=True, padx=12, pady=(8, 12))
+
+        # File info
+        info_frame = ctk.CTkFrame(content, fg_color=C["bg_panel"], corner_radius=6)
+        info_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(info_frame, text="FILE INFO",
+                     font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
+                     text_color=C["accent"]).pack(padx=10, pady=(8, 4))
+        for key, val in [
+            ("Path", result.path),
+            ("Size", f"{result.size/1024:.1f} KB"),
+            ("Entropy", f"{result.entropy:.4f}"),
+            ("Risk", result.risk_level),
+            ("Probability", f"{result.probability*100:.1f}%"),
+        ]:
+            row = ctk.CTkFrame(info_frame, fg_color="transparent")
+            row.pack(fill="x", padx=10, pady=1)
+            ctk.CTkLabel(row, text=f"{key}:", font=ctk.CTkFont(family="Consolas", size=9),
+                         text_color=C["text_dim"], width=90, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=str(val), font=ctk.CTkFont(family="Consolas", size=9),
+                         text_color=C["text"]).pack(side="left")
+
+        # PE info
+        pe_info = getattr(result, "pe_info", {}) or {}
+        if pe_info:
+            pe_frame = ctk.CTkFrame(content, fg_color=C["bg_panel"], corner_radius=6)
+            pe_frame.pack(fill="x", pady=(0, 8))
+            ctk.CTkLabel(pe_frame, text="PE STRUCTURE",
+                         font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
+                         text_color=C["orange"]).pack(padx=10, pady=(8, 4))
+
+            for key in ["is_pe", "is_packed", "is_suspicious"]:
+                val = pe_info.get(key, False)
+                color = C["red"] if val else C["green"]
+                row = ctk.CTkFrame(pe_frame, fg_color="transparent")
+                row.pack(fill="x", padx=10, pady=1)
+                ctk.CTkLabel(row, text=f"{key}:", font=ctk.CTkFont(family="Consolas", size=9),
+                             text_color=C["text_dim"], width=120, anchor="w").pack(side="left")
+                ctk.CTkLabel(row, text=str(val), font=ctk.CTkFont(family="Consolas", size=9, weight="bold"),
+                             text_color=color).pack(side="left")
+
+            rwx = pe_info.get("rwx_sections", [])
+            if rwx:
+                row = ctk.CTkFrame(pe_frame, fg_color="transparent")
+                row.pack(fill="x", padx=10, pady=1)
+                ctk.CTkLabel(row, text="RWX Sections:", font=ctk.CTkFont(family="Consolas", size=9),
+                             text_color=C["text_dim"], width=120, anchor="w").pack(side="left")
+                ctk.CTkLabel(row, text=", ".join(rwx), font=ctk.CTkFont(family="Consolas", size=9),
+                             text_color=C["red"]).pack(side="left")
+
+            susp = pe_info.get("suspicious_sections", [])
+            if susp:
+                row = ctk.CTkFrame(pe_frame, fg_color="transparent")
+                row.pack(fill="x", padx=10, pady=1)
+                ctk.CTkLabel(row, text="Suspicious Sections:", font=ctk.CTkFont(family="Consolas", size=9),
+                             text_color=C["text_dim"], width=120, anchor="w").pack(side="left")
+                ctk.CTkLabel(row, text=", ".join(susp), font=ctk.CTkFont(family="Consolas", size=9),
+                             text_color=C["orange"]).pack(side="left")
+
+        # YARA info
+        yara_matches = getattr(result, "yara_matches", []) or []
+        if yara_matches:
+            yara_frame = ctk.CTkFrame(content, fg_color=C["bg_panel"], corner_radius=6)
+            yara_frame.pack(fill="x", pady=(0, 8))
+            ctk.CTkLabel(yara_frame, text=f"YARA MATCHES ({len(yara_matches)})",
+                         font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
+                         text_color=C["purple"]).pack(padx=10, pady=(8, 4))
+            for m in yara_matches:
+                row = ctk.CTkFrame(yara_frame, fg_color="transparent")
+                row.pack(fill="x", padx=10, pady=1)
+                sev_color = {"CRITICAL": C["red"], "HIGH": C["orange"], "MEDIUM": C["yellow"]}.get(m.severity, C["text"])
+                ctk.CTkLabel(row, text=f"[{m.severity}]", font=ctk.CTkFont(family="Consolas", size=9),
+                             text_color=sev_color, width=75, anchor="w").pack(side="left")
+                ctk.CTkLabel(row, text=m.rule_name, font=ctk.CTkFont(family="Consolas", size=9),
+                             text_color=C["text"]).pack(side="left")
+
+        # FP reason
+        fp_reason = getattr(result, "fp_reason", "") or ""
+        if fp_reason:
+            reason_frame = ctk.CTkFrame(content, fg_color=C["bg_panel"], corner_radius=6)
+            reason_frame.pack(fill="x", pady=(0, 8))
+            ctk.CTkLabel(reason_frame, text="FP ANALYSIS",
+                         font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
+                         text_color=C["purple"]).pack(padx=10, pady=(8, 4))
+            ctk.CTkLabel(reason_frame, text=fp_reason.strip(" |"),
+                         font=ctk.CTkFont(family="Consolas", size=8),
+                         text_color=C["text_dim"], wraplength=520).pack(padx=10, pady=(0, 8))
+
+        ctk.CTkButton(
+            self, text="CLOSE", command=self.destroy,
+            fg_color=C["bg_card"], hover_color=C["border"],
+            font=ctk.CTkFont(family="Consolas", size=10),
+            text_color=C["text_dim"], height=32, corner_radius=6,
+            width=120
+        ).pack(pady=(0, 12))
 
 
 class BehaviorAlertWindow(ctk.CTkToplevel):
@@ -439,6 +557,13 @@ class RansomwareDetectorApp(ctk.CTk):
         # Task 1: Chart update counter
         self._chart_update_counter = 0
 
+        # Sensitivity profile (Task 9)
+        self._sensitivity_var = tk.StringVar(value="balanced")
+
+        # Network auto-refresh (Task 7)
+        self._net_auto_refresh = False
+        self._net_refresh_counter = 0
+
         self._build_ui()
         self._ensure_model_loaded()
         self._ensure_threat_intel_loaded()
@@ -612,6 +737,40 @@ class RansomwareDetectorApp(ctk.CTk):
         )
         self._scan_btn.pack(fill="x", pady=(0, 4))
 
+        # ── v2.5: Sensitivity Profile Selector ──
+        self._section_label(scroll, "◈ SCAN PROFILE")
+        profile_frame = ctk.CTkFrame(scroll, fg_color=C["bg_card"], corner_radius=6)
+        profile_frame.pack(fill="x", pady=(3, 5))
+
+        ctk.CTkLabel(profile_frame, text="Sensitivity",
+                     font=ctk.CTkFont(family="Consolas", size=9),
+                     text_color=C["text_dim"]).pack(anchor="w", padx=8, pady=(6, 2))
+
+        profile_row = ctk.CTkFrame(profile_frame, fg_color="transparent")
+        profile_row.pack(fill="x", padx=6, pady=(0, 6))
+
+        for profile_key, label in [
+            ("paranoid", "🔒 Paranoid"),
+            ("high_sensitivity", "🔶 High"),
+            ("balanced", "⚖ Balanced"),
+        ]:
+            ctk.CTkButton(
+                profile_row, text=label,
+                font=ctk.CTkFont(family="Consolas", size=8),
+                fg_color=C["bg_dark"],
+                hover_color=C["border"],
+                text_color=C["text_dim"],
+                height=26, corner_radius=4,
+                command=lambda p=profile_key: self._set_sensitivity(p)
+            ).pack(side="left", padx=(0, 4))
+
+        self._profile_hint_lbl = ctk.CTkLabel(
+            profile_frame, text="Balanced — recommended",
+            font=ctk.CTkFont(family="Consolas", size=7),
+            text_color=C["cyan"]
+        )
+        self._profile_hint_lbl.pack(pady=(0, 6))
+
         self._cancel_btn = ctk.CTkButton(
             scroll, text="◼  CANCEL",
             font=ctk.CTkFont(family="Consolas", size=10),
@@ -769,7 +928,26 @@ class RansomwareDetectorApp(ctk.CTk):
             font=ctk.CTkFont(family="Consolas", size=8),
             text_color=C["text_dim"], wraplength=260, justify="left"
         )
-        self._ml_info_lbl.pack(anchor="w", padx=5, pady=(0, 10))
+        self._ml_info_lbl.pack(anchor="w", padx=5, pady=(0, 4))
+
+        # v2.5: Process Monitor Stats
+        self._section_label(scroll, "◈ PROCESS MONITOR STATS")
+        self._pm_stats_lbl = ctk.CTkLabel(
+            scroll, text="No active monitoring",
+            font=ctk.CTkFont(family="Consolas", size=8),
+            text_color=C["text_dim"], wraplength=260, justify="left"
+        )
+        self._pm_stats_lbl.pack(anchor="w", padx=5, pady=(0, 4))
+
+        # ── Config Manager ──
+        self._section_label(scroll, "◈ SETTINGS")
+        ctk.CTkButton(
+            scroll, text="⚙  Config Manager",
+            font=ctk.CTkFont(family="Consolas", size=10),
+            fg_color=C["bg_card"], hover_color=C["border"],
+            text_color=C["text"], height=34, corner_radius=6,
+            command=self._open_config_manager
+        ).pack(fill="x", pady=(3, 8))
 
     def _build_threshold_panel(self, parent):
         """
@@ -897,6 +1075,10 @@ class RansomwareDetectorApp(ctk.CTk):
         self._network_monitor_tab = self._results_tabview.add("Network Monitor")
         self._build_network_monitor_tab(self._network_monitor_tab)
 
+        # Tab: Quarantine Manager (v2.5)
+        self._quarantine_tab = self._results_tabview.add("Quarantine")
+        self._build_quarantine_tab(self._quarantine_tab)
+
     def _build_scan_results_tab(self, parent):
         """Build the Scan Results tab content."""
         tab_hdr = ctk.CTkFrame(parent, fg_color=C["bg_card"], corner_radius=8, height=38)
@@ -993,6 +1175,9 @@ class RansomwareDetectorApp(ctk.CTk):
         self._tree.tag_configure("UNKNOWN", foreground=C["text_dim"])
         self._tree.tag_configure("FP_ADJ",  foreground=C["purple"])
 
+        # v2.5: Double-click to show PE analysis details
+        self._tree.bind("<Double-Button-1>", self._on_result_double_click)
+
     def _build_behavior_signals_tab(self, parent):
         """Task 1: Build the Behavior Signals tab with real-time chart."""
         # Header
@@ -1059,6 +1244,11 @@ class RansomwareDetectorApp(ctk.CTk):
             return
 
         try:
+            # Get real data from ProcessMonitor
+            io_stats = {}
+            if hasattr(self, "_monitor") and self._monitor.is_running:
+                io_stats = self._monitor.get_current_io_rate()
+
             # Update time data
             current_time = time.time() - self._chart_start_time
             self._time_data.append(current_time)
@@ -1067,16 +1257,31 @@ class RansomwareDetectorApp(ctk.CTk):
             while self._time_data and self._time_data[0] < current_time - 60:
                 self._time_data.pop(0)
 
-            # Simulate/update data (in real implementation, this would come from ProcessMonitor)
-            # For now, add placeholder data
-            if len(self._time_data) > len(self._rename_rate_data):
-                self._rename_rate_data.append(0.0)
-            if len(self._time_data) > len(self._io_rate_data):
-                self._io_rate_data.append(0.0)
+            # Get aggregate IO rate across all monitored processes
+            total_write_mbps = sum(s.get("write_mbps", 0) for s in io_stats.values())
+            self._io_rate_data.append(total_write_mbps)
+
+            # Count rename events (from process monitor alerts)
+            rename_count = 0
+            if hasattr(self, "_monitor") and self._monitor.is_running:
+                pm = self._monitor._process_monitor
+                rename_events = 0
+                for pid, events in pm._rename_events.items():
+                    now = datetime.now()
+                    window = now - timedelta(seconds=10)
+                    rename_events += sum(1 for e in events if e.timestamp > window)
+                rename_count = rename_events
+            self._rename_rate_data.append(float(rename_count))
 
             # Trim to match time data
             self._rename_rate_data = self._rename_rate_data[-len(self._time_data):]
             self._io_rate_data = self._io_rate_data[-len(self._time_data):]
+
+            # Update stats labels
+            if hasattr(self, "_sig_stat_rename"):
+                self._sig_stat_rename.configure(text=str(rename_count))
+            if hasattr(self, "_sig_stat_io"):
+                self._sig_stat_io.configure(text=f"{total_write_mbps:.1f}")
 
             # Clear and redraw
             self._behavior_ax.clear()
@@ -1324,12 +1529,20 @@ class RansomwareDetectorApp(ctk.CTk):
         btn_frame.pack(fill="x", padx=8, pady=(4, 4))
 
         self._net_refresh_btn = ctk.CTkButton(
-            btn_frame, text="Refresh Connections",
+            btn_frame, text="↻ Refresh",
             font=ctk.CTkFont(family="Consolas", size=9),
             fg_color=C["accent"], hover_color=C["accent_h"],
             text_color="#FFF", height=30, corner_radius=6,
             command=self._refresh_network_connections
-        ).pack(side="left", padx=(0, 5))
+        ).pack(side="left", padx=(0, 4))
+
+        self._net_auto_refresh_btn = ctk.CTkButton(
+            btn_frame, text="▶ Auto-Refresh",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["bg_card"], hover_color=C["border"],
+            text_color=C["text_dim"], height=30, corner_radius=6,
+            command=self._toggle_net_auto_refresh
+        ).pack(side="left", padx=(0, 4))
 
         self._net_block_btn = ctk.CTkButton(
             btn_frame, text="Block Selected IP",
@@ -1395,6 +1608,193 @@ class RansomwareDetectorApp(ctk.CTk):
         # Initialize network analyzer
         self._network_analyzer = NetworkAnalyzer()
 
+        # v2.5: Refresh counter
+        self._net_refresh_counter = 0
+
+    def _build_quarantine_tab(self, parent):
+        """v2.5: Build the Quarantine Manager tab."""
+        # Header
+        hdr = ctk.CTkFrame(parent, fg_color=C["bg_card"], corner_radius=8, height=38)
+        hdr.pack(fill="x", padx=4, pady=(4, 4))
+        hdr.pack_propagate(False)
+        ctk.CTkLabel(
+            hdr, text="◈  QUARANTINE MANAGER  —  Isolated Threats",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["danger"]
+        ).pack(side="left", padx=12, pady=6)
+
+        # Controls
+        ctrl_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        ctrl_frame.pack(fill="x", padx=8, pady=(4, 4))
+        ctrl_frame.columnconfigure((0, 1, 2), weight=1)
+
+        ctk.CTkButton(
+            ctrl_frame, text="↻ Refresh List",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["accent"], hover_color=C["accent_h"],
+            text_color="#FFF", height=30, corner_radius=6,
+            command=self._refresh_quarantine_list
+        ).grid(row=0, column=0, padx=(0, 4), sticky="ew")
+
+        ctk.CTkButton(
+            ctrl_frame, text="↩ Restore Selected",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["green"], hover_color="#1A9A4A",
+            text_color="#FFF", height=30, corner_radius=6,
+            command=self._restore_quarantined_file
+        ).grid(row=0, column=1, padx=(0, 4), sticky="ew")
+
+        ctk.CTkButton(
+            ctrl_frame, text="🗑 Delete Selected",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["danger"], hover_color="#B22222",
+            text_color="#FFF", height=30, corner_radius=6,
+            command=self._delete_quarantined_file
+        ).grid(row=0, column=2, sticky="ew")
+
+        # Info label
+        self._quarantine_info_lbl = ctk.CTkLabel(
+            ctrl_frame, text="0 quarantined files",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            text_color=C["text_dim"]
+        )
+        self._quarantine_info_lbl.grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
+
+        # Table
+        table_frame = ctk.CTkFrame(parent, fg_color=C["bg_dark"], corner_radius=6)
+        table_frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Quar.Treeview",
+                        background=C["bg_dark"],
+                        foreground=C["text"],
+                        rowheight=22,
+                        fieldbackground=C["bg_dark"],
+                        borderwidth=0,
+                        font=("Consolas", 8))
+        style.configure("Quar.Treeview.Heading",
+                        background=C["bg_card"],
+                        foreground=C["danger"],
+                        borderwidth=0,
+                        font=("Consolas", 8, "bold"),
+                        relief="flat")
+
+        columns = ("id", "original_path", "reason", "timestamp", "hash")
+        self._quarantine_tree = ttk.Treeview(
+            table_frame, columns=columns, show="headings",
+            style="Quar.Treeview", selectmode="extended", height=10
+        )
+
+        col_config = [
+            ("id", "ID", 140),
+            ("original_path", "Original Path", 320),
+            ("reason", "Reason", 150),
+            ("timestamp", "Date", 140),
+            ("hash", "SHA-256", 180),
+        ]
+        for col, heading, width in col_config:
+            self._quarantine_tree.heading(col, text=heading)
+            self._quarantine_tree.column(col, width=width, minwidth=80)
+
+        vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self._quarantine_tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=self._quarantine_tree.xview)
+        self._quarantine_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        self._quarantine_tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+
+        self._quarantine_tree.tag_configure("safe", foreground=C["green"])
+        self._quarantine_tree.tag_configure("danger", foreground=C["red"])
+
+        # Load initial list
+        self._refresh_quarantine_list()
+
+    def _refresh_quarantine_list(self):
+        """Load quarantine list."""
+        responder = get_auto_responder()
+        items = responder.get_quarantine_list()
+
+        for item in self._quarantine_tree.get_children():
+            self._quarantine_tree.delete(item)
+
+        for item in items:
+            short_path = item["original_path"][:50] + "..." if len(item["original_path"]) > 50 else item["original_path"]
+            self._quarantine_tree.insert("", "end",
+                values=(
+                    item["id"],
+                    short_path,
+                    item.get("reason", "Unknown")[:25],
+                    item.get("timestamp", "")[:19],
+                    item.get("hash", "")[:16] + "..." if item.get("hash") else "N/A",
+                ),
+                tags=("danger",)
+            )
+
+        count = len(items)
+        self._quarantine_info_lbl.configure(
+            text=f"{count} quarantined file{'s' if count != 1 else ''}"
+        )
+
+    def _restore_quarantined_file(self):
+        """Restore selected quarantined file."""
+        selection = self._quarantine_tree.selection()
+        if not selection:
+            messagebox.showinfo("Info", "Select a file to restore.")
+            return
+
+        items_data = [self._quarantine_tree.item(s)["values"] for s in selection]
+        restored = 0
+        for vals in items_data:
+            qid = vals[0]
+            responder = get_auto_responder()
+            if responder.restore_file(qid):
+                restored += 1
+
+        self._log("success", f"Restored {restored} file(s)")
+        self._refresh_quarantine_list()
+        messagebox.showinfo("Restore", f"Restored {restored} file(s)")
+
+    def _delete_quarantined_file(self):
+        """Delete selected quarantined file permanently."""
+        selection = self._quarantine_tree.selection()
+        if not selection:
+            messagebox.showinfo("Info", "Select a file to delete.")
+            return
+
+        confirm = messagebox.askyesno(
+            "Confirm Delete",
+            "This will PERMANENTLY delete the selected file(s).\nThis action cannot be undone."
+        )
+        if not confirm:
+            return
+
+        deleted = 0
+        for s in selection:
+            vals = self._quarantine_tree.item(s)["values"]
+            qid = vals[0]
+            responder = get_auto_responder()
+            # Move to /dev/null by restoring to original path and deleting
+            manifest = responder._load_manifest()
+            entry = manifest.get(qid)
+            if entry:
+                quarantined_path = entry.get("quarantined_path", "")
+                try:
+                    if os.path.exists(quarantined_path):
+                        os.remove(quarantined_path)
+                    del manifest[qid]
+                    responder._save_manifest(manifest)
+                    deleted += 1
+                except Exception:
+                    pass
+
+        self._log("warning", f"Deleted {deleted} quarantined file(s)")
+        self._refresh_quarantine_list()
+        messagebox.showinfo("Delete", f"Deleted {deleted} file(s)")
+
     def _refresh_network_connections(self):
         """Refresh network connections table."""
         self._net_status_lbl.configure(text="● Refreshing...", text_color=C["yellow"])
@@ -1404,6 +1804,22 @@ class RansomwareDetectorApp(ctk.CTk):
             self._ui_queue.put(("net_connections", connections))
 
         threading.Thread(target=_refresh, daemon=True).start()
+
+    def _toggle_net_auto_refresh(self):
+        """Toggle auto-refresh for network connections."""
+        self._net_auto_refresh = not self._net_auto_refresh
+        if self._net_auto_refresh:
+            self._net_auto_refresh_btn.configure(
+                text="⏸ Stop Auto-Refresh",
+                fg_color=C["danger"], hover_color="#B22222",
+            )
+            self._log("info", "Network auto-refresh: ON (every 10s)")
+        else:
+            self._net_auto_refresh_btn.configure(
+                text="▶ Auto-Refresh",
+                fg_color=C["accent"], hover_color=C["accent_h"],
+            )
+            self._log("info", "Network auto-refresh: OFF")
 
     def _block_selected_ip(self):
         """Block selected IP in network table."""
@@ -1546,6 +1962,19 @@ class RansomwareDetectorApp(ctk.CTk):
             self._threshold_var.set(0.65)
             self._on_threshold_change(0.65)
 
+    def _set_sensitivity(self, profile: str):
+        """Set sensitivity profile and update UI."""
+        self._sensitivity_var.set(profile)
+
+        hints = {
+            "paranoid":          ("🔒 Paranoid — maximum sensitivity",  C["red"]),
+            "high_sensitivity":   ("🔶 High Sensitivity",                C["orange"]),
+            "balanced":           ("⚖ Balanced — recommended",          C["cyan"]),
+        }
+        hint, color = hints.get(profile, ("⚖ Balanced", C["cyan"]))
+        self._profile_hint_lbl.configure(text=hint, text_color=color)
+        self._log("info", f"Profile: {profile}")
+
     # ─────────────────────────── ACTIONS ───────────────────────────
 
     def _browse_scan_dir(self):
@@ -1642,6 +2071,9 @@ class RansomwareDetectorApp(ctk.CTk):
         t = self._threshold_var.get()
         engine.set_threshold(t)
 
+        # Đồng bộ sensitivity profile vào scanner
+        self._scanner.set_sensitivity(self._sensitivity_var.get())
+
         # Reset UI
         for item in self._tree.get_children():
             self._tree.delete(item)
@@ -1657,12 +2089,14 @@ class RansomwareDetectorApp(ctk.CTk):
             f"[threshold={t:.2f}]")
 
         recursive = self._scan_mode.get() == "Full Scan"
+        scan_mode = "full" if recursive else "quick"
         self._scanner.scan(
             directory=scan_dir,
             recursive=recursive,
             on_progress=self._on_scan_progress,
             on_complete=self._on_scan_complete,
             on_error=self._on_scan_error,
+            scan_mode=scan_mode,
         )
 
     def _cancel_scan(self):
@@ -1977,10 +2411,112 @@ class RansomwareDetectorApp(ctk.CTk):
             if hasattr(self, "_update_behavior_chart"):
                 self._update_behavior_chart()
 
+        # v2.5: Network auto-refresh (every 10 seconds = ~67 ticks)
+        if self._net_auto_refresh:
+            self._net_refresh_counter += 1
+            if self._net_refresh_counter >= 67:  # ~10 seconds
+                self._net_refresh_counter = 0
+                self._refresh_network_connections()
+
+        # v2.5: Update PM stats periodically
+        if hasattr(self, "_pm_stats_lbl"):
+            self._update_pm_stats()
+
         self.after(150, self._poll_ui_queue)
 
     def _add_tree_row(self, result: ScanResult):
         """Thêm một hàng vào bảng kết quả — v2 thêm FP columns."""
+
+    def _on_result_double_click(self, event):
+        """v2.5: Show detailed PE/YARA analysis on double-click."""
+        selection = self._tree.selection()
+        if not selection:
+            return
+        item = self._tree.item(selection[0])
+        values = item["values"]
+        if not values:
+            return
+        filename = values[1]
+        for result in self._results:
+            if result.filename == filename:
+                if result.extension in {".exe", ".dll", ".sys"} or getattr(result, "yara_matches", []):
+                    PEAnalysisWindow(self, result)
+                else:
+                    GenericFileInfoWindow(self, result)
+                return
+
+
+class GenericFileInfoWindow(ctk.CTkToplevel):
+    """v2.5: Hiển thị chi tiết file thường (non-PE)."""
+
+    def __init__(self, parent, result):
+        super().__init__()
+        self.title(f"File Info: {result.filename}")
+        self.geometry("520x360")
+        self.configure(fg_color=C["bg_dark"])
+        self.resizable(False, False)
+
+        hdr = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
+        hdr.pack(fill="x", padx=12, pady=(12, 0))
+        ctk.CTkLabel(
+            hdr, text=f"FILE INFO: {result.filename}",
+            font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+            text_color=C["accent"]
+        ).pack(padx=12, pady=8)
+
+        content = ctk.CTkFrame(self, fg_color=C["bg_dark"])
+        content.pack(fill="both", expand=True, padx=12, pady=(8, 12))
+
+        risk_color = RISK_COLORS.get(result.risk_level, C["text"])
+        raw_proba = getattr(result, "raw_probability", result.probability)
+        fp_adj = getattr(result, "fp_adjusted", False)
+        yara_boosted = getattr(result, "yara_boosted", False)
+        fp_reason = getattr(result, "fp_reason", "") or ""
+
+        info_items = [
+            ("Path", result.path),
+            ("Size", f"{result.size/1024:.1f} KB" if result.size < 1024*1024 else f"{result.size/1024/1024:.1f} MB"),
+            ("Extension", result.extension or "none"),
+            ("Entropy", f"{result.entropy:.4f} bits/byte"),
+            ("Risk Level", result.risk_level),
+            ("Adjusted Prob", f"{result.probability*100:.1f}%"),
+            ("Raw Prob", f"{raw_proba*100:.1f}%"),
+            ("FP Adjusted", "Yes" if fp_adj else "No"),
+            ("YARA Boosted", "Yes" if yara_boosted else "No"),
+            ("Threshold", f"{getattr(result, 'effective_threshold', 0.65):.2f}"),
+        ]
+
+        for key, val in info_items:
+            row = ctk.CTkFrame(content, fg_color="transparent")
+            row.pack(fill="x", padx=8, pady=2)
+            ctk.CTkLabel(row, text=f"{key}:",
+                         font=ctk.CTkFont(family="Consolas", size=9),
+                         text_color=C["text_dim"], width=120, anchor="w").pack(side="left")
+            val_color = risk_color if key == "Risk Level" else C["text"]
+            ctk.CTkLabel(row, text=str(val),
+                         font=ctk.CTkFont(family="Consolas", size=9,
+                                          weight="bold" if key == "Risk Level" else "normal"),
+                         text_color=val_color).pack(side="left")
+
+        if fp_reason:
+            reason_row = ctk.CTkFrame(content, fg_color="transparent")
+            reason_row.pack(fill="x", padx=8, pady=(6, 0))
+            ctk.CTkLabel(reason_row, text="Analysis:",
+                         font=ctk.CTkFont(family="Consolas", size=9),
+                         text_color=C["purple"], width=120, anchor="w").pack(side="left")
+            ctk.CTkLabel(reason_row, text=fp_reason.strip(" |"),
+                         font=ctk.CTkFont(family="Consolas", size=8),
+                         text_color=C["text_dim"], wraplength=340).pack(side="left")
+
+        ctk.CTkButton(
+            self, text="CLOSE", command=self.destroy,
+            fg_color=C["bg_card"], hover_color=C["border"],
+            font=ctk.CTkFont(family="Consolas", size=10),
+            text_color=C["text_dim"], height=32, corner_radius=6, width=120
+        ).pack(pady=(8, 12))
+
+
+class RansomwareDetectorApp(ctk.CTk):
         risk = result.risk_level or "UNKNOWN"
         icon = {
             "CRITICAL": "⬛", "HIGH": "🔴", "MEDIUM": "🟡",
@@ -2126,6 +2662,135 @@ class RansomwareDetectorApp(ctk.CTk):
             self._watch_status_lbl.configure(text="● PROTECTION ON", text_color=C["green"])
         else:
             self._watch_status_lbl.configure(text="● PROTECTION OFF", text_color=C["text_dim"])
+
+    def _update_pm_stats(self):
+        """v2.5: Update process monitor stats label."""
+        if not hasattr(self, "_monitor") or not self._monitor.is_running:
+            return
+        try:
+            pm = self._monitor._process_monitor
+            stats = pm.get_all_stats()
+            total_events = stats.get("total_events", 0)
+            total_alerts = stats.get("total_alerts", 0)
+            unique_procs = stats.get("unique_processes", 0)
+            by_type = stats.get("alerts_by_type", {})
+            lines = [
+                f"Events: {total_events}  |  Alerts: {total_alerts}",
+                f"Unique PIDs: {unique_procs}",
+            ]
+            if by_type:
+                for k, v in by_type.items():
+                    if v > 0:
+                        lines.append(f"  {k}: {v}")
+            self._pm_stats_lbl.configure(text="\n".join(lines), text_color=C["cyan"])
+        except Exception:
+            pass
+
+    def _open_config_manager(self):
+        """v2.5: Open Config Manager window."""
+        ConfigManagerWindow(self)
+
+
+class ConfigManagerWindow(ctk.CTkToplevel):
+    """v2.5: GUI panel for ConfigManager."""
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Config Manager")
+        self.geometry("560x580")
+        self.configure(fg_color=C["bg_dark"])
+        self.resizable(False, False)
+        self.transient(parent)
+
+        cfg = get_config_manager()
+
+        hdr = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
+        hdr.pack(fill="x", padx=10, pady=(10, 0))
+        ctk.CTkLabel(
+            hdr, text="⚙  CONFIG MANAGER",
+            font=ctk.CTkFont(family="Consolas", size=14, weight="bold"),
+            text_color=C["accent"]
+        ).pack(padx=12, pady=8)
+
+        scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=10, pady=(8, 0))
+
+        sections = [
+            ("ML", cfg.get("ml")),
+            ("Scanner", cfg.get("scanner")),
+            ("Process Monitor", cfg.get("process_monitor")),
+            ("Watchdog", cfg.get("watchdog")),
+            ("FP Reducer", cfg.get("fp_reducer")),
+            ("Notifications", cfg.get("notifications")),
+            ("Auto Response", cfg.get("auto_response")),
+            ("Network Monitor", cfg.get("network_monitor")),
+        ]
+
+        for section, data in sections:
+            sec_frame = ctk.CTkFrame(scroll, fg_color=C["bg_card"], corner_radius=6)
+            sec_frame.pack(fill="x", pady=(0, 8))
+            ctk.CTkLabel(
+                sec_frame, text=f"◈ {section.upper()}",
+                font=ctk.CTkFont(family="Consolas", size=9, weight="bold"),
+                text_color=C["green"]
+            ).pack(anchor="w", padx=8, pady=(6, 2))
+
+            if isinstance(data, dict):
+                for key, val in list(data.items())[:8]:
+                    if isinstance(val, (str, int, float, bool)):
+                        row = ctk.CTkFrame(sec_frame, fg_color="transparent")
+                        row.pack(fill="x", padx=8, pady=1)
+                        ctk.CTkLabel(
+                            row, text=f"  {key}:",
+                            font=ctk.CTkFont(family="Consolas", size=8),
+                            text_color=C["text_dim"], width=140, anchor="w"
+                        ).pack(side="left")
+                        ctk.CTkLabel(
+                            row, text=str(val),
+                            font=ctk.CTkFont(family="Consolas", size=8),
+                            text_color=C["cyan"]
+                        ).pack(side="left")
+                    elif isinstance(val, dict):
+                        for sub_k, sub_v in list(val.items())[:5]:
+                            row = ctk.CTkFrame(sec_frame, fg_color="transparent")
+                            row.pack(fill="x", padx=8, pady=1)
+                            ctk.CTkLabel(
+                                row, text=f"    {sub_k}:",
+                                font=ctk.CTkFont(family="Consolas", size=7),
+                                text_color=C["text_dim"], width=140, anchor="w"
+                            ).pack(side="left")
+                            ctk.CTkLabel(
+                                row, text=str(sub_v),
+                                font=ctk.CTkFont(family="Consolas", size=7),
+                                text_color=C["text"]
+                            ).pack(side="left")
+
+            ctk.CTkFrame(sec_frame, height=1, fg_color=C["border"]).pack(fill="x", padx=8, pady=(2, 4))
+
+        # Buttons
+        btn_row = ctk.CTkFrame(self, fg_color="transparent")
+        btn_row.pack(fill="x", padx=10, pady=8)
+        btn_row.columnconfigure((0, 1), weight=1)
+
+        ctk.CTkButton(
+            btn_row, text="↺ Reset to Defaults",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["bg_card"], hover_color=C["border"],
+            text_color=C["text_dim"], height=32, corner_radius=6,
+            command=lambda: (cfg.reset_to_defaults(), self._reload())
+        ).grid(row=0, column=0, padx=(0, 4), sticky="ew")
+
+        ctk.CTkButton(
+            btn_row, text="SAVE & CLOSE",
+            font=ctk.CTkFont(family="Consolas", size=9, weight="bold"),
+            fg_color=C["accent"], hover_color=C["accent_h"],
+            text_color="#FFF", height=32, corner_radius=6,
+            command=self.destroy
+        ).grid(row=0, column=1, padx=(4, 0), sticky="ew")
+
+    def _reload(self):
+        self.destroy()
+        ConfigManagerWindow(self.master)
 
 
 def launch():

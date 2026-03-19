@@ -184,6 +184,8 @@ class ScanResult:
         # v2.1: YARA
         self.yara_matches: list  = []
         self.yara_boosted: bool  = False
+        # v2.5: PE analysis results
+        self.pe_info: dict = {}  # {"rwx_sections": [...], "suspicious_sections": [...], "is_packed": bool}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -207,13 +209,14 @@ class ScanResult:
 class Scanner:
     """Multi-threaded file scanner với ML-based detection và FP reduction."""
 
-    def __init__(self):
+    def __init__(self, sensitivity_profile: str = DEFAULT_SENSITIVITY_PROFILE):
         self._cancel_flag = threading.Event()
         self._lock        = threading.Lock()
         self._results: List[ScanResult] = []
         self._progress    = 0
         self._total       = 0
         self._is_scanning = False
+        self._sensitivity_profile = sensitivity_profile
 
     @property
     def is_scanning(self) -> bool:
@@ -222,6 +225,15 @@ class Scanner:
     @property
     def results(self) -> List[ScanResult]:
         return self._results.copy()
+
+    @property
+    def sensitivity_profile(self) -> str:
+        return self._sensitivity_profile
+
+    def set_sensitivity(self, profile: str):
+        """Set sensitivity profile at runtime."""
+        if profile in SENSITIVITY_PROFILES:
+            self._sensitivity_profile = profile
 
     def cancel(self):
         """Hủy scan đang chạy."""
@@ -289,9 +301,9 @@ class Scanner:
         result  = ScanResult(file_path)
         t_start = time.perf_counter()
 
-        # Sensitivity profile
+        # Sensitivity profile (per-instance)
         profile = SENSITIVITY_PROFILES.get(
-            DEFAULT_SENSITIVITY_PROFILE,
+            self._sensitivity_profile,
             SENSITIVITY_PROFILES["balanced"],
         )
 
@@ -334,6 +346,7 @@ class Scanner:
             injection_found = False
             if ext in {".exe", ".dll", ".sys"}:
                 pe_res = analyze_pe(file_path)
+                result.pe_info = pe_res.to_dict()
                 if pe_res.is_suspicious():
                     injection_found = True
                     result.fp_reason += f" | PE_INJECTION({','.join(pe_res.rwx_sections + pe_res.suspicious_sections)})"
