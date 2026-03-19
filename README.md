@@ -463,7 +463,7 @@ MIT License - Xem [LICENSE](LICENSE) để biết thêm chi tiết.
 
 - **Name**: Hà Quang Minh
 - **Email**: minhhq.in4sec@gmail.com
-- **GitHub**: https://github.com/in4SECxMinDandy/ransomware-detector-v2
+- **GitHub**: https://github.com/in4SECxMinDandy
 
 ---
 
