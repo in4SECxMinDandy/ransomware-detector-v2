@@ -498,4 +498,4 @@ MIT License - Xem [LICENSE](LICENSE) de biet them chi tiet.
 
 ---
 
-**⭐ Neu du an huu ich, hay star de ung ho!**
+**⭐ Nếu thấy hưu ích, hãy cho tôi 1 ⭐ để ủng hộ!**
