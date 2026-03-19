@@ -1,0 +1,27 @@
+{
+  "extensions": [
+    ".ttf", ".otf", ".woff", ".woff2", ".eot",
+    ".ico", ".cur", ".ani",
+    ".lnk", ".url",
+    ".log", ".ini", ".cfg", ".conf",
+    ".tmp", ".temp", ".cache", ".bak",
+    ".idx", ".db-wal", ".db-shm",
+    ".thm"
+  ],
+  "path_keywords": [
+    "windows\\system32",
+    "windows\\syswow64",
+    "program files\\windows defender",
+    "/proc/",
+    "/sys/",
+    "/dev/",
+    "/__pycache__/",
+    "/site-packages/",
+    "/.git/",
+    "/node_modules/"
+  ],
+  "custom_paths": [],
+  "custom_extensions": [],
+  "last_modified": "19/03/2026 00:00:00",
+  "version": "2.1"
+}

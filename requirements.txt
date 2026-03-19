@@ -1,15 +1,43 @@
-scikit-learn>=1.3.0
-numpy>=1.24.0
-pandas>=2.0.0
-matplotlib>=3.7.0
-watchdog>=3.0.0
-joblib>=1.3.0
-customtkinter>=5.2.0
-Pillow>=10.0.0
-scipy>=1.11.0
-imbalanced-learn>=0.11.0
-reportlab>=4.0.0
-psutil>=5.9.0
-win10toast>=0.9
-plyer>=2.1.0
-# yara-python>=4.3.0  # optional — uncomment để dùng yara-python native
+# Ransomware Detector v2.2 — Dependencies
+# Install: pip install -r requirements.txt
+
+# ─── Core ML / Data ────────────────────────────────────────────────────────────
+scikit-learn>=1.3.0       # RandomForest, CalibratedClassifierCV, metrics
+numpy>=1.24.0            # Feature extraction, entropy computation
+pandas>=2.0.0             # Data analysis, CSV export
+scipy>=1.11.0             # Scientific computing
+
+# ─── Malware Detection ────────────────────────────────────────────────────────
+psutil>=5.9.0             # Process monitoring, IO counters, network
+# yara-python>=4.3.0      # Optional — native YARA engine (much faster)
+                        # pip install yara-python  (requires YARA dev headers)
+
+# ─── Filesystem Monitoring ────────────────────────────────────────────────────
+watchdog>=3.0.0          # Real-time filesystem watcher (RealTimeMonitor)
+
+# ─── GUI ──────────────────────────────────────────────────────────────────────
+customtkinter>=5.2.0      # Modern dark-mode Tkinter GUI
+Pillow>=10.0.0           # Image handling (for GUI icons)
+
+# ─── Reporting / Export ───────────────────────────────────────────────────────
+matplotlib>=3.7.0         # Charts, PNG export, PR curves
+reportlab>=4.0.0           # PDF report generation
+joblib>=1.3.0              # Model serialization
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+win10toast>=0.9            # Windows 10/11 toast notifications
+plyer>=2.1.0              # Cross-platform notifications (fallback)
+
+# ─── System Tray ──────────────────────────────────────────────────────────────
+pystray>=0.19.5           # System tray integration
+
+# ─── Threat Intelligence (optional) ────────────────────────────────────────────
+stix2>=3.0.0              # STIX/TAXII threat intel format
+scapy>=2.5.0             # Network packet analysis (advanced C2 detection)
+
+# ─── Imbalanced Learning ──────────────────────────────────────────────────────
+imbalanced-learn>=0.11.0  # SMOTE oversampling for class imbalance
+
+# ─── Testing ────────────────────────────────────────────────────────────────────
+pytest>=8.0.0             # Unit tests
+pytest-cov>=4.0.0        # Coverage reports: pytest tests/ --cov=core

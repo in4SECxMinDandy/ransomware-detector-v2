@@ -38,14 +38,18 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import customtkinter as ctk
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 from core.scanner import Scanner, ScanResult
 from core.ml_engine import get_engine
 from core.watchdog_monitor import RealTimeMonitor, ThreatEvent
-from core.process_monitor import BehaviorAlert
+from core.process_monitor import BehaviorAlert, DynamicSignalAggregator
 from core.report_generator import export_csv, export_report_png
 from core.fp_reducer import (
     EXTENSION_THRESHOLDS,
@@ -53,7 +57,12 @@ from core.fp_reducer import (
     get_extension_threshold,
 )
 from core.pdf_reporter import export_model_report_pdf
+from core.forensic_exporter import ForensicBundleExporter
+from core.rule_updater import YARARuleUpdater
+from core.auto_responder import AutoResponder, get_auto_responder
+from core.network_monitor import NetworkAnalyzer
 from gui.whitelist_editor import WhitelistEditorWindow, load_whitelist, apply_whitelist_to_fp_reducer
+from gui.tray_manager import TrayManager, get_tray_manager
 
 # ─── CustomTkinter appearance ───
 ctk.set_appearance_mode("dark")
@@ -252,13 +261,162 @@ class BehaviorAlertWindow(ctk.CTkToplevel):
         ).pack(side="left", padx=5)
 
 
+class AutoResponseWindow(ctk.CTkToplevel):
+    """
+    Task 5: Auto-Response dialog for HIGH severity threats.
+    Shows countdown and action buttons.
+    """
+
+    def __init__(self, parent, alert: BehaviorAlert, responder):
+        super().__init__(parent)
+        self.title("⚠ HIGH THREAT DETECTED")
+        self.geometry("580x420")
+        self.configure(fg_color=C["bg_dark"])
+        self.attributes("-topmost", True)
+        self.resizable(False, False)
+
+        self._alert = alert
+        self._responder = responder
+        self._countdown = 30  # seconds
+        self._action_taken = False
+
+        # Severity color
+        ctk.CTkLabel(
+            self, text="⚠  HIGH THREAT DETECTED",
+            font=ctk.CTkFont(family="Consolas", size=20, weight="bold"),
+            text_color=C["orange"]
+        ).pack(pady=(15, 5))
+
+        # File info
+        info_frame = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
+        info_frame.pack(fill="x", padx=20, pady=5)
+
+        ctk.CTkLabel(
+            info_frame, text="THREAT DETAILS",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["accent"]
+        ).pack(pady=(8, 5))
+
+        file_path = alert.files[0] if alert.files else "Unknown"
+        info_items = [
+            ("File", file_path[:50] + "..." if len(file_path) > 50 else file_path),
+            ("Score", f"{alert.severity.upper()}"),
+            ("YARA", alert.behavior_type.value),
+            ("Description", alert.description[:60] + "..." if len(alert.description) > 60 else alert.description),
+        ]
+
+        for key, val in info_items:
+            row = ctk.CTkFrame(info_frame, fg_color="transparent")
+            row.pack(fill="x", padx=10, pady=2)
+            ctk.CTkLabel(row, text=f"{key}:", font=ctk.CTkFont(family="Consolas", size=10),
+                         text_color=C["text_dim"], width=100, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=val, font=ctk.CTkFont(family="Consolas", size=10),
+                         text_color=C["text"], anchor="w").pack(side="left")
+
+        # Countdown label
+        self._countdown_lbl = ctk.CTkLabel(
+            self, text=f"Auto-action in: {self._countdown}s",
+            font=ctk.CTkFont(family="Consolas", size=14, weight="bold"),
+            text_color=C["yellow"]
+        )
+        self._countdown_lbl.pack(pady=10)
+
+        # Buttons frame
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(pady=10)
+
+        ctk.CTkButton(
+            btn_frame, text="Quarantine",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            fg_color=C["danger"], hover_color="#B22222",
+            text_color="#FFF", width=110, height=35, corner_radius=6,
+            command=self._on_quarantine
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            btn_frame, text="Kill Process",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            fg_color=C["orange"], hover_color="#B25900",
+            text_color="#FFF", width=110, height=35, corner_radius=6,
+            command=self._on_kill_process
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            btn_frame, text="Block Network",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            fg_color=C["yellow"], hover_color="#C4A000",
+            text_color="#000", width=110, height=35, corner_radius=6,
+            command=self._on_block_network
+        ).pack(side="left", padx=5)
+
+        # Secondary buttons
+        btn_frame2 = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame2.pack(pady=5)
+
+        ctk.CTkButton(
+            btn_frame2, text="View Details",
+            font=ctk.CTkFont(family="Consolas", size=10),
+            fg_color=C["bg_card"], hover_color=C["border"],
+            text_color=C["text"], width=110, height=30, corner_radius=6,
+            command=self._on_view_details
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            btn_frame2, text="Ignore",
+            font=ctk.CTkFont(family="Consolas", size=10),
+            fg_color=C["bg_card"], hover_color=C["border"],
+            text_color=C["text"], width=110, height=30, corner_radius=6,
+            command=self.destroy
+        ).pack(side="left", padx=5)
+
+        # Start countdown
+        self._update_countdown()
+
+    def _update_countdown(self):
+        """Update countdown timer."""
+        if self._action_taken or not self.winfo_exists():
+            return
+
+        self._countdown -= 1
+        if self._countdown <= 0:
+            # Auto quarantine
+            self._on_quarantine()
+            return
+
+        self._countdown_lbl.configure(text=f"Auto-action in: {self._countdown}s")
+        self.after(1000, self._update_countdown)
+
+    def _on_quarantine(self):
+        """Quarantine the file."""
+        self._action_taken = True
+        for fpath in self._alert.files:
+            self._responder.quarantine_file(fpath, reason=f"HIGH threat: {self._alert.description}")
+        self.destroy()
+
+    def _on_kill_process(self):
+        """Kill the malicious process."""
+        self._action_taken = True
+        self._responder.kill_process(self._alert.process.pid, self._alert.process.name)
+        self.destroy()
+
+    def _on_block_network(self):
+        """Block network for the process."""
+        self._action_taken = True
+        self._responder.block_network(self._alert.process.pid, self._alert.process.name)
+        self.destroy()
+
+    def _on_view_details(self):
+        """Show behavior alert details."""
+        BehaviorAlertWindow(self.master, self._alert)
+
+
 class RansomwareDetectorApp(ctk.CTk):
     """Main Application Window — v2.0 Anti-FP Edition."""
 
     def __init__(self):
         super().__init__()
 
-        self.title("Ransomware Entropy Detector v2.1  |  Premium Defense")
+        self.title("Ransomware Entropy Detector v2.2  |  Premium Defense")
         self.geometry("1500x940")
         self.minsize(1200, 760)
         self.configure(fg_color=C["bg_dark"])
@@ -278,6 +436,9 @@ class RansomwareDetectorApp(ctk.CTk):
         # v2: Threshold slider state
         self._threshold_var = tk.DoubleVar(value=0.65)
 
+        # Task 1: Chart update counter
+        self._chart_update_counter = 0
+
         self._build_ui()
         self._ensure_model_loaded()
         self._ensure_threat_intel_loaded()
@@ -288,6 +449,20 @@ class RansomwareDetectorApp(ctk.CTk):
             apply_whitelist_to_fp_reducer(wl)
         except Exception:
             pass
+
+        # Task 4: Initialize tray manager
+        try:
+            self._tray_manager = get_tray_manager(self)
+            self._tray_manager.set_callbacks(
+                on_open=lambda: self.restore_from_tray(),
+                on_quit=self.quit_app,
+                on_toggle_protection=self._on_protection_toggled,
+                on_view_alerts=lambda: self.restore_from_tray(),
+                on_quick_scan=lambda: self.restore_from_tray(),
+            )
+            self._tray_manager.run()
+        except Exception:
+            self._tray_manager = None
 
     # ─────────────────────────── BUILD UI ───────────────────────────
 
@@ -326,10 +501,10 @@ class RansomwareDetectorApp(ctk.CTk):
             text_color=C["text_dim"]
         ).pack(anchor="w")
 
-        # v2.1 badge
+        # v2.2 badge
         ctk.CTkLabel(
             hdr,
-            text="v2.1  Premium",
+            text="v2.2  Premium",
             font=ctk.CTkFont(family="Consolas", size=9, weight="bold"),
             text_color=C["bg_dark"],
             fg_color=C["purple"],
@@ -568,6 +743,16 @@ class RansomwareDetectorApp(ctk.CTk):
         )
         self._export_pdf_btn.pack(fill="x", pady=(0, 4))
 
+        # Task 2: Export Forensic Bundle
+        self._export_forensic_btn = ctk.CTkButton(
+            scroll, text="🔍  Export Forensic Bundle",
+            font=ctk.CTkFont(family="Consolas", size=10),
+            fg_color=C["danger"], hover_color="#B22222",
+            text_color="#FFF", height=34, corner_radius=6,
+            command=self._export_forensic_bundle
+        )
+        self._export_forensic_btn.pack(fill="x", pady=(0, 8))
+
         # v2.1: Whitelist Editor
         ctk.CTkButton(
             scroll, text="📋  Whitelist Editor",
@@ -578,7 +763,7 @@ class RansomwareDetectorApp(ctk.CTk):
         ).pack(fill="x", pady=(0, 8))
 
         # ── ML Engine Info ──
-        self._section_label(scroll, "◈ ML ENGINE  (v2.1)")
+        self._section_label(scroll, "◈ ML ENGINE  (v2.2)")
         self._ml_info_lbl = ctk.CTkLabel(
             scroll, text="Loading model...",
             font=ctk.CTkFont(family="Consolas", size=8),
@@ -692,8 +877,30 @@ class RansomwareDetectorApp(ctk.CTk):
         panel = ctk.CTkFrame(parent, fg_color=C["bg_panel"], corner_radius=8)
         panel.grid(row=0, column=1, sticky="nsew", padx=(5, 0), pady=5)
 
-        tab_hdr = ctk.CTkFrame(panel, fg_color=C["bg_card"], corner_radius=8, height=38)
-        tab_hdr.pack(fill="x", padx=8, pady=(8, 4))
+        # Tab view for Scan Results and Behavior Signals (Task 1)
+        self._results_tabview = ctk.CTkTabview(panel, fg_color=C["bg_card"])
+        self._results_tabview.pack(fill="both", expand=True, padx=8, pady=(8, 4))
+
+        # Tab: Scan Results
+        self._scan_results_tab = self._results_tabview.add("Scan Results")
+        self._build_scan_results_tab(self._scan_results_tab)
+
+        # Tab: Behavior Signals (Task 1)
+        self._behavior_signals_tab = self._results_tabview.add("Behavior Signals")
+        self._build_behavior_signals_tab(self._behavior_signals_tab)
+
+        # Tab: Rules Manager (Task 3)
+        self._rules_manager_tab = self._results_tabview.add("Rules Manager")
+        self._build_rules_manager_tab(self._rules_manager_tab)
+
+        # Tab: Network Monitor (Task 6)
+        self._network_monitor_tab = self._results_tabview.add("Network Monitor")
+        self._build_network_monitor_tab(self._network_monitor_tab)
+
+    def _build_scan_results_tab(self, parent):
+        """Build the Scan Results tab content."""
+        tab_hdr = ctk.CTkFrame(parent, fg_color=C["bg_card"], corner_radius=8, height=38)
+        tab_hdr.pack(fill="x", padx=4, pady=(4, 4))
         tab_hdr.pack_propagate(False)
         ctk.CTkLabel(
             tab_hdr, text="◈  SCAN RESULTS  —  Premium Defense",
@@ -702,13 +909,13 @@ class RansomwareDetectorApp(ctk.CTk):
         ).pack(side="left", padx=12, pady=6)
 
         # Filter bar
-        filter_frame = ctk.CTkFrame(panel, fg_color="transparent")
+        filter_frame = ctk.CTkFrame(parent, fg_color="transparent")
         filter_frame.pack(fill="x", padx=8, pady=(0, 4))
 
         self._filter_var = tk.StringVar(value="ALL")
         for txt, val in [("All", "ALL"), ("Threats", "THREATS"),
                          ("Critical", "CRITICAL"), ("Safe", "SAFE"),
-                         ("FP Adj.", "FP_ADJ")]:  # v2: thêm filter FP Adjusted
+                         ("FP Adj.", "FP_ADJ")]:
             ctk.CTkButton(
                 filter_frame, text=txt, width=75, height=25,
                 font=ctk.CTkFont(family="Consolas", size=9),
@@ -727,8 +934,8 @@ class RansomwareDetectorApp(ctk.CTk):
             text_color=C["text"], height=25, width=180
         ).pack(side="right", padx=2)
 
-        # ── Treeview table ──
-        tree_frame = ctk.CTkFrame(panel, fg_color=C["bg_dark"], corner_radius=6)
+        # Treeview table
+        tree_frame = ctk.CTkFrame(parent, fg_color=C["bg_dark"], corner_radius=6)
         tree_frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         style = ttk.Style()
@@ -750,7 +957,6 @@ class RansomwareDetectorApp(ctk.CTk):
                   background=[("selected", C["bg_card"])],
                   foreground=[("selected", C["green"])])
 
-        # v2: thêm cột "Adj." (FP adjusted indicator) và "Threshold"
         columns = ("status", "filename", "path", "risk", "probability", "raw_prob", "adj", "entropy", "size")
         self._tree = ttk.Treeview(
             tree_frame, columns=columns, show="headings",
@@ -764,7 +970,7 @@ class RansomwareDetectorApp(ctk.CTk):
             ("risk",        "Risk Level", 85,  False),
             ("probability", "Adj. Prob",  75,  False),
             ("raw_prob",    "Raw Prob",   70,  False),
-            ("adj",         "FP↓",        40,  False),  # indicator nếu prob đã được điều chỉnh
+            ("adj",         "FP↓",        40,  False),
             ("entropy",     "Entropy",    72,  False),
             ("size",        "Size",       65,  False),
         ]
@@ -785,7 +991,483 @@ class RansomwareDetectorApp(ctk.CTk):
         for risk, color in RISK_COLORS.items():
             self._tree.tag_configure(risk, foreground=color)
         self._tree.tag_configure("UNKNOWN", foreground=C["text_dim"])
-        self._tree.tag_configure("FP_ADJ",  foreground=C["purple"])  # v2: màu riêng cho FP adjusted
+        self._tree.tag_configure("FP_ADJ",  foreground=C["purple"])
+
+    def _build_behavior_signals_tab(self, parent):
+        """Task 1: Build the Behavior Signals tab with real-time chart."""
+        # Header
+        hdr = ctk.CTkFrame(parent, fg_color=C["bg_card"], corner_radius=8, height=38)
+        hdr.pack(fill="x", padx=4, pady=(4, 4))
+        hdr.pack_propagate(False)
+        ctk.CTkLabel(
+            hdr, text="◈  BEHAVIOR SIGNALS  —  Real-time Monitoring",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["green"]
+        ).pack(side="left", padx=12, pady=6)
+
+        # Status label
+        self._behavior_status_lbl = ctk.CTkLabel(
+            parent, text="● MONITORING",
+            font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
+            text_color=C["green"]
+        )
+        self._behavior_status_lbl.pack(anchor="w", padx=12, pady=(4, 0))
+
+        # Chart frame
+        chart_frame = ctk.CTkFrame(parent, fg_color=C["bg_dark"], corner_radius=6)
+        chart_frame.pack(fill="both", expand=True, padx=8, pady=(4, 8))
+
+        # Create matplotlib figure
+        self._behavior_fig = Figure(figsize=(8, 4), facecolor=C["bg_dark"])
+        self._behavior_ax = self._behavior_fig.add_subplot(111)
+        self._behavior_ax.set_facecolor(C["bg_dark"])
+
+        # Configure plot
+        self._behavior_ax.set_title("Rename Rate & I/O Rate (Last 60s)", color=C["text"], fontsize=10)
+        self._behavior_ax.set_xlabel("Time (s)", color=C["text_dim"], fontsize=8)
+        self._behavior_ax.set_ylabel("Rate", color=C["text_dim"], fontsize=8)
+        self._behavior_ax.tick_params(colors=C["text_dim"], labelsize=7)
+        for spine in self._behavior_ax.spines.values():
+            spine.set_color(C["border"])
+
+        # Create canvas
+        self._behavior_canvas = FigureCanvasTkAgg(self._behavior_fig, master=chart_frame)
+        self._behavior_canvas.get_tk_widget().pack(fill="both", expand=True)
+
+        # Data storage for chart
+        self._rename_rate_data: List[float] = []
+        self._io_rate_data: List[float] = []
+        self._time_data: List[float] = []
+        self._chart_start_time = time.time()
+
+        # Stats panel
+        stats_frame = ctk.CTkFrame(parent, fg_color=C["bg_card"], corner_radius=6)
+        stats_frame.pack(fill="x", padx=8, pady=(0, 8))
+        stats_frame.columnconfigure((0, 1, 2, 3), weight=1)
+
+        self._sig_stat_rename = self._stat_card(stats_frame, "Rename/s", "0", C["blue"], 0, 0)
+        self._sig_stat_io = self._stat_card(stats_frame, "IO MB/s", "0", C["cyan"], 0, 1)
+        self._sig_stat_score = self._stat_card(stats_frame, "Threat Score", "0.00", C["green"], 0, 2)
+        self._sig_stat_alerts = self._stat_card(stats_frame, "Alerts", "0", C["red"], 0, 3)
+
+        # Initialize signal aggregator
+        self._signal_aggregator = DynamicSignalAggregator()
+
+    def _update_behavior_chart(self):
+        """Task 1: Update behavior signals chart every 2 seconds."""
+        if not hasattr(self, "_behavior_fig"):
+            return
+
+        try:
+            # Update time data
+            current_time = time.time() - self._chart_start_time
+            self._time_data.append(current_time)
+
+            # Keep only last 60 seconds
+            while self._time_data and self._time_data[0] < current_time - 60:
+                self._time_data.pop(0)
+
+            # Simulate/update data (in real implementation, this would come from ProcessMonitor)
+            # For now, add placeholder data
+            if len(self._time_data) > len(self._rename_rate_data):
+                self._rename_rate_data.append(0.0)
+            if len(self._time_data) > len(self._io_rate_data):
+                self._io_rate_data.append(0.0)
+
+            # Trim to match time data
+            self._rename_rate_data = self._rename_rate_data[-len(self._time_data):]
+            self._io_rate_data = self._io_rate_data[-len(self._time_data):]
+
+            # Clear and redraw
+            self._behavior_ax.clear()
+            self._behavior_ax.set_facecolor(C["bg_dark"])
+            self._behavior_ax.set_title("Rename Rate & I/O Rate (Last 60s)", color=C["text"], fontsize=10)
+            self._behavior_ax.set_xlabel("Time (s)", color=C["text_dim"], fontsize=8)
+            self._behavior_ax.set_ylabel("Rate", color=C["text_dim"], fontsize=8)
+            self._behavior_ax.tick_params(colors=C["text_dim"], labelsize=7)
+
+            # Plot data if available
+            if len(self._time_data) > 1:
+                # Relative time
+                rel_time = [t - self._time_data[0] for t in self._time_data]
+                self._behavior_ax.plot(rel_time, self._rename_rate_data, color=C["blue"], label="Rename/s", linewidth=1.5)
+                self._behavior_ax.plot(rel_time, self._io_rate_data, color=C["cyan"], label="IO MB/s", linewidth=1.5)
+                self._behavior_ax.legend(facecolor=C["bg_card"], labelcolor=C["text"], fontsize=7)
+
+            # Set axis limits
+            if self._time_data:
+                self._behavior_ax.set_xlim(0, max(60, self._time_data[-1] - self._time_data[0]))
+                max_rate = max(max(self._rename_rate_data) if self._rename_rate_data else 1,
+                              max(self._io_rate_data) if self._io_rate_data else 1)
+                self._behavior_ax.set_ylim(0, max(10, max_rate * 1.1))
+
+            for spine in self._behavior_ax.spines.values():
+                spine.set_color(C["border"])
+
+            self._behavior_fig.tight_layout()
+            self._behavior_canvas.draw()
+
+        except Exception as e:
+            pass  # Silently ignore chart update errors
+
+    def record_behavior_data(self, rename_rate: float, io_rate_mbps: float):
+        """Task 1: Record behavior data for chart."""
+        if hasattr(self, "_rename_rate_data"):
+            self._rename_rate_data.append(rename_rate)
+            self._io_rate_data.append(io_rate_mbps)
+
+    def _build_rules_manager_tab(self, parent):
+        """Task 3: Build the Rules Manager tab."""
+        # Header
+        hdr = ctk.CTkFrame(parent, fg_color=C["bg_card"], corner_radius=8, height=38)
+        hdr.pack(fill="x", padx=4, pady=(4, 4))
+        hdr.pack_propagate(False)
+        ctk.CTkLabel(
+            hdr, text="◈  RULES MANAGER  —  YARA Rule Pack Updater",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["orange"]
+        ).pack(side="left", padx=12, pady=6)
+
+        # Status label
+        self._rules_status_lbl = ctk.CTkLabel(
+            parent, text="● Ready",
+            font=ctk.CTkFont(family="Consolas", size=10),
+            text_color=C["text_dim"]
+        )
+        self._rules_status_lbl.pack(anchor="w", padx=12, pady=(4, 0))
+
+        # Auto-update toggle
+        toggle_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        toggle_frame.pack(fill="x", padx=8, pady=(8, 4))
+
+        self._auto_update_var = tk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            toggle_frame, text="Auto-update (24h)",
+            variable=self._auto_update_var,
+            font=ctk.CTkFont(family="Consolas", size=9),
+            text_color=C["text"],
+            fg_color=C["bg_card"],
+            hover_color=C["border"],
+            command=self._toggle_auto_update
+        ).pack(side="left", padx=(0, 10))
+
+        ctk.CTkButton(
+            toggle_frame, text="Check for Updates",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["accent"], hover_color=C["accent_h"],
+            text_color="#FFF", height=30, corner_radius=6,
+            command=self._check_rule_updates
+        ).pack(side="left", padx=(0, 5))
+
+        ctk.CTkButton(
+            toggle_frame, text="Force Update Now",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["danger"], hover_color="#B22222",
+            text_color="#FFF", height=30, corner_radius=6,
+            command=self._force_update_rules
+        ).pack(side="left")
+
+        # Progress bar
+        self._rules_progress = ctk.CTkProgressBar(
+            parent, height=8, corner_radius=4,
+            fg_color=C["bg_dark"], progress_color=C["green"]
+        )
+        self._rules_progress.pack(fill="x", padx=8, pady=(4, 8))
+        self._rules_progress.set(0)
+
+        # Rules table
+        table_frame = ctk.CTkFrame(parent, fg_color=C["bg_dark"], corner_radius=6)
+        table_frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Rules.Treeview",
+                        background=C["bg_dark"],
+                        foreground=C["text"],
+                        rowheight=24,
+                        fieldbackground=C["bg_dark"],
+                        borderwidth=0,
+                        font=("Consolas", 8))
+        style.configure("Rules.Treeview.Heading",
+                        background=C["bg_card"],
+                        foreground=C["orange"],
+                        borderwidth=0,
+                        font=("Consolas", 8, "bold"),
+                        relief="flat")
+
+        columns = ("name", "source", "last_updated", "status")
+        self._rules_tree = ttk.Treeview(
+            table_frame, columns=columns, show="headings",
+            style="Rules.Treeview", selectmode="browse", height=8
+        )
+
+        col_config = [
+            ("name", "Name", 200),
+            ("source", "Source", 200),
+            ("last_updated", "Last Updated", 150),
+            ("status", "Status", 80),
+        ]
+        for col, heading, width in col_config:
+            self._rules_tree.heading(col, text=heading)
+            self._rules_tree.column(col, width=width, minwidth=50)
+
+        vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self._rules_tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=self._rules_tree.xview)
+        self._rules_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        self._rules_tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+
+        self._rules_tree.tag_configure("ok", foreground=C["green"])
+        self._rules_tree.tag_configure("error", foreground=C["red"])
+
+        # Initialize rules manager
+        self._rules_updater = YARARuleUpdater()
+        self._load_rules_table()
+
+    def _load_rules_table(self):
+        """Load rules into the table."""
+        for item in self._rules_tree.get_children():
+            self._rules_tree.delete(item)
+
+        # Load local rules
+        local_rules = self._rules_updater.get_local_rules()
+        update_log = self._rules_updater.get_update_log()
+
+        # Add local rules
+        for rule in local_rules:
+            last_update = "Never"
+            for entry in reversed(update_log):
+                if entry.get("filename") == rule["name"]:
+                    last_update = entry.get("timestamp", "Unknown")[:10]
+                    break
+
+            status = "✓ Built-in" if rule.get("is_builtin") else "✓ OK"
+            self._rules_tree.insert("", "end",
+                values=(rule["name"], "Local", last_update, status),
+                tags=("ok" if "✓" in status else "error",)
+            )
+
+        # Add sources
+        sources = self._rules_updater.get_source_status()
+        for source in sources:
+            last_update = "Never"
+            for entry in reversed(update_log):
+                if entry.get("source") == source["url"]:
+                    last_update = entry.get("timestamp", "Unknown")[:10]
+                    status = "✓ OK" if entry.get("status") == "success" else "✗ Failed"
+                    break
+            else:
+                status = "○ Pending"
+
+            self._rules_tree.insert("", "end",
+                values=(source["name"], source["url"][:30] + "...", last_update, status),
+                tags=("ok" if "✓" in status else "error",)
+            )
+
+    def _toggle_auto_update(self):
+        """Toggle auto-update on/off."""
+        if self._auto_update_var.get():
+            self._rules_updater.start_scheduler()
+            self._rules_status_lbl.configure(text="● Auto-update enabled (24h)", text_color=C["green"])
+        else:
+            self._rules_updater.stop_scheduler()
+            self._rules_status_lbl.configure(text="● Auto-update disabled", text_color=C["text_dim"])
+
+    def _check_rule_updates(self):
+        """Check for rule updates."""
+        self._rules_status_lbl.configure(text="● Checking for updates...", text_color=C["yellow"])
+        self._rules_progress.set(0.5)
+
+        def _check():
+            results = self._rules_updater.check_for_updates()
+            self._ui_queue.put(("rules_update_result", results))
+
+        threading.Thread(target=_check, daemon=True).start()
+
+    def _force_update_rules(self):
+        """Force immediate rule update."""
+        self._rules_status_lbl.configure(text="● Updating rules...", text_color=C["orange"])
+        self._rules_progress.set(0.3)
+
+        def _update():
+            results = self._rules_updater.force_update_now()
+            self._ui_queue.put(("rules_update_result", results))
+
+        threading.Thread(target=_update, daemon=True).start()
+
+    def _build_network_monitor_tab(self, parent):
+        """Task 6: Build the Network Monitor tab."""
+        # Header
+        hdr = ctk.CTkFrame(parent, fg_color=C["bg_card"], corner_radius=8, height=38)
+        hdr.pack(fill="x", padx=4, pady=(4, 4))
+        hdr.pack_propagate(False)
+        ctk.CTkLabel(
+            hdr, text="◈  NETWORK MONITOR  —  C2 Detection",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=C["cyan"]
+        ).pack(side="left", padx=12, pady=6)
+
+        # Status label
+        self._net_status_lbl = ctk.CTkLabel(
+            parent, text="● Monitoring: OFF",
+            font=ctk.CTkFont(family="Consolas", size=10),
+            text_color=C["text_dim"]
+        )
+        self._net_status_lbl.pack(anchor="w", padx=12, pady=(4, 0))
+
+        # Control buttons
+        btn_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=8, pady=(4, 4))
+
+        self._net_refresh_btn = ctk.CTkButton(
+            btn_frame, text="Refresh Connections",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["accent"], hover_color=C["accent_h"],
+            text_color="#FFF", height=30, corner_radius=6,
+            command=self._refresh_network_connections
+        ).pack(side="left", padx=(0, 5))
+
+        self._net_block_btn = ctk.CTkButton(
+            btn_frame, text="Block Selected IP",
+            font=ctk.CTkFont(family="Consolas", size=9),
+            fg_color=C["danger"], hover_color="#B22222",
+            text_color="#FFF", height=30, corner_radius=6,
+            command=self._block_selected_ip
+        ).pack(side="left")
+
+        # Connections table
+        table_frame = ctk.CTkFrame(parent, fg_color=C["bg_dark"], corner_radius=6)
+        table_frame.pack(fill="both", expand=True, padx=8, pady=(4, 8))
+
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Net.Treeview",
+                        background=C["bg_dark"],
+                        foreground=C["text"],
+                        rowheight=22,
+                        fieldbackground=C["bg_dark"],
+                        borderwidth=0,
+                        font=("Consolas", 8))
+        style.configure("Net.Treeview.Heading",
+                        background=C["bg_card"],
+                        foreground=C["cyan"],
+                        borderwidth=0,
+                        font=("Consolas", 8, "bold"),
+                        relief="flat")
+
+        columns = ("pid", "process", "remote_ip", "port", "country", "risk", "c2_indicator")
+        self._net_tree = ttk.Treeview(
+            table_frame, columns=columns, show="headings",
+            style="Net.Treeview", selectmode="browse", height=12
+        )
+
+        col_config = [
+            ("pid", "PID", 60),
+            ("process", "Process", 120),
+            ("remote_ip", "Remote IP", 130),
+            ("port", "Port", 60),
+            ("country", "Country", 80),
+            ("risk", "Risk", 70),
+            ("c2_indicator", "C2 Indicator", 150),
+        ]
+        for col, heading, width in col_config:
+            self._net_tree.heading(col, text=heading)
+            self._net_tree.column(col, width=width, minwidth=40)
+
+        vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self._net_tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=self._net_tree.xview)
+        self._net_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        self._net_tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+
+        self._net_tree.tag_configure("safe", foreground=C["green"])
+        self._net_tree.tag_configure("suspicious", foreground=C["yellow"])
+        self._net_tree.tag_configure("blocked", foreground=C["red"])
+
+        # Initialize network analyzer
+        self._network_analyzer = NetworkAnalyzer()
+
+    def _refresh_network_connections(self):
+        """Refresh network connections table."""
+        self._net_status_lbl.configure(text="● Refreshing...", text_color=C["yellow"])
+
+        def _refresh():
+            connections = self._network_analyzer.get_all_connections()
+            self._ui_queue.put(("net_connections", connections))
+
+        threading.Thread(target=_refresh, daemon=True).start()
+
+    def _block_selected_ip(self):
+        """Block selected IP in network table."""
+        selection = self._net_tree.selection()
+        if not selection:
+            return
+
+        item = self._net_tree.item(selection[0])
+        values = item.get("values", [])
+
+        if len(values) < 3:
+            return
+
+        ip = values[2]  # remote_ip column
+        pid = int(values[0]) if values[0] else 0
+        process = values[1]
+
+        responder = get_auto_responder()
+        success = responder.block_network(pid, process)
+
+        if success:
+            self._log("success", f"Blocked network for IP: {ip}")
+            messagebox.showinfo("Success", f"Network blocked for {ip}")
+        else:
+            self._log("danger", f"Failed to block IP: {ip}")
+            messagebox.showerror("Error", f"Failed to block IP: {ip}")
+
+    def _populate_network_table(self, connections):
+        """Populate network connections table."""
+        for item in self._net_tree.get_children():
+            self._net_tree.delete(item)
+
+        for conn in connections[:100]:  # Show max 100
+            ip = conn.get("remote_ip", "Unknown")
+            port = conn.get("remote_port", 0)
+            pid = conn.get("pid", 0)
+            process = conn.get("process_name", "Unknown")
+
+            # Analyze for C2 indicators
+            analysis = self._network_analyzer.analyze_connections([conn])
+            risk_level = analysis.get("risk_level", "SAFE")
+            indicators = analysis.get("indicators", [])
+            c2_indicator = ", ".join([i["type"] for i in indicators]) if indicators else ""
+
+            # Risk color
+            if risk_level == "CRITICAL":
+                tag = "blocked"
+            elif risk_level == "HIGH":
+                tag = "suspicious"
+            else:
+                tag = "safe"
+
+            # Country (placeholder)
+            country = "???"
+
+            self._net_tree.insert("", "end",
+                values=(pid, process, ip, port, country, risk_level, c2_indicator),
+                tags=(tag,)
+            )
+
+        self._net_status_lbl.configure(
+            text=f"● Monitoring: {len(connections)} connections",
+            text_color=C["green"]
+        )
 
     def _build_log_console(self):
         console_frame = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=10, height=140)
@@ -1085,6 +1767,39 @@ class RansomwareDetectorApp(ctk.CTk):
                     self._ui_queue.put(("log", "danger", "PDF export thất bại"))
             threading.Thread(target=_gen, daemon=True).start()
 
+    def _export_forensic_bundle(self):
+        """Task 2: Export Forensic Bundle."""
+        if not self._results:
+            messagebox.showinfo("Info", "No scan results to export.")
+            return
+
+        output_dir = filedialog.askdirectory(title="Select output directory for forensic bundle")
+        if not output_dir:
+            return
+
+        self._log("info", "Generating forensic bundle...")
+
+        def _gen():
+            try:
+                exporter = ForensicBundleExporter()
+                bundle_path = exporter.export(self._results, output_dir)
+
+                # Count IOCs
+                ioc_count = sum(
+                    1 for r in self._results
+                    if r.risk_level in ["CRITICAL", "HIGH"]
+                )
+
+                self._ui_queue.put(("log", "success", f"Forensic bundle saved: {bundle_path}"))
+                self._ui_queue.put((
+                    "msgbox", "Export Complete",
+                    f"Saved: {os.path.basename(bundle_path)}\n({ioc_count} IOCs found)"
+                ))
+            except Exception as e:
+                self._ui_queue.put(("log", "danger", f"Forensic bundle export failed: {e}"))
+
+        threading.Thread(target=_gen, daemon=True).start()
+
     def _open_whitelist_editor(self):
         """v2.1: Mở Whitelist Editor."""
         editor = WhitelistEditorWindow(self)
@@ -1193,8 +1908,60 @@ class RansomwareDetectorApp(ctk.CTk):
 
                 elif mtype == "behavior_alert":
                     _, alert = msg
-                    # Show behavior alert window
-                    BehaviorAlertWindow(self, alert)
+
+                    # Task 5: Check auto-response policy
+                    responder = get_auto_responder()
+                    action = responder.get_response_action(alert.severity)
+
+                    if action == "auto_quarantine":
+                        # Auto quarantine for CRITICAL
+                        for fpath in alert.files:
+                            responder.quarantine_file(fpath, reason=f"CRITICAL: {alert.description}")
+                        self._log("danger", f"[AUTO] Quarantined: {alert.files[0] if alert.files else 'unknown'}")
+
+                    elif action == "ask_user":
+                        # Show auto-response dialog for HIGH
+                        AutoResponseWindow(self, alert, responder)
+
+                    else:
+                        # Just show behavior alert window
+                        BehaviorAlertWindow(self, alert)
+
+                    # Task 1: Update signal aggregator and chart
+                    if hasattr(self, "_signal_aggregator"):
+                        signal_types = [alert.behavior_type.value]
+                        score = self._signal_aggregator.compute_score(signal_types)
+                        # Update stats
+                        if hasattr(self, "_sig_stat_score"):
+                            score_color = C["red"] if score >= 0.7 else C["green"]
+                            self._sig_stat_score.configure(
+                                text=f"{score:.2f}",
+                                text_color=score_color
+                            )
+                        if hasattr(self, "_sig_stat_alerts"):
+                            count = len(getattr(self, "_monitor", None).alerts) if hasattr(self, "_monitor") else 0
+                            self._sig_stat_alerts.configure(text=str(count))
+
+                elif mtype == "rules_update_result":
+                    # Task 3: Handle rules update result
+                    _, results = msg
+                    self._rules_progress.set(1.0)
+                    if results.get("failed", 0) > 0:
+                        self._rules_status_lbl.configure(
+                            text=f"● Update failed: {results['failed']}/{results['total_sources']}",
+                            text_color=C["red"]
+                        )
+                    else:
+                        self._rules_status_lbl.configure(
+                            text=f"● Update complete: {results['successful']} rules updated",
+                            text_color=C["green"]
+                        )
+                    self._load_rules_table()
+
+                elif mtype == "net_connections":
+                    # Task 6: Handle network connections update
+                    _, connections = msg
+                    self._populate_network_table(connections)
 
                 elif mtype == "msgbox":
                     _, title, body = msg
@@ -1202,6 +1969,13 @@ class RansomwareDetectorApp(ctk.CTk):
 
         except Exception:
             pass
+
+        # Task 1: Update behavior chart every ~2 seconds
+        self._chart_update_counter += 1
+        if self._chart_update_counter >= 13:  # 13 * 150ms = ~2 seconds
+            self._chart_update_counter = 0
+            if hasattr(self, "_update_behavior_chart"):
+                self._update_behavior_chart()
 
         self.after(150, self._poll_ui_queue)
 
@@ -1311,11 +2085,47 @@ class RansomwareDetectorApp(ctk.CTk):
         self._log_text.configure(state="disabled")
 
     def on_closing(self):
+        """Handle window close - minimize to tray if tray is active."""
+        # Check if tray manager is active
+        if hasattr(self, "_tray_manager") and self._tray_manager is not None:
+            # Minimize to tray instead of closing
+            self._tray_manager.minimize_to_tray()
+            return
+
         if self._monitor.is_running:
             self._monitor.stop()
         if self._scanner.is_scanning:
             self._scanner.cancel()
         self.destroy()
+
+    def restore_from_tray(self):
+        """Task 4: Restore window from tray."""
+        try:
+            self.deiconify()
+            self.lift()
+            self.focus()
+        except:
+            pass
+
+    def quit_app(self):
+        """Task 4: Quit application completely."""
+        if hasattr(self, "_tray_manager") and self._tray_manager:
+            try:
+                self._tray_manager.stop()
+            except:
+                pass
+        if self._monitor.is_running:
+            self._monitor.stop()
+        if self._scanner.is_scanning:
+            self._scanner.cancel()
+        self.destroy()
+
+    def _on_protection_toggled(self, enabled: bool):
+        """Task 4: Handle protection toggle."""
+        if enabled:
+            self._watch_status_lbl.configure(text="● PROTECTION ON", text_color=C["green"])
+        else:
+            self._watch_status_lbl.configure(text="● PROTECTION OFF", text_color=C["text_dim"])
 
 
 def launch():

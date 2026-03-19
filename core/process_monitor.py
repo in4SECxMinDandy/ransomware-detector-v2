@@ -26,6 +26,7 @@ import os
 import time
 import threading
 import collections
+import logging
 from typing import Dict, List, Optional, Callable, Any, Set
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -36,6 +37,9 @@ try:
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 # Suspicious file extensions (ransomware thường đổi sang extensions này)
 SUSPICIOUS_EXTENSIONS = {
@@ -71,6 +75,24 @@ KNOWN_BENIGN_PROCESSES = {
     "git.exe", "python.exe", "pythonw.exe", "java.exe", "node.exe",
 }
 
+# Known file extensions (không phải ransomware)
+KNOWN_EXTENSIONS = {
+    ".doc", ".docx", ".pdf", ".txt", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".ico",
+    ".mp3", ".mp4", ".avi", ".mkv", ".mov", ".wav",
+    ".zip", ".rar", ".7z", ".tar", ".gz",
+    ".html", ".css", ".js", ".ts", ".py", ".java", ".cpp", ".c", ".h",
+    ".exe", ".dll", ".sys", ".msi",
+    ".json", ".xml", ".yaml", ".yml", ".toml",
+    ".sql", ".db", ".sqlite",
+}
+
+# Dynamic Behavior Detection Thresholds (Task 1)
+RENAME_BURST_THRESHOLD = 5
+RENAME_BURST_WINDOW = 10  # seconds
+MASS_IO_THRESHOLD_MBPS = 50
+MASS_IO_DURATION = 5  # seconds
+
 
 class BehaviorType(Enum):
     """Loại behavior đáng ngờ."""
@@ -79,6 +101,8 @@ class BehaviorType(Enum):
     RAPID_OPS = "rapid_ops"                    # Tần suất thao tác file cao bất thường
     SUSPICIOUS_PROCESS = "suspicious_process" # Process không known benign
     HIGH_ENTROPY_WRITE = "high_entropy_write"  # Ghi file có entropy cao
+    FILE_RENAME_BURST = "file_rename_burst"   # Task 1: Nhiều file rename nhanh
+    MASS_IO_ANOMALY = "mass_io_anomaly"       # Task 1: IO rate cao bất thường
 
 
 @dataclass
@@ -154,6 +178,14 @@ class ProcessMonitor:
         # Extension change tracking
         self._extension_changes: Dict[str, str] = {}  # old_path -> new_path
 
+        # Rename burst tracking (Task 1)
+        self._rename_events: Dict[int, List[FileEvent]] = collections.defaultdict(list)
+
+        # IO tracking for MASS_IO_ANOMALY (Task 1)
+        self._io_samples: Dict[int, List[Dict[str, Any]]] = collections.defaultdict(list)
+        self._last_io_counters: Dict[int, Dict[str, int]] = {}
+        self._last_io_time: Dict[int, float] = {}
+
         # Alerts
         self.alerts: List[BehaviorAlert] = []
 
@@ -170,6 +202,12 @@ class ProcessMonitor:
         self.encryption_burst_window = 30  # seconds
         self.rapid_ops_threshold = 5  # files/second
         self.rapid_ops_window = 10  # seconds
+
+        # Dynamic behavior thresholds (Task 1)
+        self.rename_burst_threshold = RENAME_BURST_THRESHOLD
+        self.rename_burst_window = RENAME_BURST_WINDOW
+        self.mass_io_threshold_mbps = MASS_IO_THRESHOLD_MBPS
+        self.mass_io_duration = MASS_IO_DURATION
 
     @property
     def is_running(self) -> bool:
@@ -206,6 +244,8 @@ class ProcessMonitor:
             if event.event_type == "renamed":
                 # Track extension changes
                 self._track_extension_change(event)
+                # Task 1: Track rename events for FILE_RENAME_BURST detection
+                self._track_rename_event(event)
 
             # Lưu event theo process
             if event.pid:
@@ -216,6 +256,9 @@ class ProcessMonitor:
                 self._check_encryption_burst(process)
                 self._check_rapid_ops(process)
                 self._check_suspicious_process(process, event)
+                # Task 1: Check for dynamic behavior patterns
+                self._check_file_rename_burst(process)
+                self._check_mass_io_anomaly(process)
 
                 if self.on_process_detected:
                     self.on_process_detected(process, event)
@@ -229,23 +272,47 @@ class ProcessMonitor:
             proc = psutil.Process(pid)
             name = proc.name().lower()
 
+            try:
+                exe_path = proc.exe()
+            except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
+                exe_path = ""
+            except OSError:
+                exe_path = ""
+
+            try:
+                cmdline = proc.cmdline()
+                cmd_str = " ".join(cmdline) if cmdline else ""
+            except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
+                cmd_str = ""
+            except OSError:
+                cmd_str = ""
+
+            try:
+                ppid = proc.ppid()
+                is_system = ppid == 0 or name in ("system", "smss.exe")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                is_system = False
+
             info = ProcessInfo(
                 pid=pid,
                 name=name,
-                path=proc.exe() or "",
-                command_line=" ".join(proc.cmdline()) if proc.cmdline() else "",
-                is_system=proc.ppid() == 0 or name in ("system", "smss.exe"),
+                path=exe_path,
+                command_line=cmd_str,
+                is_system=is_system,
                 is_benign=name.lower() in KNOWN_BENIGN_PROCESSES,
             )
 
-            # Thử lấy thời gian bắt đầu
             try:
                 info.started = datetime.fromtimestamp(proc.create_time())
-            except:
-                pass
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
+                info.started = None
+            except ValueError:
+                info.started = None
 
             return info
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            return None
+        except Exception:
             return None
 
     def _track_extension_change(self, event: FileEvent):
@@ -367,6 +434,211 @@ class ProcessMonitor:
                 }
             )
 
+    def _track_rename_event(self, event: FileEvent):
+        """Task 1: Track rename events for FILE_RENAME_BURST detection."""
+        if event.pid and event.event_type == "renamed":
+            self._rename_events[event.pid].append(event)
+
+    def _check_file_rename_burst(self, process: ProcessInfo):
+        """
+        Task 1: Phát hiện FILE_RENAME_BURST pattern.
+        Trigger: >= 5 files renamed within 10 seconds by same PID.
+        """
+        if process.is_benign or process.is_system:
+            return
+
+        rename_events = self._rename_events.get(process.pid, [])
+        if len(rename_events) < self.rename_burst_threshold:
+            return
+
+        # Lọc các events trong window
+        now = datetime.now()
+        window_start = now - timedelta(seconds=self.rename_burst_window)
+        recent_renames = [e for e in rename_events if e.timestamp > window_start]
+
+        if len(recent_renames) >= self.rename_burst_threshold:
+            # Check if new extension is NOT in KNOWN_EXTENSIONS
+            suspicious_renames = []
+            known_renames = []
+            for e in recent_renames:
+                if e.path:
+                    new_ext = os.path.splitext(e.path)[1].lower()
+                    if new_ext and new_ext not in KNOWN_EXTENSIONS:
+                        suspicious_renames.append(e)
+                    else:
+                        known_renames.append(e)
+
+            # Severity: CRITICAL if new extension NOT in KNOWN_EXTENSIONS
+            severity = "critical" if suspicious_renames else "high"
+
+            self._create_alert(
+                behavior_type=BehaviorType.FILE_RENAME_BURST,
+                process=process,
+                files=[e.path for e in recent_renames[:20]],
+                severity=severity,
+                description=f"Mass rename detected: {len(recent_renames)} files in {self.rename_burst_window}s",
+                metadata={
+                    "file_count": len(recent_renames),
+                    "window_seconds": self.rename_burst_window,
+                    "suspicious_extensions": len(suspicious_renames),
+                    "known_extensions": len(known_renames),
+                }
+            )
+
+    def _check_mass_io_anomaly(self, process: ProcessInfo):
+        """
+        Task 1: Phát hiện MASS_IO_ANOMALY pattern.
+        Trigger: Process write rate > 50 MB/s sustained for 5 seconds.
+        Uses psutil.Process(pid).io_counters() to measure.
+        """
+        if not PSUTIL_AVAILABLE:
+            return
+        if process.is_benign or process.is_system:
+            return
+
+        try:
+            proc = psutil.Process(process.pid)
+            io_counters = proc.io_counters()
+            current_time = time.time()
+
+            # First sample - just record
+            if process.pid not in self._last_io_time:
+                self._last_io_counters[process.pid] = {
+                    "write_bytes": io_counters.write_bytes,
+                    "read_bytes": io_counters.read_bytes,
+                }
+                self._last_io_time[process.pid] = current_time
+                return
+
+            # Calculate delta
+            last_time = self._last_io_time[process.pid]
+            last_counters = self._last_io_counters[process.pid]
+
+            time_delta = current_time - last_time
+            if time_delta < 1.0:  # Need at least 1 second between samples
+                return
+
+            write_delta = io_counters.write_bytes - last_counters["write_bytes"]
+            write_mbps = (write_delta / (1024 * 1024)) / time_delta
+
+            # Record sample
+            self._io_samples[process.pid].append({
+                "timestamp": current_time,
+                "write_mbps": write_mbps,
+                "write_bytes": write_delta,
+                "time_delta": time_delta,
+            })
+
+            # Keep only recent samples
+            window_start = current_time - self.mass_io_duration
+            self._io_samples[process.pid] = [
+                s for s in self._io_samples[process.pid]
+                if s["timestamp"] > window_start
+            ]
+
+            # Check sustained high IO
+            samples = self._io_samples[process.pid]
+            if len(samples) >= 2:
+                avg_write_mbps = sum(s["write_mbps"] for s in samples) / len(samples)
+                # Check if sustained above threshold
+                sustained_high = all(s["write_mbps"] >= self.mass_io_threshold_mbps for s in samples)
+
+                if sustained_high and avg_write_mbps >= self.mass_io_threshold_mbps:
+                    self._create_alert(
+                        behavior_type=BehaviorType.MASS_IO_ANOMALY,
+                        process=process,
+                        files=[],
+                        severity="critical",
+                        description=f"Mass I/O anomaly: {avg_write_mbps:.1f} MB/s sustained for {len(samples)} samples",
+                        metadata={
+                            "avg_write_mbps": round(avg_write_mbps, 2),
+                            "max_write_mbps": max(s["write_mbps"] for s in samples),
+                            "sample_count": len(samples),
+                            "duration_seconds": time_delta * len(samples),
+                        }
+                    )
+                    # Clear samples after alert to prevent repeated alerts
+                    self._io_samples[process.pid].clear()
+
+            # Update last counters
+            self._last_io_counters[process.pid] = {
+                "write_bytes": io_counters.write_bytes,
+                "read_bytes": io_counters.read_bytes,
+            }
+            self._last_io_time[process.pid] = current_time
+
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+
+    def record_io_sample(self, pid: int, write_bytes: int, read_bytes: int):
+        """
+        Task 1: Record IO sample for external monitoring.
+        Can be called by watchdog_monitor to provide IO data.
+        """
+        if not self._running:
+            return
+
+        with self._lock:
+            current_time = time.time()
+
+            if pid not in self._last_io_time:
+                self._last_io_counters[pid] = {"write_bytes": write_bytes, "read_bytes": read_bytes}
+                self._last_io_time[pid] = current_time
+                return
+
+            last_time = self._last_io_time[pid]
+            last_counters = self._last_io_counters[pid]
+
+            time_delta = current_time - last_time
+            if time_delta < 1.0:
+                return
+
+            write_delta = write_bytes - last_counters["write_bytes"]
+            read_delta = read_bytes - last_counters["read_bytes"]
+            write_mbps = (write_delta / (1024 * 1024)) / time_delta
+            read_mbps = (read_delta / (1024 * 1024)) / time_delta
+
+            self._io_samples[pid].append({
+                "timestamp": current_time,
+                "write_mbps": write_mbps,
+                "read_mbps": read_mbps,
+                "write_bytes": write_delta,
+                "read_bytes": read_delta,
+                "time_delta": time_delta,
+            })
+
+            # Keep only recent samples
+            window_start = current_time - self.mass_io_duration
+            self._io_samples[pid] = [
+                s for s in self._io_samples[pid]
+                if s["timestamp"] > window_start
+            ]
+
+            # Check sustained high IO
+            samples = self._io_samples[pid]
+            if len(samples) >= 2:
+                avg_write_mbps = sum(s["write_mbps"] for s in samples) / len(samples)
+                sustained_high = all(s["write_mbps"] >= self.mass_io_threshold_mbps for s in samples)
+
+                if sustained_high and avg_write_mbps >= self.mass_io_threshold_mbps:
+                    process = self._get_process_info(pid)
+                    if process:
+                        self._create_alert(
+                            behavior_type=BehaviorType.MASS_IO_ANOMALY,
+                            process=process,
+                            files=[],
+                            severity="critical",
+                            description=f"Mass I/O anomaly: {avg_write_mbps:.1f} MB/s sustained",
+                            metadata={
+                                "avg_write_mbps": round(avg_write_mbps, 2),
+                                "max_write_mbps": max(s["write_mbps"] for s in samples),
+                            }
+                        )
+                    self._io_samples[pid].clear()
+
+            self._last_io_counters[pid] = {"write_bytes": write_bytes, "read_bytes": read_bytes}
+            self._last_io_time[pid] = current_time
+
     def _create_alert(
         self,
         behavior_type: BehaviorType,
@@ -439,6 +711,134 @@ class ProcessMonitor:
         for alert in self.alerts:
             counts[alert.behavior_type.value] += 1
         return counts
+
+
+class DynamicSignalAggregator:
+    """
+    Task 1: Aggregator for dynamic behavior signals.
+    Computes composite threat score from multiple behavior patterns.
+
+    Usage:
+        aggregator = DynamicSignalAggregator()
+        score = aggregator.compute_score(["FILE_RENAME_BURST", "MASS_IO_ANOMALY"])
+        if score > aggregator.CRITICAL_THRESHOLD:
+            print("CRITICAL THREAT DETECTED!")
+    """
+
+    WEIGHTS = {
+        "FILE_RENAME_BURST": 0.40,
+        "MASS_IO_ANOMALY": 0.40,
+        "ENCRYPTION_BURST": 0.30,
+        "EXTENSION_CHANGE": 0.25,
+        "RAPID_OPS": 0.20,
+        "SUSPICIOUS_PROCESS": 0.15,
+        "HIGH_ENTROPY_WRITE": 0.10,
+        "OTHER": 0.10,
+    }
+    CRITICAL_THRESHOLD = 0.70
+
+    def __init__(self):
+        self._signal_history: List[Dict[str, Any]] = []
+        self._lock = threading.Lock()
+
+    def compute_score(self, active_signals: List[str]) -> float:
+        """
+        Compute composite score from active signals.
+        Returns score from 0.0 to 1.0.
+        Score > 0.70 = CRITICAL.
+
+        Args:
+            active_signals: List of signal type names (e.g., ["FILE_RENAME_BURST", "MASS_IO_ANOMALY"])
+
+        Returns:
+            Composite threat score (0.0 - 1.0)
+        """
+        if not active_signals:
+            return 0.0
+
+        score = 0.0
+        signal_count = 0
+
+        for signal in active_signals:
+            weight = self.WEIGHTS.get(signal, self.WEIGHTS["OTHER"])
+            score += weight
+            signal_count += 1
+
+        # Normalize: cap at 1.0
+        normalized_score = min(score, 1.0)
+
+        # Store in history
+        with self._lock:
+            self._signal_history.append({
+                "timestamp": datetime.now(),
+                "signals": active_signals,
+                "score": normalized_score,
+            })
+            # Keep only last 100 entries
+            if len(self._signal_history) > 100:
+                self._signal_history = self._signal_history[-100:]
+
+        return normalized_score
+
+    def compute_score_from_alerts(self, alerts: List[BehaviorAlert]) -> float:
+        """
+        Compute score from a list of BehaviorAlert objects.
+
+        Args:
+            alerts: List of BehaviorAlert objects
+
+        Returns:
+            Composite threat score (0.0 - 1.0)
+        """
+        if not alerts:
+            return 0.0
+
+        # Get unique signal types from alerts
+        signal_types = list(set(alert.behavior_type.value for alert in alerts))
+
+        # Apply severity multipliers
+        severity_multiplier = 1.0
+        has_critical = any(alert.severity == "critical" for alert in alerts)
+        has_high = any(alert.severity == "high" for alert in alerts)
+
+        if has_critical:
+            severity_multiplier = 1.5
+        elif has_high:
+            severity_multiplier = 1.25
+
+        score = self.compute_score(signal_types) * severity_multiplier
+        return min(score, 1.0)
+
+    def is_critical(self, active_signals: List[str]) -> bool:
+        """Check if active signals indicate critical threat."""
+        return self.compute_score(active_signals) >= self.CRITICAL_THRESHOLD
+
+    def get_signal_stats(self) -> Dict[str, Any]:
+        """Get statistics about recorded signals."""
+        with self._lock:
+            if not self._signal_history:
+                return {
+                    "total_records": 0,
+                    "avg_score": 0.0,
+                    "critical_count": 0,
+                    "recent_scores": [],
+                }
+
+            scores = [r["score"] for r in self._signal_history]
+            critical_count = sum(1 for s in scores if s >= self.CRITICAL_THRESHOLD)
+
+            return {
+                "total_records": len(self._signal_history),
+                "avg_score": sum(scores) / len(scores),
+                "max_score": max(scores),
+                "critical_count": critical_count,
+                "recent_scores": scores[-10:],
+            }
+
+    def clear_history(self):
+        """Clear signal history."""
+        with self._lock:
+            self._signal_history.clear()
 
 
 # Singleton instance

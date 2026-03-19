@@ -1,0 +1,8 @@
+{
+  "updated": "2026-03-19",
+  "source": "abuse.ch Feodo Tracker",
+  "description": "Offline blocklist for known C2 IPs - ransomware command and control servers",
+  "last_downloaded": "2026-03-19",
+  "note": "Update this list regularly from https://feodotracker.abuse.ch/blocklist/",
+  "ips": []
+}

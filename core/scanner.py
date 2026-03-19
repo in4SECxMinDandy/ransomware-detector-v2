@@ -33,6 +33,67 @@ from core.fp_reducer import (  # type: ignore[import]
     apply_fp_reduction,
     ALWAYS_SAFE_EXTENSIONS,
 )
+from core.pe_analyzer import analyze_pe  # type: ignore[import]
+from core.logger_setup import get_logger
+
+logger = get_logger("scanner")
+
+# ─── Incremental Scan Cache ─────────────────────────────────────────────────
+
+_INCREMENTAL_CACHE_FILE = "data/scan_cache.json"
+_INCREMENTAL_CACHE: dict[str, float] = {}
+
+
+def _load_incremental_cache() -> dict[str, float]:
+    """Load file modification-time cache from disk."""
+    global _INCREMENTAL_CACHE
+    if not _INCREMENTAL_CACHE:
+        cache_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            _INCREMENTAL_CACHE_FILE,
+        )
+        if os.path.isfile(cache_path):
+            try:
+                import json
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    _INCREMENTAL_CACHE = json.load(f)
+            except Exception:
+                _INCREMENTAL_CACHE = {}
+    return _INCREMENTAL_CACHE
+
+
+def _save_incremental_cache():
+    """Persist file modification-time cache to disk."""
+    cache_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        _INCREMENTAL_CACHE_FILE,
+    )
+    try:
+        import json
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(_INCREMENTAL_CACHE, f, indent=2)
+    except Exception:
+        pass
+
+
+def is_modified_since_last_scan(file_path: str) -> bool:
+    """Returns True if file is new or modified since last scan."""
+    try:
+        mtime = os.path.getmtime(file_path)
+    except OSError:
+        return False
+    cache = _load_incremental_cache()
+    return mtime > cache.get(file_path, 0)
+
+
+def mark_scanned(file_path: str):
+    """Record file's current modification time."""
+    try:
+        _INCREMENTAL_CACHE[file_path] = os.path.getmtime(file_path)
+        _save_incremental_cache()
+    except OSError:
+        pass
 
 # Extensions luôn bỏ qua (hệ thống, không cần phân tích)
 SKIP_EXTENSIONS = {
@@ -81,7 +142,7 @@ SENSITIVITY_PROFILES = {
     },
 }
 
-DEFAULT_SENSITIVITY_PROFILE = "high_sensitivity"
+DEFAULT_SENSITIVITY_PROFILE = "balanced"
 
 MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024  # 2 GB
 MIN_FILE_SIZE = 64                        # 64 bytes
@@ -268,28 +329,42 @@ class Scanner:
             compression_est = float(features[12]) if len(features) > 12 else 0.0
             structural_consistency = float(features[13]) if len(features) > 13 else 0.0
             suspicious_ext = ext in SUSPICIOUS_EXTENSIONS
+            
+            # ── PE structural analysis (v2.1) ──
+            injection_found = False
+            if ext in {".exe", ".dll", ".sys"}:
+                pe_res = analyze_pe(file_path)
+                if pe_res.is_suspicious():
+                    injection_found = True
+                    result.fp_reason += f" | PE_INJECTION({','.join(pe_res.rwx_sections + pe_res.suspicious_sections)})"
+
             heuristic_hit = (
                 entropy_z >= profile["entropy_z"] and
                 features[0] >= profile["entropy_high"] and
                 compression_est <= profile["low_compress"] and
                 structural_consistency <= profile["low_struct"]
-            ) or suspicious_ext
+            ) or suspicious_ext or injection_found
 
             # ── Bước 4: FP Reduction ──
-            adjusted_proba, eff_threshold, fp_reason = apply_fp_reduction(
+            adjusted_proba, eff_threshold, reduction_reason = apply_fp_reduction(
                 file_path, raw_proba, base_threshold
             )
             # Sensitivity profile: hạ threshold hiệu dụng (không thấp hơn 0.35)
             eff_threshold = max(0.35, eff_threshold + profile["threshold_delta"])
 
-            # Heuristic boost (không vượt quá 0.90, không ghi đè FP reducer)
+            # Heuristic boost (không vượt quá 0.95, không ghi đè FP reducer)
             if heuristic_hit:
-                adjusted_proba = min(max(adjusted_proba, raw_proba + profile["heuristic_boost"]), 0.90)
-                fp_reason += " | heuristic_boost"
+                boost_val = profile["heuristic_boost"]
+                if injection_found:
+                    boost_val += 0.20  # Boost mạnh hơn nếu có dấu hiệu injection
+                adjusted_proba = min(max(adjusted_proba, raw_proba + boost_val), 0.95)
+                if not injection_found:
+                    reduction_reason += " | heuristic_boost"
 
             result.probability         = adjusted_proba
             result.effective_threshold = eff_threshold
-            result.fp_reason           = fp_reason
+            # Gộp các lý do điều chỉnh
+            result.fp_reason          += f" | {reduction_reason}"
             result.fp_adjusted         = (adjusted_proba != raw_proba or eff_threshold != base_threshold)
 
             # ── Bước 5: YARA Signature Scan (v2.1) ──
@@ -328,7 +403,8 @@ class Scanner:
         on_progress: Optional[Callable[[int, int, "ScanResult"], None]] = None,
         on_complete: Optional[Callable[[List["ScanResult"]], None]] = None,
         on_error:    Optional[Callable[[str], None]] = None,
-        max_threads: int = MAX_THREADS
+        max_threads: int = MAX_THREADS,
+        scan_mode: str = "full",
     ) -> None:
         """
         Bắt đầu quét directory trong background thread.
@@ -341,7 +417,14 @@ class Scanner:
         on_complete : callback(all_results) khi hoàn thành
         on_error    : callback(error_message)
         max_threads : số thread song song
+        scan_mode   : "full" | "quick" | "incremental"
+                      - "full":       quét tất cả files
+                      - "quick":      non-recursive
+                      - "incremental": chỉ quét files mới hoặc đã sửa đổi
         """
+        if scan_mode == "full" and not recursive:
+            scan_mode = "quick"
+
         def _run():
             self._cancel_flag.clear()
             self._results.clear()
@@ -349,7 +432,16 @@ class Scanner:
             self._progress    = 0
 
             try:
-                files       = self._collect_files(directory, recursive)
+                files = self._collect_files(directory, recursive)
+
+                # ── Incremental: skip already-scanned unmodified files ──
+                if scan_mode == "incremental":
+                    original_count = len(files)
+                    files = [f for f in files if is_modified_since_last_scan(f)]
+                    skipped = original_count - len(files)
+                    if skipped > 0:
+                        logger.info("Incremental: skipped %d unchanged files", skipped)
+
                 self._total = len(files)
 
                 if self._total == 0:
@@ -359,7 +451,10 @@ class Scanner:
 
                 with ThreadPoolExecutor(max_workers=max_threads) as executor:
                     def scan_file_wrapper(fp: str) -> ScanResult:
-                        return self._scan_single_file(fp)
+                        result = self._scan_single_file(fp)
+                        if scan_mode == "incremental":
+                            mark_scanned(fp)
+                        return result
                     future_to_path = {
                         executor.submit(scan_file_wrapper, fp): fp  # type: ignore[arg-type]
                         for fp in files
@@ -383,6 +478,7 @@ class Scanner:
                     on_complete(self._results.copy())
 
             except Exception as e:
+                logger.error("Scan error: %s", e)
                 if on_error:
                     on_error(str(e))
             finally:
