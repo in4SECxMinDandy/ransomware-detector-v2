@@ -23,6 +23,15 @@ sys.path.insert(0, BASE_DIR)
 def run_gui():
     """Khởi chạy giao diện GUI."""
     from gui.main_window import launch
+
+    # Task 4: Start tray manager with GUI
+    try:
+        from gui.tray_manager import get_tray_manager
+        tray = get_tray_manager()
+        tray.run()
+    except Exception:
+        pass  # Tray is optional
+
     launch()
 
 

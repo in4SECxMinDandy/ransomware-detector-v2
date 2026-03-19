@@ -347,19 +347,25 @@ rule Generic_Encrypted_Extension
         any of them
 }
 
-rule High_Entropy_PE_Suspicious
+rule Process_Injection_Indicators
 {
     meta:
-        description = "PE executable with suspicious entropy profile (packed/encrypted)"
+        description = "Potential process injection APIs and patterns"
         author      = "Ransomware Entropy Detector v2"
-        severity    = "MEDIUM"
-        family      = "Generic"
+        severity    = "CRITICAL"
+        family      = "Injection"
 
     strings:
-        $mz_header = { 4D 5A }               // MZ header
+        $api1 = "VirtualAllocEx" nocase
+        $api2 = "WriteProcessMemory" nocase
+        $api3 = "CreateRemoteThread" nocase
+        $api4 = "NtCreateThreadEx" nocase
+        $api5 = "SetThreadContext" nocase
+        $api6 = "ResumeThread" nocase
+        $api7 = "QueueUserAPC" nocase
 
     condition:
-        $mz_header at 0 and filesize > 10KB
+        uint16(0) == 0x5A4D and 3 of them
 }
 """
 
@@ -535,6 +541,19 @@ PYTHON_SIGNATURES: List[Dict] = [
         "ext_patterns": [],
         "min_matches": 0,
         "special": "high_entropy_pe",  # PE header + kiểm tra entropy
+    },
+    {
+        "name": "Process_Injection_Indicators",
+        "description": "Potential process injection techniques",
+        "severity": "CRITICAL",
+        "family": "Injection",
+        "byte_patterns": [
+            b"VirtualAllocEx", b"WriteProcessMemory", b"CreateRemoteThread",
+            b"NtCreateThreadEx", b"SetThreadContext", b"ResumeThread",
+            b"QueueUserAPC"
+        ],
+        "ext_patterns": [".exe", ".dll"],
+        "min_matches": 3,
     },
 ]
 
@@ -763,11 +782,12 @@ class YaraEngine:
             return False
         try:
             extra = yara.compile(filepath=rules_path)
-            # Merge với built-in rules
+            with open(rules_path, "r", encoding="utf-8") as f:
+                custom_rules_source = f.read()
             self._compiled_rules = yara.compile(
                 sources={
                     "builtin": BUILTIN_YARA_RULES_SOURCE,
-                    "custom": open(rules_path).read(),
+                    "custom": custom_rules_source,
                 }
             )
             return True

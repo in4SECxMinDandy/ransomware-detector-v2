@@ -171,9 +171,11 @@ def check_path_whitelist(file_path: str) -> bool:
     if ext in ALWAYS_SAFE_EXTENSIONS:
         return True
 
-    path_lower = file_path.lower().replace("\\", "/")
+    path_lower = file_path.lower()
+    normalized = path_lower.replace("/", "\\")
     for keyword in ALWAYS_SAFE_PATH_KEYWORDS:
-        if keyword in path_lower:
+        k_normalized = keyword.replace("/", "\\")
+        if k_normalized in normalized:
             return True
 
     return False

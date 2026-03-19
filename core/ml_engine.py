@@ -99,37 +99,48 @@ class CalibratedMalwareDetector:
         return self.threshold
 
     def load_model(self, model_path: str = MODEL_PATH) -> bool:
-        """Load pipeline từ file .joblib."""
+        """Load pipeline từ file .joblib. Falls back to retraining on failure."""
         if os.path.isfile(model_path):
             try:
                 data = joblib.load(model_path)
-                # Hỗ trợ cả format dict mới và Pipeline cũ
                 if isinstance(data, dict):
                     self.pipeline          = data.get("pipeline")
                     self._optimal_threshold = data.get("optimal_threshold", DEFAULT_THRESHOLD)
                     self.threshold         = self._optimal_threshold
                     self._pr_curve_data    = data.get("pr_curve", {})
                 else:
-                    # Format cũ: plain Pipeline
                     self.pipeline = data
                     self._optimal_threshold = DEFAULT_THRESHOLD
                     self.threshold = DEFAULT_THRESHOLD
 
                 # Load metadata
                 if os.path.isfile(META_PATH):
-                    with open(META_PATH, "r") as f:
-                        self.metadata = json.load(f)
-                    # Sync threshold từ metadata nếu có
-                    if "optimal_threshold" in self.metadata:
-                        self._optimal_threshold = self.metadata["optimal_threshold"]
-                        self.threshold = self._optimal_threshold
+                    try:
+                        with open(META_PATH, "r") as f:
+                            self.metadata = json.load(f)
+                        if "optimal_threshold" in self.metadata:
+                            self._optimal_threshold = self.metadata["optimal_threshold"]
+                            self.threshold = self._optimal_threshold
+                    except (json.JSONDecodeError, IOError):
+                        pass  # corrupt metadata file
 
                 self._loaded = True
                 return True
             except Exception as e:
-                print(f"[MLEngine] Load model thất bại: {e}")
+                print(f"[MLEngine] Load model thất bại ({e}), sẽ retrain...")
+                self._train_default_model()
                 return False
         return False
+
+    def _train_default_model(self):
+        """Train a default model when no model file exists or load fails."""
+        try:
+            from core.dataset_generator import generate_synthetic_dataset
+            X, y = generate_synthetic_dataset(n_safe=2000, n_encrypted=2000, verbose=False)
+            self.train(X, y, verbose=False)
+        except Exception:
+            print("[MLEngine] Retrain failed, using untrained model")
+            self._loaded = False
 
     def train(
         self,
@@ -229,17 +240,21 @@ class CalibratedMalwareDetector:
         self.threshold = opt_threshold
 
         # ── Pipeline chính: scaler + calibrated model ──
-        # Tạo pipeline wrapper để predict trực tiếp
-        self.pipeline = Pipeline([
-            ("scaler", scaler),
-            ("clf", calibrated_rf)
-        ])
-        # Vì đã fit scaler rồi, cần workaround: refit pipeline trên all train+val
+        # CRITICAL FIX: fit scaler on full train+val BEFORE creating pipeline,
+        # otherwise pipeline.fit() would refit scaler on train-only data (data leak)
         X_trainval = np.vstack([X_train, X_val])
         y_trainval = np.concatenate([y_train, y_val])
-        # Refit calibrated RF trên full train+val (scaler đã fit, chỉ cần transform)
-        X_trainval_scaled = scaler.transform(X_trainval)
+        scaler_full = StandardScaler()
+        X_trainval_scaled = scaler_full.fit_transform(X_trainval)
+
+        # Refit calibrated RF on full train+val
         calibrated_rf.fit(X_trainval_scaled, y_trainval)
+
+        # Build pipeline with scaler already fit on trainval (no data leak)
+        self.pipeline = Pipeline([
+            ("scaler", scaler_full),
+            ("clf", calibrated_rf)
+        ])
 
         # ── Đánh giá trên Test set với optimal threshold ──
         y_test_proba  = calibrated_rf.predict_proba(X_test_scaled)[:, 1]

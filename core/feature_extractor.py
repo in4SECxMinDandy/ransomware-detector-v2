@@ -375,6 +375,14 @@ def extract_features(file_path: str) -> Optional[np.ndarray]:
         struct_consistency   = _structural_consistency(chunk_entropies)
         known_benign_fmt     = _is_known_benign_format(header or data[:16], file_ext)
 
+        # Feature 14: raw unclamped delta (vs clamped z-score at position 10)
+        # This preserves sign and magnitude without [-3,3] clipping
+        ext = file_ext.lower().lstrip(".")
+        mean_b, std_b = EXTENSION_ENTROPY_BASELINE.get(ext, DEFAULT_ENTROPY_BASELINE)
+        if std_b < 0.01:
+            std_b = 0.01
+        raw_entropy_delta = (h_entropy - mean_b) / std_b  # unclamped, preserves extreme values
+
         # ── Tổng hợp ──
         feature_vec = np.array([
             h_entropy,           # 0
@@ -387,12 +395,12 @@ def extract_features(file_path: str) -> Optional[np.ndarray]:
             chunk_min,           # 7
             high_ratio,          # 8
             magic_mismatch,      # 9
-            ext_entropy_z,       # 10 ← KEY anti-FP feature
+            ext_entropy_z,       # 10 ← Clamped z-score vs extension baseline [-3,3]
             byte_mode_freq,      # 11
             compression_est,     # 12
             struct_consistency,  # 13
-            ext_entropy_z,       # 14 (alias: extension_entropy_delta)
-            known_benign_fmt,    # 15 ← KEY anti-FP feature
+            raw_entropy_delta,   # 14 ← Raw unclamped delta (preserves extreme values)
+            known_benign_fmt,   # 15 ← Valid magic bytes for extension
         ], dtype=np.float32)
 
         # Xử lý NaN/Inf
@@ -416,12 +424,12 @@ FEATURE_NAMES = [
     "Chunk Entropy Min",         # 7
     "High Entropy Ratio",        # 8
     "Magic Bytes Mismatch",      # 9
-    "Ext Entropy Z-Score",       # 10 ← NEW
-    "Byte Mode Frequency",       # 11 ← NEW
-    "Compression Estimate",      # 12 ← NEW
-    "Structural Consistency",    # 13 ← NEW
-    "Ext Entropy Delta",         # 14 ← NEW (duplicate of 10 for emphasis)
-    "Is Known Benign Format",    # 15 ← NEW
+    "Ext Entropy Z-Score",      # 10 ← Clamped z-score vs extension baseline
+    "Byte Mode Frequency",       # 11
+    "Compression Estimate",      # 12
+    "Structural Consistency",    # 13
+    "Ext Entropy Raw Delta",    # 14 ← Unclamped raw delta (preserves extremes)
+    "Is Known Benign Format",   # 15
 ]
 
 N_FEATURES = len(FEATURE_NAMES)  # 16
