@@ -461,9 +461,9 @@ MIT License - Xem [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ## Author
 
-- **Name**: Your Name
-- **Email**: <your.email@example.com>
-- **GitHub**: [yourusername](https://github.com/yourusername)
+- **Name**: Hà Quang Minh
+- **Email**: minhhq.in4sec@gmail.com
+- **GitHub**: https://github.com/in4SECxMinDandy/ransomware-detector-v2
 
 ---
 
