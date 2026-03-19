@@ -1,4 +1,4 @@
-Shannon Entropy,Chi-Square (log),Mean Byte,Byte Variance,Serial Correlation,Chunk Entropy StdDev,Chunk Entropy Max,Chunk Entropy Min,High Entropy Ratio,Magic Bytes Mismatch,Ext Entropy Z-Score,Byte Mode Frequency,Compression Estimate,Structural Consistency,Ext Entropy Delta,Is Known Benign Format,label
+Shannon Entropy,Chi-Square (log),Mean Byte,Byte Variance,Serial Correlation,Chunk Entropy StdDev,Chunk Entropy Max,Chunk Entropy Min,High Entropy Ratio,Magic Bytes Mismatch,Ext Entropy Z-Score,Byte Mode Frequency,Compression Estimate,Structural Consistency,Ext Entropy Raw Delta,Is Known Benign Format,label
 5.2908463,12.926035,94.05609,567.7545,0.0032416247,0.019532327,5.318759,5.2476044,0.0,0.0,1.6135582,0.08950379,0.035687424,0.99630034,1.6135582,0.0,0
 5.2932763,15.011148,94.201355,561.84106,0.0006219281,0.02064349,5.3273396,5.231347,0.0,0.0,1.6165953,0.089660466,0.03519302,0.9960908,1.6165953,0.0,0
 5.2955775,14.759518,94.197914,560.95776,0.0032515707,0.02133345,5.3339815,5.2114873,0.0,0.0,1.6194721,0.08983394,0.03613396,0.99596184,1.6194721,0.0,0

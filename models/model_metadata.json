@@ -43,7 +43,7 @@
     "Byte Mode Frequency": 0.01914466479237797,
     "Compression Estimate": 0.018654406973516228,
     "Structural Consistency": 0.09310725872599261,
-    "Ext Entropy Delta": 0.03043910661759802,
+    "Ext Entropy Raw Delta": 0.03043910661759802,
     "Is Known Benign Format": 0.1687892870746228
   },
   "threshold_report": {

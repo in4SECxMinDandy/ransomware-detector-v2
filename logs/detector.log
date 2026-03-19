@@ -1,0 +1,3 @@
+[2026-03-19 20:30:54] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-19 20:30:55] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-19 20:30:55] [WARNING ] [gui.tray_manager] Tray icon already running
