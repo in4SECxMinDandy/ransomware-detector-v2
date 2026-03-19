@@ -482,7 +482,7 @@ MIT License - Xem [LICENSE](LICENSE) de biet them chi tiet.
 
 ## Author
 
-- **Name**: Ha Quang Minh
+- **Name**: Hà Quang Minh
 - **Email**: minhhq.in4sec@gmail.com
 - **GitHub**: https://github.com/in4SECxMinDandy
 
