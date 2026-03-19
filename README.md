@@ -203,11 +203,11 @@ pip install yara-python
 
 ### Mode 1: Manual Scan
 
-1. Click **"Select Folder"** de chon thu muc can quet
+1. Click **"Select Folder"** để chọn thư mục cần quét
 2. Chon **Scan Mode**: Full Scan (de quy), Quick Scan, hoac Incremental Scan
-3. Dieu chinh **Threshold** neu can (mac dinh: 0.65)
+3. Dieu chinh **Threshold** nếu cần (mặc định: 0.65)
 4. Click **"Start Scan"**
-5. Xem ket qua trong bang ben duoi
+5. Xem kết quả trong bảng bên dưới
 
 ### Mode 2: Real-time Protection
 
@@ -240,17 +240,17 @@ pip install yara-python
 
 | # | Feature | Mo ta |
 | --- | --- | --- |
-| 1 | Shannon Entropy | Entropy trung binh |
+| 1 | Shannon Entropy | Entropy trung bình |
 | 2 | Chi-Square (log) | Byte distribution uniformity |
-| 3 | Mean Byte | Gia tri trung binh byte |
-| 4 | Byte Variance | Phuong sai byte |
-| 5 | Serial Correlation | Tuong quan byte lien tiep |
-| 6 | Chunk Entropy StdDev | Do lech entropy |
-| 7 | Chunk Entropy Max | Entropy cao nhat |
-| 8 | Chunk Entropy Min | Entropy thap nhat |
-| 9 | High Entropy Ratio | Ty le chunk entropy cao |
-| 10 | Magic Bytes Mismatch | Magic bytes khong khop |
-| 11 | Normalized Entropy | Entropy chuan hoa |
+| 3 | Mean Byte | Giá trị trung bình byte |
+| 4 | Byte Variance | Phương sai byte |
+| 5 | Serial Correlation | Tương quan byte lien tiep |
+| 6 | Chunk Entropy StdDev | Độ lệch entropy |
+| 7 | Chunk Entropy Max | Entropy cao nhất |
+| 8 | Chunk Entropy Min | Entropy thấp nhất |
+| 9 | High Entropy Ratio | Tỷ lệ chunk entropy cao |
+| 10 | Magic Bytes Mismatch | Magic bytes không khớp |
+| 11 | Normalized Entropy | Entropy chuẩn hóa |
 | 12 | Byte Distribution Mode | Mode phan bo byte |
 | 13 | Compression Ratio Sim | An tinh nen |
 | 14 | Structural Consistency | Nhat quan cau truc |
