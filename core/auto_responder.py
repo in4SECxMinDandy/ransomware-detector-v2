@@ -91,8 +91,9 @@ class AutoResponder:
         try:
             with open(file_path, "rb") as f:
                 file_hash = hashlib.sha256(f.read()).hexdigest()
-        except:
-            pass
+        except IOError as e:
+            logger.error(f"Failed to read file for hash: {e}")
+            file_hash = None
 
         # New path
         filename = os.path.basename(file_path)
@@ -258,8 +259,11 @@ class AutoResponder:
             logger.warning("Network blocking only supported on Windows")
             return False
 
-        # Create firewall rule name
-        rule_name = f"RansomwareDetector_Block_{pid}_{process_name}"
+        # Sanitize process name to prevent command injection
+        safe_process_name = self._sanitize_process_name(process_name)
+        
+        # Create firewall rule name with sanitized name
+        rule_name = f"RansomwareDetector_Block_{pid}_{safe_process_name}"
 
         try:
             # Get process path
@@ -267,25 +271,28 @@ class AutoResponder:
                 try:
                     proc = psutil.Process(pid)
                     process_path = proc.exe()
-                except:
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
+                    logger.debug(f"Cannot get process path: {e}")
                     process_path = ""
             else:
                 process_path = ""
 
             # Create outbound block rule
             if process_path:
+                # Sanitize path for command
+                safe_path = self._sanitize_path(process_path)
                 cmd = [
                     "netsh", "advfirewall", "firewall", "add", "rule",
-                    "name=" + rule_name,
+                    f"name={rule_name}",
                     "dir=out",
                     "action=block",
-                    "program=" + process_path,
+                    f"program={safe_path}",
                     "enable=yes"
                 ]
             else:
                 cmd = [
                     "netsh", "advfirewall", "firewall", "add", "rule",
-                    "name=" + rule_name,
+                    f"name={rule_name}",
                     "dir=out",
                     "action=block",
                     "remoteport=*",
@@ -296,7 +303,7 @@ class AutoResponder:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
-                self._log_action("BLOCK_NETWORK", pid=pid, name=process_name)
+                self._log_action("BLOCK_NETWORK", pid=pid, name=safe_process_name)
                 logger.info(f"Network blocked for PID={pid}: {rule_name}")
                 return True
             else:
@@ -309,6 +316,46 @@ class AutoResponder:
         except Exception as e:
             logger.error(f"Failed to block network: {e}")
             return False
+
+    def _sanitize_process_name(self, process_name: str) -> str:
+        """
+        Sanitize process name to prevent command injection.
+        Removes or replaces characters that could be used for command injection.
+        """
+        if not process_name:
+            return "unknown"
+        
+        # Remove characters that could be used for command injection
+        # Allow only alphanumeric, dots, dashes, underscores
+        import re
+        sanitized = re.sub(r'[^\w.\-]', '_', process_name)
+        
+        # Limit length
+        sanitized = sanitized[:50]
+        
+        # Ensure not empty
+        return sanitized if sanitized else "unknown"
+
+    def _sanitize_path(self, path: str) -> str:
+        """
+        Sanitize file path for use in command.
+        Returns the path unchanged if valid, otherwise empty string.
+        """
+        if not path:
+            return ""
+        
+        # Validate path is absolute and exists
+        if not os.path.isabs(path):
+            logger.warning(f"Refusing to block with relative path: {path}")
+            return ""
+        
+        # Check for suspicious patterns
+        suspicious = [";", "&", "|", "`", "$", "(", ")", "{", "}", "[", "]", "<", ">"]
+        if any(c in path for c in suspicious):
+            logger.warning(f"Refusing to block with suspicious path: {path}")
+            return ""
+        
+        return path
 
     def unblock_network(self, pid: int, process_name: str = "") -> bool:
         """
@@ -368,7 +415,11 @@ class AutoResponder:
         try:
             with open(self.MANIFEST_FILE, "r") as f:
                 return json.load(f)
-        except:
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Failed to load manifest: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Unexpected error loading manifest: {e}")
             return {}
 
     def _save_manifest(self, manifest: Dict[str, Any]):
