@@ -672,8 +672,9 @@ class ProcessMonitor:
             metadata=metadata or {}
         )
 
-            # After creating alert, update signal aggregator
-            self._update_signal_aggregator(behavior_type, process, severity)
+        # After creating alert, update signal aggregator
+        self._update_signal_aggregator(behavior_type, process, severity)
+
         self.total_alerts += 1
 
         if self.on_behavior:

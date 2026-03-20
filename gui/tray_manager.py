@@ -21,7 +21,7 @@ import sys
 import logging
 import threading
 import time
-from typing import Optional, Callable
+from typing import Optional, Callable, TYPE_CHECKING
 
 try:
     from PIL import Image, ImageDraw
@@ -35,9 +35,19 @@ try:
     PYSTRRAY_AVAILABLE = True
 except ImportError:
     PYSTRRAY_AVAILABLE = False
+    pystray = None  # type: ignore
     logging.warning("pystray not available - system tray will be disabled")
 
 logger = logging.getLogger(__name__)
+
+# Stub types for when pystray is not available
+if not PYSTRRAY_AVAILABLE:
+    class MenuStub:
+        Item = None
+        SEPARATOR = None
+    class IconStub:
+        pass
+    pystray = type('pystray', (), {'Menu': MenuStub, 'Icon': IconStub})()  # type: ignore
 
 
 class TrayManager:

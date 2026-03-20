@@ -61,7 +61,7 @@ from core.forensic_exporter import ForensicBundleExporter
 from core.rule_updater import YARARuleUpdater
 from core.auto_responder import AutoResponder, get_auto_responder
 from core.network_monitor import NetworkAnalyzer
-from core.config_manager import ConfigManager, get_config_manager
+from core.config_manager import ConfigManager, get_config
 from core.yara_engine import get_yara_engine
 from gui.whitelist_editor import WhitelistEditorWindow, load_whitelist, apply_whitelist_to_fp_reducer
 from gui.tray_manager import TrayManager, get_tray_manager
@@ -2426,8 +2426,38 @@ class RansomwareDetectorApp(ctk.CTk):
 
     def _add_tree_row(self, result: ScanResult):
         """Thêm một hàng vào bảng kết quả — v2 thêm FP columns."""
+        risk = result.risk_level or "UNKNOWN"
+        icon = {
+            "CRITICAL": "🟥", "HIGH": "🔴", "MEDIUM": "🟡",
+            "LOW": "🔵", "SAFE": "🟢", "UNKNOWN": "⚪"
+        }.get(risk, "⚪")
 
-    def _on_result_double_click(self, event):
+        size_str = (f"{result.size/1024:.0f}K" if result.size < 1024*1024
+                    else f"{result.size/1024/1024:.1f}M")
+
+        raw_proba = getattr(result, "raw_probability", result.probability)
+        fp_adj    = getattr(result, "fp_adjusted", False)
+        adj_icon  = "↓" if fp_adj else ""  # indicator FP adjustment
+
+        # Tag: dùng FP_ADJ tag nếu file được điều chỉnh VÀ safe
+        tag = risk
+        if fp_adj and result.label == 0:
+            tag = "FP_ADJ"
+
+        self._tree.insert("", "end",
+            values=(
+                icon,
+                result.filename,
+                result.path,
+                risk,
+                f"{result.probability*100:.1f}%",
+                f"{raw_proba*100:.1f}%",
+                adj_icon,
+                f"{result.entropy:.3f}",
+                size_str,
+            ),
+            tags=(tag,)
+        )
         """v2.5: Show detailed PE/YARA analysis on double-click."""
         selection = self._tree.selection()
         if not selection:
@@ -2517,38 +2547,6 @@ class GenericFileInfoWindow(ctk.CTkToplevel):
 
 
 class RansomwareDetectorApp(ctk.CTk):
-        risk = result.risk_level or "UNKNOWN"
-        icon = {
-            "CRITICAL": "⬛", "HIGH": "🔴", "MEDIUM": "🟡",
-            "LOW": "🔵", "SAFE": "🟢", "UNKNOWN": "⚪"
-        }.get(risk, "⚪")
-
-        size_str = (f"{result.size/1024:.0f}K" if result.size < 1024*1024
-                    else f"{result.size/1024/1024:.1f}M")
-
-        raw_proba = getattr(result, "raw_probability", result.probability)
-        fp_adj    = getattr(result, "fp_adjusted", False)
-        adj_icon  = "↓" if fp_adj else ""  # indicator FP adjustment
-
-        # Tag: dùng FP_ADJ tag nếu file được điều chỉnh VÀ safe
-        tag = risk
-        if fp_adj and result.label == 0:
-            tag = "FP_ADJ"
-
-        self._tree.insert("", "end",
-            values=(
-                icon,
-                result.filename,
-                result.path,
-                risk,
-                f"{result.probability*100:.1f}%",
-                f"{raw_proba*100:.1f}%",
-                adj_icon,
-                f"{result.entropy:.3f}",
-                size_str,
-            ),
-            tags=(tag,)
-        )
 
     def _apply_filter(self, filter_val: str):
         self._filter_var.set(filter_val)
@@ -2702,7 +2700,7 @@ class ConfigManagerWindow(ctk.CTkToplevel):
         self.resizable(False, False)
         self.transient(parent)
 
-        cfg = get_config_manager()
+        cfg = get_config()
 
         hdr = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=8)
         hdr.pack(fill="x", padx=10, pady=(10, 0))
