@@ -127,7 +127,7 @@ class PlotFrame(ctk.CTkFrame):
                             edgecolor=C["border"], fontsize=7)
         self._ax.tick_params(axis="both", labelsize=7)
         self._configure_axes()
-        self.canvas.draw()
+        # Note: draw_idle() is called by caller to avoid blocking GUI
 
     def bar(self, categories, values, colors=None, ylabel=""):
         self._ax.clear()
@@ -139,7 +139,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.tick_params(axis="both", labelsize=7, colors=C["text_dim"])
         for spine in self._ax.spines.values():
             spine.set_edgecolor(C["border"])
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def pie(self, sizes, labels, colors, title=""):
         self._ax.clear()
@@ -161,7 +161,7 @@ class PlotFrame(ctk.CTkFrame):
         if title:
             self._ax.set_title(title, color=C["accent"], fontsize=8, pad=4)
         self.figure.patch.set_facecolor(C["bg_card"])
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def scatter_entropy(self, entropies, probabilities, risk_levels):
         self._ax.clear()
@@ -177,7 +177,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.tick_params(axis="both", labelsize=7, colors=C["text_dim"])
         for spine in self._ax.spines.values():
             spine.set_edgecolor(C["border"])
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def signal_gauge(self, score, label="Threat Score"):
         self._ax.clear()
@@ -206,7 +206,7 @@ class PlotFrame(ctk.CTkFrame):
                       fontsize=7, color=C["text_dim"])
 
         self.figure.patch.set_facecolor(C["bg_card"])
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -378,7 +378,7 @@ class MainWindow(ctk.CTk):
 
     # ─── Constants ─────────────────────────────────────────────────────────
 
-    REFRESH_MS      = 200
+    REFRESH_MS      = 1000
     LOG_MAX_LINES   = 500
     CHART_SECONDS   = 60   # rolling window for live charts
     CHART_BUCKETS   = 30   # data points in rolling window
@@ -524,7 +524,7 @@ class MainWindow(ctk.CTk):
 
     def _update_live_chart(self):
         """Append new data point to rolling live chart."""
-        if not hasattr(self, "_live_plot"):
+        if not hasattr(self, "_live_plot") or not hasattr(self, "_entropy_history"):
             return
         now = time.time()
 
@@ -544,12 +544,15 @@ class MainWindow(ctk.CTk):
         if len(self._entropy_history) >= 2:
             t0 = self._time_history[0]
             x = [t - t0 for t in self._time_history]
-            self._live_plot.clear()
             color = C["red"] if self._entropy_history[-1] > 0.7 else C["orange"] if self._entropy_history[-1] > 0.4 else C["green"]
-            self._live_plot.plot(x, self._entropy_history, color=color, linewidth=2)
+            # Update line in-place: no clear() → no full redraw
+            self._live_plot._ax.clear()
+            self._live_plot._configure_axes()
+            self._live_plot._ax.plot(x, self._entropy_history, color=color, linewidth=2)
             self._live_plot._ax.set_ylim(0, 1)
             self._live_plot._ax.set_ylabel("Threat Score", color=C["text_dim"], fontsize=7)
             self._live_plot._ax.set_xlabel("Time (s)", color=C["text_dim"], fontsize=7)
+            self._live_plot.canvas.draw_idle()
 
     # ═══════════════════════════════════════════════════════════════════════
     # UI BUILD
@@ -811,7 +814,7 @@ class MainWindow(ctk.CTk):
                                   ha="center", va="center",
                                   color=C["text_dim"], fontsize=9,
                                   transform=self._live_plot._ax.transAxes)
-        self._live_plot.canvas.draw()
+        self._live_plot.canvas.draw_idle()
         self._live_plot.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         # ── Row 3: Quick Actions ───────────────────────────────────────
@@ -1320,7 +1323,7 @@ class MainWindow(ctk.CTk):
                                     ha="center", va="center",
                                     color=C["text_dim"], fontsize=9,
                                     transform=self._scatter_plot._ax.transAxes)
-        self._scatter_plot.canvas.draw()
+        self._scatter_plot.canvas.draw_idle()
         self._scatter_plot.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         self._scan_summary_lbl = ctk.CTkLabel(
@@ -1642,11 +1645,13 @@ class MainWindow(ctk.CTk):
 
     def _on_behavior_alert(self, alert: BehaviorAlert):
         self._behavior_alerts.append(alert)
-        self.after(0, lambda: self._add_behavior_widget(alert))
-        self.after(0, lambda: self._update_behavior_summary(alert))
-        self.after(0, lambda: self._update_gauge_from_alert(alert))
-        self.after(0, lambda: self._log("warning",
-            f"Behavior: {alert.behavior_type.value} | {alert.process.name} | {alert.description}"))
+        # Batch all widget updates into ONE after(0) to avoid flooding the event loop
+        self.after(0, lambda a=alert: (
+            self._add_behavior_widget(a),
+            self._update_behavior_summary(a),
+            self._update_gauge_from_alert(a),
+            self._log("warning", f"Behavior: {a.behavior_type.value} | {a.process.name} | {a.description}")
+        ))
 
     def _add_threat_widget(self, event: ThreatEvent):
         if not hasattr(self, "_threat_events_frame"):
