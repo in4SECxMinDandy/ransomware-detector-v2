@@ -164,6 +164,8 @@ class ScanResult:
         # v2.1: YARA  ← thêm vào __slots__ để tránh AttributeError
         "yara_matches",          # list of YaraMatch objects
         "yara_boosted",          # True nếu probability được boost bởi YARA
+        # v2.5: PE analysis
+        "pe_info",               # {"rwx_sections": [...], "suspicious_sections": [...], "is_packed": bool}
     ]
 
     def __init__(self, path: str):

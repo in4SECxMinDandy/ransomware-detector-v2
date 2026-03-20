@@ -18,3 +18,8 @@ build/
 *.bak
 ~$*
 .DS_Store
+
+logs/
+debug_err.txt
+debug_out.txt
+*.log
