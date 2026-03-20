@@ -35,6 +35,7 @@ import os
 import time
 import queue
 import threading
+import logging
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from typing import List, Optional
@@ -575,7 +576,7 @@ class RansomwareDetectorApp(ctk.CTk):
         except Exception:
             pass
 
-        # Task 4: Initialize tray manager
+        # Task 4: Initialize tray manager in daemon thread (do not block main thread)
         try:
             self._tray_manager = get_tray_manager(self)
             self._tray_manager.set_callbacks(
@@ -585,24 +586,43 @@ class RansomwareDetectorApp(ctk.CTk):
                 on_view_alerts=lambda: self.restore_from_tray(),
                 on_quick_scan=lambda: self.restore_from_tray(),
             )
-            self._tray_manager.run()
+            _tray_thread = threading.Thread(target=self._tray_manager.run, daemon=True)
+            _tray_thread.start()
         except Exception:
             self._tray_manager = None
 
     # ─────────────────────────── BUILD UI ───────────────────────────
 
     def _build_ui(self):
-        self._build_header()
+        _log = logging.getLogger(__name__)
+        try:
+            self._build_header()
+        except Exception as e:
+            _log.error("Failed to build header: %s", e, exc_info=True)
+            ctk.CTkLabel(self, text=f"[ERROR] Header: {e}", text_color=C["red"]).pack(pady=10)
 
         main = ctk.CTkFrame(self, fg_color="transparent")
         main.pack(fill="both", expand=True, padx=10, pady=(0, 5))
         main.columnconfigure(1, weight=1)
         main.rowconfigure(0, weight=1)
 
-        self._build_left_panel(main)
-        self._build_results_panel(main)
+        try:
+            self._build_left_panel(main)
+        except Exception as e:
+            _log.error("Failed to build left panel: %s", e, exc_info=True)
+            ctk.CTkLabel(main, text=f"[ERROR] Left panel: {e}", text_color=C["red"]).pack(pady=10)
 
-        self._build_log_console()
+        try:
+            self._build_results_panel(main)
+        except Exception as e:
+            _log.error("Failed to build results panel: %s", e, exc_info=True)
+            ctk.CTkLabel(main, text=f"[ERROR] Results panel: {e}", text_color=C["red"]).pack(pady=10)
+
+        try:
+            self._build_log_console()
+        except Exception as e:
+            _log.error("Failed to build log console: %s", e, exc_info=True)
+            ctk.CTkLabel(self, text=f"[ERROR] Log console: {e}", text_color=C["red"]).pack(pady=10)
 
     def _build_header(self):
         hdr = ctk.CTkFrame(self, fg_color=C["bg_panel"], corner_radius=0, height=65)
@@ -2792,6 +2812,13 @@ class ConfigManagerWindow(ctk.CTkToplevel):
 
 
 def launch():
+    # Ensure theme is set before creating root (required for correct rendering)
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("dark-blue")
+
     app = RansomwareDetectorApp()
+    app.title("Ransomware Detector v2")
+    app.geometry("1500x940")
+    app.minsize(1200, 760)
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     app.mainloop()

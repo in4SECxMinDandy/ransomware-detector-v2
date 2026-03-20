@@ -22,16 +22,19 @@ sys.path.insert(0, BASE_DIR)
 
 def run_gui():
     """Khởi chạy giao diện GUI."""
+    import threading
     from gui.main_window import launch
 
-    # Task 4: Start tray manager with GUI
+    # Task 4: Start tray in daemon thread so it never blocks main GUI
     try:
         from gui.tray_manager import get_tray_manager
         tray = get_tray_manager()
-        tray.run()
-    except Exception:
-        pass  # Tray is optional
+        tray_thread = threading.Thread(target=tray.run, daemon=True)
+        tray_thread.start()
+    except Exception as e:
+        print(f"[WARNING] Tray manager failed (optional): {e}")
 
+    # GUI must run on main thread
     launch()
 
 
