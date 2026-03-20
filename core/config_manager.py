@@ -22,8 +22,11 @@ Usage:
 import os
 import json
 import copy
+import logging
 from typing import Any, Optional, Dict
 from threading import Lock
+
+logger = logging.getLogger(__name__)
 
 
 # ─── Default Configuration ───────────────────────────────────────────────────
@@ -189,8 +192,8 @@ class ConfigManager:
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 self._deep_update(self._config, data)
-            except (json.JSONDecodeError, IOError):
-                pass  # Use defaults on error
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load config file: {e}")
 
     def save(self) -> bool:
         """Persist current configuration to JSON file."""

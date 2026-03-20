@@ -57,7 +57,8 @@ def _load_incremental_cache() -> dict[str, float]:
                 import json
                 with open(cache_path, "r", encoding="utf-8") as f:
                     _INCREMENTAL_CACHE = json.load(f)
-            except Exception:
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load cache file: {e}")
                 _INCREMENTAL_CACHE = {}
     return _INCREMENTAL_CACHE
 
@@ -73,8 +74,8 @@ def _save_incremental_cache():
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(_INCREMENTAL_CACHE, f, indent=2)
-    except Exception:
-        pass
+    except (IOError, OSError) as e:
+        logger.warning(f"Failed to save cache file: {e}")
 
 
 def is_modified_since_last_scan(file_path: str) -> bool:

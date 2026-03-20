@@ -74,8 +74,8 @@ class NetworkAnalyzer:
                 ips = data.get("ips", [])
                 logger.info(f"Loaded {len(ips)} threat intel IPs")
                 return set(ips)
-        except Exception as e:
-            logger.error(f"Failed to load threat intel: {e}")
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Failed to load threat intel: {e}")
             return set()
 
     def monitor_process_connections(self, pid: int) -> List[Dict[str, Any]]:

@@ -162,8 +162,9 @@ class YARARuleUpdater:
             try:
                 with open(self.UPDATE_LOG, "r") as f:
                     logs = json.load(f)
-            except:
-                pass
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load update log: {e}")
+                logs = []
 
         logs.append(log_entry)
 
@@ -183,7 +184,8 @@ class YARARuleUpdater:
         try:
             with open(self.UPDATE_LOG, "r") as f:
                 return json.load(f)
-        except:
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Failed to read update log: {e}")
             return []
 
     def check_for_updates(self) -> Dict[str, Any]:
