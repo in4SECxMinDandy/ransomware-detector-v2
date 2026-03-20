@@ -209,6 +209,9 @@ class ProcessMonitor:
         self.mass_io_threshold_mbps = MASS_IO_THRESHOLD_MBPS
         self.mass_io_duration = MASS_IO_DURATION
 
+        # Dynamic Signal Aggregator (Task 1)
+        self._signal_aggregator = DynamicSignalAggregator()
+
     @property
     def is_running(self) -> bool:
         return self._running
@@ -259,6 +262,7 @@ class ProcessMonitor:
                 # Task 1: Check for dynamic behavior patterns
                 self._check_file_rename_burst(process)
                 self._check_mass_io_anomaly(process)
+                self._check_high_entropy_write(process, event)
 
                 if self.on_process_detected:
                     self.on_process_detected(process, event)
@@ -668,7 +672,8 @@ class ProcessMonitor:
             metadata=metadata or {}
         )
 
-        self.alerts.append(alert)
+            # After creating alert, update signal aggregator
+            self._update_signal_aggregator(behavior_type, process, severity)
         self.total_alerts += 1
 
         if self.on_behavior:
@@ -703,6 +708,7 @@ class ProcessMonitor:
             "total_alerts": self.total_alerts,
             "unique_processes": len(self._process_events),
             "alerts_by_type": self._count_alerts_by_type(),
+            "signal_aggregator": self._signal_aggregator.get_signal_stats(),
         }
 
     def _count_alerts_by_type(self) -> Dict[str, int]:
@@ -711,6 +717,11 @@ class ProcessMonitor:
         for alert in self.alerts:
             counts[alert.behavior_type.value] += 1
         return counts
+
+    def _update_signal_aggregator(self, behavior_type: BehaviorType, process: ProcessInfo, severity: str):
+        """Update signal aggregator with new behavior detection."""
+        signal_name = behavior_type.value
+        self._signal_aggregator.record_signal(signal_name, severity)
 
 
 class DynamicSignalAggregator:
@@ -764,21 +775,38 @@ class DynamicSignalAggregator:
             score += weight
             signal_count += 1
 
-        # Normalize: cap at 1.0
         normalized_score = min(score, 1.0)
 
-        # Store in history
         with self._lock:
             self._signal_history.append({
                 "timestamp": datetime.now(),
                 "signals": active_signals,
                 "score": normalized_score,
             })
-            # Keep only last 100 entries
             if len(self._signal_history) > 100:
                 self._signal_history = self._signal_history[-100:]
 
         return normalized_score
+
+    def record_signal(self, signal_type: str, severity: str = "medium"):
+        """
+        Record a new signal with its severity.
+        
+        Args:
+            signal_type: Type of signal (e.g., "FILE_RENAME_BURST")
+            severity: One of "critical", "high", "medium", "low"
+        """
+        # Apply severity multiplier
+        multiplier = 1.5 if severity == "critical" else 1.25 if severity == "high" else 1.0
+        
+        # Record signal
+        self.compute_score([signal_type])
+        
+        # Store with severity in history
+        with self._lock:
+            if self._signal_history:
+                self._signal_history[-1]["severity"] = severity
+                self._signal_history[-1]["multiplier"] = multiplier
 
     def compute_score_from_alerts(self, alerts: List[BehaviorAlert]) -> float:
         """
