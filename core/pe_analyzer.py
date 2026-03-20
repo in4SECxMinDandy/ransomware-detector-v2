@@ -511,60 +511,106 @@ def _detect_overlay(result: PEAnalysisResult, file_path: str, sections: List[Sec
         logger.warning(f"Overlay detection failed: {e}")
 
 
+# Known benign DLLs whose dangerous APIs are ALWAYS legitimate
+# These DLLs export functions like VirtualAlloc, VirtualProtect legitimately
+_BENIGN_DLL_DANGEROUS_OK = {
+    "kernel32.dll", "ntdll.dll", "msvcrt.dll",
+    "advapi32.dll", "user32.dll", "gdi32.dll",
+    "comdlg32.dll", "comctl32.dll", "shell32.dll",
+    "ole32.dll", "oleaut32.dll", "winmm.dll",
+    "ws2_32.dll", "urlmon.dll",
+}
+
+
 def _assess_threat(result: PEAnalysisResult):
-    """Đánh giá mức độ threat dựa trên các indicators."""
+    """Đánh giá mức độ threat dựa trên các indicators.
+
+    Chỉ flag là suspicious khi CÓ NHIỀU indicators kết hợp.
+    Một file EXE bình thường không nên bị flag chỉ vì có RWX section
+    hoặc import một vài hàm từ kernel32 (hoàn toàn hợp lý).
+    """
     score = 0.0
     indicators = []
-    
-    # High-risk indicators
-    if len(result.rwx_sections) > 0:
+
+    # ── RWX Sections ────────────────────────────────────────────────────────
+    # RWX sections alone are NOT suspicious — many legitimate apps use them
+    # (e.g., .text sections in native executables, .textbss, JIT compilers)
+    # Only flag if: RWX section + high entropy + suspicious size
+    rwx_high_entropy = [
+        s for s in result.sections
+        if s.is_rwx and s.entropy > 7.0 and s.raw_size > 10_000
+    ]
+    if len(rwx_high_entropy) > 0:
+        score += 0.25
+        indicators.append(f"RWX+high-entropy: {', '.join(s.name for s in rwx_high_entropy)}")
+
+    # Flag bare RWX only if there are MULTIPLE of them (unusual)
+    if len(result.rwx_sections) >= 3:
         score += 0.15
-        indicators.append(f"RWX sections found: {', '.join(result.rwx_sections)}")
-    
-    if len(result.dangerous_imports) >= 5:
-        score += 0.20
-        indicators.append(f"Multiple dangerous imports: {len(result.dangerous_imports)} APIs")
-    elif len(result.dangerous_imports) > 0:
-        score += 0.10
-        indicators.append(f"Dangerous imports: {', '.join(result.dangerous_imports[:5])}")
-    
+        indicators.append(f"Multiple RWX sections: {len(result.rwx_sections)}")
+
+    # ── Dangerous Imports ────────────────────────────────────────────────────
+    # Distinguish benign vs suspicious DLLs
+    suspicious_dangerous_apis = [
+        imp for imp in result.dangerous_imports
+        if imp.dll_name.lower() not in _BENIGN_DLL_DANGEROUS_OK
+    ]
+
+    if len(suspicious_dangerous_apis) >= 3:
+        score += 0.25
+        indicators.append(f"Suspicious DLLs with dangerous APIs: {', '.join(set(imp.dll_name for imp in suspicious_dangerous_apis))}")
+
+    # Specific INJECTION combo (VirtualAlloc + WriteProcessMemory + CreateRemoteThread)
+    imp_names = {imp.function_name for imp in result.dangerous_imports}
+    injection_combo = imp_names >= {"VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"}
+    if injection_combo:
+        # Only suspicious if NOT from benign DLLs OR has additional indicators
+        if len(suspicious_dangerous_apis) > 0 or len(result.rwx_sections) > 0:
+            score += 0.20
+            indicators.append("Process injection API combo (VirtualAllocEx+WriteProcessMemory+CreateRemoteThread)")
+
+    # ── Packer ──────────────────────────────────────────────────────────────
     if result.is_packed:
         score += 0.15
         indicators.append(f"Possibly packed: {result.packer_type}")
-    
-    if result.has_overlay and result.overlay_entropy > 7.0:
+
+    # ── Overlay ─────────────────────────────────────────────────────────────
+    if result.has_overlay and result.overlay_entropy > 7.2:
         score += 0.20
-        indicators.append(f"High-entropy overlay data ({result.overlay_entropy:.2f})")
-    
-    if len(result.high_entropy_sections) > 0:
-        score += 0.10
-        indicators.append(f"High-entropy sections: {', '.join(result.high_entropy_sections)}")
-    
-    if len(result.suspicious_sections) > 0:
+        indicators.append(f"High-entropy overlay ({result.overlay_entropy:.2f}) — possible packed malware")
+
+    # ── High-entropy sections ────────────────────────────────────────────────
+    if len(result.high_entropy_sections) >= 2:
         score += 0.15
-        indicators.append(f"Suspicious sections: {', '.join(result.suspicious_sections)}")
-    
-    # Check for specific dangerous API combinations
-    dangerous_set = set(result.dangerous_imports)
-    injection_apis = {"VirtualAlloc", "WriteProcessMemory", "CreateRemoteThread"}
-    if injection_apis.intersection(dangerous_set) == injection_apis:
-        score += 0.25
-        indicators.append("Process injection API combination detected")
-    
-    crypto_apis = {"CryptEncrypt", "CryptDecrypt", "BCryptEncrypt", "BCryptDecrypt"}
-    if len(crypto_apis.intersection(dangerous_set)) >= 2:
+        indicators.append(f"Multiple high-entropy sections: {', '.join(result.high_entropy_sections)}")
+
+    # ── Suspicious sections (non-standard name) ──────────────────────────────
+    # Exclude packer sections from this — already counted in is_packed
+    non_packer_suspicious = [
+        s for s in result.suspicious_sections
+        if not any(p in s.lower() for p in ("upx", "aspack", "petite", "themida", "vmp"))
+    ]
+    if len(non_packer_suspicious) >= 2:
         score += 0.20
-        indicators.append("Cryptography API combination detected - possible ransomware")
-    
+        indicators.append(f"Suspicious section names: {', '.join(non_packer_suspicious)}")
+
+    # ── Cryptography API combo (ransomware signal) ──────────────────────────
+    crypto_apis = imp_names & {"CryptEncrypt", "CryptDecrypt", "BCryptEncrypt",
+                               "BCryptDecrypt", "CryptAcquireContext"}
+    if len(crypto_apis) >= 2:
+        score += 0.20
+        indicators.append(f"Crypto API combo: {', '.join(crypto_apis)}")
+
+    # ── Final threshold ─────────────────────────────────────────────────────
     result.threat_score = min(score, 1.0)
     result.indicators = indicators
-    
-    # Determine threat level
-    if score >= 0.70:
+
+    # More conservative thresholds: need at least 2 independent indicators
+    if score >= 0.60:
         result.threat_level = ThreatLevel.CONFIRMED_MALICIOUS
-    elif score >= 0.45:
+    elif score >= 0.35:
         result.threat_level = ThreatLevel.LIKELY_MALICIOUS
-    elif score >= 0.20:
+    elif score >= 0.15:
         result.threat_level = ThreatLevel.SUSPICIOUS
     else:
         result.threat_level = ThreatLevel.BENIGN

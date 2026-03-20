@@ -26,8 +26,11 @@ import time
 import queue
 import threading
 import platform
+import logging
 from typing import Callable, Optional, List, Dict, Any
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from watchdog.observers import Observer
 from watchdog.events import (
@@ -141,6 +144,9 @@ class RealTimeMonitor:
         self._stop_event: threading.Event         = threading.Event()
         self._is_running: bool                    = False
         self._lock:       threading.Lock          = threading.Lock()
+        self._observer_ready_event: threading.Event = threading.Event()
+        self._watch_directory: str                = ""
+        self._watch_recursive: bool               = True
 
         # History của các threats đã phát hiện
         self.threat_history: List[ThreatEvent]    = []
@@ -196,14 +202,32 @@ class RealTimeMonitor:
             t.start()
             self._workers.append(t)
 
-        # Khởi động watchdog observer
-        handler = _EventHandler(self._queue, self._debounce)
-        self._observer = Observer()
-        self._observer.schedule(handler, watch_directory, recursive=recursive)
-        self._observer.start()
+        # Khởi động watchdog observer trong thread riêng
+        # (recursive schedule có thể chặn vài giây trên thư mục lớn)
+        self._watch_directory = watch_directory
+        self._watch_recursive = recursive
+        self._observer_ready_event = threading.Event()
+        t = threading.Thread(target=self._observer_start_thread, daemon=True)
+        t.start()
+        # Chờ observer ready để tránh race condition (tối đa 5s)
+        if not self._observer_ready_event.wait(timeout=5.0):
+            logger.warning("Observer startup timed out")
 
         self._is_running = True
         return True
+
+    def _observer_start_thread(self):
+        """Chạy observer schedule + start trong background thread."""
+        try:
+            handler = _EventHandler(self._queue, self._debounce)
+            self._observer = Observer()
+            self._observer.schedule(handler, self._watch_directory,
+                                   recursive=self._watch_recursive)
+            self._observer.start()
+        except Exception as e:
+            logger.error(f"Observer start error: {e}")
+        finally:
+            self._observer_ready_event.set()
 
     def stop(self):
         """Dừng giám sát."""
