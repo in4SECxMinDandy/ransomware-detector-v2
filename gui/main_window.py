@@ -2287,6 +2287,11 @@ class RansomwareDetectorApp(ctk.CTk):
     def _poll_ui_queue(self):
         """Poll UI queue từ main thread để update giao diện an toàn."""
         try:
+            # Guard: __init__ may have failed before creating widgets
+            if not hasattr(self, '_ui_queue'):
+                self.after(500, self._poll_ui_queue)
+                return
+
             while not self._ui_queue.empty():
                 msg = self._ui_queue.get_nowait()
                 mtype = msg[0]
@@ -2295,25 +2300,31 @@ class RansomwareDetectorApp(ctk.CTk):
                     _, done, total, result = msg
                     self._results.append(result)
                     pct = done / total if total > 0 else 0
-                    self._progress_bar.set(pct)
-                    self._progress_label.configure(
-                        text=f"Scanning... {done}/{total} ({pct*100:.0f}%)")
-                    self._add_tree_row(result)
+                    if hasattr(self, '_progress_bar'):
+                        self._progress_bar.set(pct)
+                    if hasattr(self, '_progress_label'):
+                        self._progress_label.configure(
+                            text=f"Scanning... {done}/{total} ({pct*100:.0f}%)")
+                    if hasattr(self, '_tree'):
+                        self._add_tree_row(result)
                     self._update_stats()
 
                 elif mtype == "complete":
                     _, results = msg
                     self._results = list(results)
                     elapsed = time.time() - self._scan_start
-                    self._progress_bar.set(1.0)
+                    if hasattr(self, '_progress_bar'):
+                        self._progress_bar.set(1.0)
+                    if hasattr(self, '_progress_label'):
+                        self._progress_label.configure(
+                            text=f"Scan complete: {len(results)} files in {elapsed:.1f}s")
                     threats  = sum(1 for r in results if r.label == 1)
-                    fp_adj   = sum(1 for r in results if getattr(r, "fp_adjusted", False))
-                    self._progress_label.configure(
-                        text=f"✓ Scan complete: {len(results)} files in {elapsed:.1f}s")
                     status_color = C["red"] if threats > 0 else C["green"]
                     self._set_status("THREATS FOUND" if threats > 0 else "ALL CLEAR", status_color)
-                    self._scan_btn.configure(state="normal")
-                    self._cancel_btn.configure(state="disabled")
+                    if hasattr(self, '_scan_btn'):
+                        self._scan_btn.configure(state="normal")
+                    if hasattr(self, '_cancel_btn'):
+                        self._cancel_btn.configure(state="disabled")
                     self._update_stats(elapsed)
                     self._log(
                         "success" if threats == 0 else "danger",
@@ -2325,15 +2336,18 @@ class RansomwareDetectorApp(ctk.CTk):
                     _, error = msg
                     self._log("danger", f"Scan error: {error}")
                     self._set_status("ERROR", C["red"])
-                    self._scan_btn.configure(state="normal")
-                    self._cancel_btn.configure(state="disabled")
+                    if hasattr(self, '_scan_btn'):
+                        self._scan_btn.configure(state="normal")
+                    if hasattr(self, '_cancel_btn'):
+                        self._cancel_btn.configure(state="disabled")
 
                 elif mtype == "log":
                     _, level, text = msg
                     self._log(level, text)
 
                 elif mtype == "ml_info":
-                    self._ml_info_lbl.configure(text=msg[1])
+                    if hasattr(self, '_ml_info_lbl'):
+                        self._ml_info_lbl.configure(text=msg[1])
 
                 elif mtype == "intel":
                     if hasattr(self, "_yara_info_lbl"):
@@ -2348,17 +2362,18 @@ class RansomwareDetectorApp(ctk.CTk):
                 elif mtype == "threat":
                     _, threat = msg
                     key = f"{threat.result.path}_{threat.timestamp}"
-                    if key not in self._alert_shown:
+                    if hasattr(self, '_alert_shown') and key not in self._alert_shown:
                         self._alert_shown.add(key)
                         self._log("danger",
-                            f"⚠ THREAT: {threat.result.filename} | "
+                            f"THREAT: {threat.result.filename} | "
                             f"{threat.result.risk_level} | {threat.result.probability*100:.1f}%")
                         AlertWindow(self, threat)
 
                 elif mtype == "watch_update":
-                    stats = self._monitor.get_stats()
-                    self._watch_stats_lbl.configure(
-                        text=f"Analyzed: {stats['total_analyzed']}  |  Threats: {stats['total_threats']}")
+                    if hasattr(self, '_monitor') and hasattr(self, '_watch_stats_lbl'):
+                        stats = self._monitor.get_stats()
+                        self._watch_stats_lbl.configure(
+                            text=f"Analyzed: {stats['total_analyzed']}  |  Threats: {stats['total_threats']}")
 
                 elif mtype == "behavior_alert":
                     _, alert = msg
@@ -2425,18 +2440,21 @@ class RansomwareDetectorApp(ctk.CTk):
             pass
 
         # Task 1: Update behavior chart every ~2 seconds
-        self._chart_update_counter += 1
-        if self._chart_update_counter >= 13:  # 13 * 150ms = ~2 seconds
-            self._chart_update_counter = 0
-            if hasattr(self, "_update_behavior_chart"):
-                self._update_behavior_chart()
+        # Guard: __init__ may not have set these yet
+        if hasattr(self, '_chart_update_counter'):
+            self._chart_update_counter += 1
+            if self._chart_update_counter >= 13:  # 13 * 150ms = ~2 seconds
+                self._chart_update_counter = 0
+                if hasattr(self, "_update_behavior_chart"):
+                    self._update_behavior_chart()
 
         # v2.5: Network auto-refresh (every 10 seconds = ~67 ticks)
-        if self._net_auto_refresh:
+        if hasattr(self, '_net_auto_refresh') and self._net_auto_refresh:
             self._net_refresh_counter += 1
             if self._net_refresh_counter >= 67:  # ~10 seconds
                 self._net_refresh_counter = 0
-                self._refresh_network_connections()
+                if hasattr(self, '_refresh_network_connections'):
+                    self._refresh_network_connections()
 
         # v2.5: Update PM stats periodically
         if hasattr(self, "_pm_stats_lbl"):
@@ -2596,6 +2614,10 @@ class RansomwareDetectorApp(ctk.CTk):
             self._tree.move(k, "", idx)
 
     def _update_stats(self, elapsed: float = None):
+        # Guard: _build_ui may not have completed
+        if not hasattr(self, '_stat_total'):
+            return
+
         total   = len(self._results)
         safe    = sum(1 for r in self._results if r.label == 0)
         threats = sum(1 for r in self._results if r.label == 1)
@@ -2603,47 +2625,74 @@ class RansomwareDetectorApp(ctk.CTk):
         fp_adj  = sum(1 for r in self._results if getattr(r, "fp_adjusted", False))
         avg_h   = (sum(r.entropy for r in self._results) / total) if total > 0 else 0
 
-        self._stat_total.configure(text=str(total))
-        self._stat_safe.configure(text=str(safe))
-        self._stat_threat.configure(text=str(threats),
-            text_color=C["red"] if threats > 0 else C["green"])
-        self._stat_crit.configure(text=str(crit),
-            text_color=C["red"] if crit > 0 else C["green"])
-        self._stat_fp_adj.configure(text=str(fp_adj),
-            text_color=C["purple"] if fp_adj > 0 else C["text_dim"])
+        try:
+            self._stat_total.configure(text=str(total))
+            self._stat_safe.configure(text=str(safe))
+            self._stat_threat.configure(text=str(threats),
+                text_color=C["red"] if threats > 0 else C["green"])
+            self._stat_crit.configure(text=str(crit),
+                text_color=C["red"] if crit > 0 else C["green"])
+            self._stat_fp_adj.configure(text=str(fp_adj),
+                text_color=C["purple"] if fp_adj > 0 else C["text_dim"])
+        except Exception:
+            pass
         self._stat_entropy.configure(text=f"{avg_h:.2f}")
         if elapsed is not None:
             self._stat_time.configure(text=f"{elapsed:.1f}s")
 
     def _set_status(self, text: str, color: str):
-        self._status_var.set(text)
-        self._status_badge.configure(fg_color=color,
-            text_color=C["bg_dark"] if color != C["text_dim"] else C["text"])
+        try:
+            if hasattr(self, '_status_var'):
+                self._status_var.set(text)
+            if hasattr(self, '_status_badge'):
+                self._status_badge.configure(fg_color=color,
+                    text_color=C["bg_dark"] if color != C["text_dim"] else C["text"])
+        except Exception:
+            pass
 
     def _log(self, level: str, text: str):
-        ts     = datetime.now().strftime("%H:%M:%S")
-        prefix = {
-            "info": "[INFO]", "success": "[OK]  ",
-            "warning": "[WARN]", "danger": "[ALERT]",
-            "system": "[SYS] ", "fp": "[FP↓] "
-        }.get(level, "[LOG] ")
-        line = f"{ts}  {prefix}  {text}\n"
-        self._log_text.configure(state="normal")
-        self._log_text.insert("end", line, level)
-        self._log_text.see("end")
-        self._log_text.configure(state="disabled")
+        # Guard: _build_ui may not have completed
+        if not hasattr(self, '_log_text'):
+            return
+        try:
+            ts     = datetime.now().strftime("%H:%M:%S")
+            prefix = {
+                "info": "[INFO]", "success": "[OK]  ",
+                "warning": "[WARN]", "danger": "[ALERT]",
+                "system": "[SYS] ", "fp": "[FP] "
+            }.get(level, "[LOG] ")
+            line = f"{ts}  {prefix}  {text}\n"
+            self._log_text.configure(state="normal")
+            self._log_text.insert("end", line, level)
+            self._log_text.see("end")
+            self._log_text.configure(state="disabled")
+        except Exception:
+            pass
 
     def _clear_log(self):
-        self._log_text.configure(state="normal")
-        self._log_text.delete("1.0", "end")
-        self._log_text.configure(state="disabled")
+        if not hasattr(self, '_log_text'):
+            return
+        try:
+            self._log_text.configure(state="normal")
+            self._log_text.delete("1.0", "end")
+            self._log_text.configure(state="disabled")
+        except Exception:
+            pass
 
     def on_closing(self):
         """Handle window close - minimize to tray if tray is active."""
         # Check if tray manager is active
         if hasattr(self, "_tray_manager") and self._tray_manager is not None:
             # Minimize to tray instead of closing
-            self._tray_manager.minimize_to_tray()
+            try:
+                self._tray_manager.minimize_to_tray()
+            except Exception:
+                pass
+            return
+
+        # Guard: __init__ may have failed before _monitor/_scanner were set
+        if not hasattr(self, "_monitor") or not hasattr(self, "_scanner"):
+            self.destroy()
             return
 
         if self._monitor.is_running:
