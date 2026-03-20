@@ -1598,7 +1598,18 @@ class MainWindow(ctk.CTk):
             messagebox.showwarning("Invalid Path", "Please select a valid directory to monitor.")
             return
 
-        success = self._monitor.start(path, recursive=True)
+        # Chạy start() trong thread nền để không chặn GUI (schedule recursive có thể rất lâu)
+        self._set_status("Starting monitor…", C["text_dim"])
+        self._monitor_btn.configure(state="disabled")
+
+        def _do_start():
+            ok = self._monitor.start(path, recursive=True)
+            self.after(0, lambda: self._on_monitor_start_done(ok, path))
+
+        threading.Thread(target=_do_start, daemon=True).start()
+
+    def _on_monitor_start_done(self, success: bool, path: str):
+        self._monitor_btn.configure(state="normal")
         if success:
             self._monitor_start_time = time.time()
             self._monitor_btn.configure(
@@ -1609,6 +1620,7 @@ class MainWindow(ctk.CTk):
             self._set_status(f"Monitoring: {path}", C["green"])
             self._log("success", f"Real-time monitor started: {path}")
         else:
+            self._set_status("Monitor failed to start", C["red"])
             self._log("danger", "Failed to start monitor — ensure ML model is loaded")
 
     def _stop_monitor(self):

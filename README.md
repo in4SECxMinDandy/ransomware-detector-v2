@@ -1,142 +1,180 @@
 # Ransomware Entropy Detector v2.5
 
-> Cong cu phat hien ransomware manh me voi Machine Learning + YARA Rules + Process Behavior Monitoring + Real-time Protection + Network Analysis
+> Công cụ phát hiện ransomware mạnh mẽ với Machine Learning kết hợp YARA Rules, giám sát hành vi Process, bảo vệ thời gian thực và phân tích mạng.
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Platform: Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
-[![Tests](https://img.shields.io/badge/Tests-116%20passed-brightgreen.svg)](#testing)
-[![Coverage](https://img.shields.io/badge/Coverage-80%25%2B-yellowgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-116%20passed-brightgreen.svg)](#ki%E1%BB%83m-tra)
+[![Coverage](https://img.shields.io/badge/Coverage-80%25%2B-yellowgreen.svg)](#ki%E1%BB%83m-tra)
 
 ---
 
-## Muc luc
+## Mục lục
 
-1. [Tong quan](#tong-quan)
-2. [Tinh nang chinh](#tinh-nang-chinh)
-3. [Kien truc](#kien-truc)
-4. [Cai dat](#cai-dat)
-5. [Huong dan su dung](#huong-dan-su-dung)
-6. [ML Engine](#ml-engine)
-7. [FP Reduction Pipeline](#fp-reduction-pipeline)
-8. [YARA Signatures](#yara-signatures)
-9. [Process Behavior Detection](#process-behavior-detection)
-10. [Real-time Protection](#real-time-protection)
-11. [Windows Notifications](#windows-notifications)
-12. [GUI](#gui)
-13. [Performance](#performance)
-14. [Testing](#testing)
-15. [Roadmap](#roadmap)
-16. [License](#license)
-
----
-
-## Tong quan
-
-**Ransomware Entropy Detector** la cong cu phong thu ransomware da lop (multi-layer) voi kha nang:
-
-- ✅ **ML-based Detection**: Su dung RandomForest voi 16 features de phan tich entropy va patterns
-- ✅ **YARA Rules**: Tich hop 20+ YARA signatures cho cac ransomware families pho bien
-- ✅ **Process Behavior Monitoring**: Phat hien hanh vi bat thuong cua process (mass encryption, rapid file ops)
-- ✅ **Real-time Protection**: Giam sat filesystem theo thoi gian thuc voi Windows notifications
-- ✅ **FP Reduction**: Giam thieu False Positives voi per-extension thresholds va whitelist
-- ✅ **Incremental Scan**: Chi quet file moi hoac da sua doi tu lan quet truoc
-- ✅ **Network Traffic Analysis**: Phat hien C2 indicators, DGA domains, beaconing patterns
-
-> ⚠️ **Luu y**: Day la cong cu nghien cuu & phong thu. Khong thay the hoan toan EDR thuong mai.
+1. [Tổng quan](#t%E1%BB%95ng-quan)
+2. [Tính năng chính](#t%C3%ADnh-n%C4%83ng-ch%C3%ADnh)
+3. [Kiến trúc](#ki%E1%BA%BFn-tr%C3%BAc)
+4. [Cài đặt](#c%C3%A0i-%C4%91%E1%BA%B7t)
+5. [Hướng dẫn sử dụng](#h%C6%B0%E1%BB%9Bng-d%E1%BA%ABn-s%E1%BB%AD-d%E1%BB%A5ng)
+6. [Máy học - ML Engine](#m%C3%A1y-h%E1%BB%8Dc---ml-engine)
+7. [Giảm thiểu False Positive - FP Reduction](#gi%E1%BA%A3m-thi%E1%BB%83u-false-positive---fp-reduction)
+8. [Quy tắc YARA](#quy-t%E1%BA%AFc-yara)
+9. [Phát hiện hành vi Process](#ph%C3%A1t-hi%E1%BB%87n-h%C3%A0nh-vi-process)
+10. [Phân tích mạng - Network Analysis](#ph%C3%A2n-t%C3%ADch-m%E1%BA%A1ng---network-analysis)
+11. [Bảo vệ thời gian thực - Real-time Protection](#b%E1%BA%A3o-v%E1%BB%87-th%E1%BB%9Di-gian-th%E1%BB%B1c---real-time-protection)
+12. [Tự động phản ứng - Auto-Response](#t%E1%BB%B1-%C4%91%E1%BB%99ng-ph%E1%BA%A3n-%E1%BB%A9ng---auto-response)
+13. [Thông báo Windows](#th%C3%B4ng-b%C3%A1o-windows)
+14. [Giao diện đồ họa - GUI](#giao-di%E1%BB%87n-%C4%91%E1%BB%93-h%E1%BB%8Da---gui)
+15. [Hiệu năng](#hi%E1%BB%87u-n%C4%83ng)
+16. [Kiểm tra - Testing](#ki%E1%BB%83m-tra---testing)
+17. [Lộ trình phát triển - Roadmap](#l%E1%BB%99-tr%C3%ACnh-ph%C3%A1t-tri%E1%BB%83n---roadmap)
+18. [Giấy phép - License](#gi%E1%BA%A5y-ph%C3%A9p---license)
 
 ---
 
-## Tinh nang chinh
+## Tổng quan
 
-### 1. ML Engine (16 Features)
+**Ransomware Entropy Detector** là công cụ phòng chống ransomware đa lớp (multi-layer) với khả năng:
 
-- **CalibratedClassifierCV** voi threshold tuning tu dong
-- **Class weights** chong False Positive (uu tien precision ≥95%)
-- **SMOTE** de xu ly class imbalance
-- 16 features phan biet compressed vs encrypted files:
-  - Shannon Entropy
-  - Chi-Square
-  - Byte Distribution
-  - Compression Ratio
-  - Structural Consistency
-  - Magic Bytes Validation
-  - Va 10 features khac...
+- **Phát hiện dựa trên Máy học (ML)**: Sử dụng RandomForest với 16 đặc trưng để phân tích entropy và patterns của file
+- **Quy tắc YARA**: Tích hợp 20+ chữ ký YARA cho các nhóm ransomware phổ biến
+- **Giám sát hành vi Process**: Phát hiện hành vi bất thường của process như mã hóa hàng loạt, thao tác file nhanh
+- **Bảo vệ thời gian thực**: Giám sát filesystem liên tục kèm thông báo Windows
+- **Giảm thiểu False Positive**: Sử dụng ngưỡng riêng cho từng loại file và danh sách whitelist
+- **Quét tăng dần (Incremental Scan)**: Chỉ quét file mới hoặc đã sửa đổi từ lần quét trước
+- **Phân tích mạng**: Phát hiện C2 indicators, DGA domains, beaconing patterns
+- **Tự động phản ứng**: Cách ly file, kết thúc process độc hại, chặn mạng
 
-### 2. FP Reduction Pipeline (3 tang)
+> **Lưu ý quan trọng**: Đây là công cụ nghiên cứu và phòng thủ. Không thay thế hoàn toàn các giải pháp EDR thương mại.
 
-| Tang | Chuc nang |
-| --- | --- |
-| **Whitelist** | Bo qua system files, fonts, logs, known benign |
-| **Per-extension Threshold** | PNG/ZIP/EXE dung threshold cao hon |
-| **Magic Bytes Validation** | File hop le → giam probability ×0.70 |
+---
 
-### 3. YARA + Heuristic Fusion
+## Tính năng chính
 
-- **20+ built-in YARA rules**: WannaCry, LockBit, BlackCat, Ryuk, REvil, Conti, Cl0p, Play, Rhysida, Akira, BianLian, Medusa, Qilin...
-- **Fallback Python signatures** neu khong co `yara-python`
-- **Heuristic boost** khi phat hien entropy bat thuong
+### 1. Máy học - ML Engine (16 đặc trưng)
 
-### 4. Process Behavior Detection
+- **CalibratedClassifierCV** với ngưỡng tự điều chỉnh
+- **Class weights** chống False Positive (ưu tiên precision ≥95%)
+- **SMOTE** để xử lý mất cân bằng dữ liệu
+- 16 đặc trưng phân biệt file nén vs file mã hóa:
+  - Shannon Entropy (Entropy thông tin)
+  - Chi-Square (Phân bố byte)
+  - Byte Distribution (Phân bố byte)
+  - Compression Ratio (Tỷ lệ nén)
+  - Structural Consistency (Tính nhất quán cấu trúc)
+  - Magic Bytes Validation (Xác thực magic bytes)
+  - Và 10 đặc trưng khác...
 
-Phat hien ransomware dang hoat dong qua hanh vi process:
+### 2. Giảm thiểu False Positive - FP Reduction (3 lớp)
 
-| Pattern | Mo ta | Severity |
+| Lớp | Chức năng | Mô tả |
 | --- | --- | --- |
-| `ENCRYPTION_BURST` | >10 files bi ma hoa trong 30s | 🔴 Critical |
-| `EXTENSION_CHANGE` | Doi extension sang `.locked`, `.encrypted` | 🔴 Critical |
-| `RAPID_OPS` | >5 files/second duoc tao/sua | 🟠 High |
-| `SUSPICIOUS_PROCESS` | Process chay tu temp/downloads | 🟠 High |
+| **Whitelist** | Bỏ qua file hệ thống | System files, fonts, logs, known benign |
+| **Per-extension Threshold** | Ngưỡng theo đuôi file | PNG/ZIP/EXE dùng ngưỡng cao hơn |
+| **Magic Bytes Validation** | Xác thực file hợp lệ | File hop le → giảm probability ×0.70 |
 
-### 5. Real-time Protection
+### 3. Tích hợp YARA + Heuristic
 
-- **File System Watcher**: Su dung `watchdog` library
-- **Multi-threaded scanning**: Xu ly song song voi ThreadPoolExecutor
-- **Debouncing**: 2s cooldown tranh spam
-- **Auto-alert**: Kich hoat callback khi phat hien threat
+- **20+ quy tắc YARA tích hợp sẵn**: WannaCry, LockBit, BlackCat, Ryuk, REvil, Conti, Cl0p, Play, Rhysida, Akira, BianLian, Medusa, Qilin...
+- **Signature Python thay thế** nếu không có `yara-python`
+- **Heuristic boost** khi phát hiện entropy bất thường
 
-### 6. Windows Notifications
+### 4. Phát hiện hành vi Process
 
-- Toast notifications khi phat hien ransomware
-- Sound alerts theo muc do nghiem trong
-- Ho tro: win10toast, plyer, hoac PowerShell fallback
+Phát hiện ransomware đang hoạt động qua hành vi của process:
 
-### 7. Incremental Scan (v2.5 NEW)
+| Pattern | Mô tả | Mức độ nghiêm trọng |
+| --- | --- | --- |
+| `ENCRYPTION_BURST` | >10 files bị mã hóa trong 30 giây | 🔴 Nghiêm trọng |
+| `EXTENSION_CHANGE` | Đổi extension sang `.locked`, `.encrypted` | 🔴 Nghiêm trọng |
+| `RAPID_OPS` | >5 files/giây được tạo/sửa | 🟠 Cao |
+| `SUSPICIOUS_PROCESS` | Process chạy từ temp/downloads | 🟠 Cao |
 
-- Chi quet file moi hoac da sua doi tu lan quet truoc
-- Su dung `data/scan_cache.json` de luu trang thai
-- Tang toc do quet len 3-5 lan cho cac he thong co nhieu file
+### 5. Phân tích mạng - Network Analysis
 
-### 8. Premium GUI
+- **DGA Domain Detection**: Tính toán Shannon entropy của domain để phát hiện Domain Generation Algorithms
+- **Beaconing Detection**: Phát hiện request đến known malicious IPs (Feodo Tracker C2)
+- **Connection Rate Limiting**: Cảnh báo nếu quá nhiều kết nối trong thời gian ngắn
+- **DNS Tunneling Indicators**: Phát hiện DNS queries bất thường
 
-- **Dark mode** voi CustomTkinter
-- **Threshold slider** dieu chinh 0.30 → 0.95
-- **Real-time stats**: Files analyzed, threats detected
-- **Alert Windows**: Chi tiet ve tung threat
-- **Export**: CSV, PNG, PDF reports
+### 6. Bảo vệ thời gian thực - Real-time Protection
+
+- **File System Watcher**: Sử dụng thư viện `watchdog`
+- **Đa luồng xử lý**: Xử lý song song với ThreadPoolExecutor
+- **Debouncing**: 2 giây cooldown tránh spam
+- **Tự động cảnh báo**: Kích hoạt callback khi phát hiện mối đe dọa
+
+### 7. Tự động phản ứng - Auto-Response
+
+- **Cách ly file (Quarantine)**: Di chuyển file độc hại vào thư mục cách ly
+- **Kết thúc Process**: Dừng process độc hại một cách an toàn
+- **Chặn mạng**: Sử dụng Windows Firewall để ngăn chặn kết nối C2
+- **Khôi phục file**: Hoàn tác cách ly khi cần thiết
+
+### 8. Quét tăng dần - Incremental Scan
+
+- Chỉ quét file mới hoặc đã sửa đổi từ lần quét trước
+- Sử dụng `data/scan_cache.json` để lưu trạng thái
+- Tăng tốc độ quét lên 3-5 lần cho các hệ thống có nhiều file
+
+### 9. Phân tích PE (Portable Executable)
+
+- Kiểm tra entropy của các section trong file PE
+- Phát hiện packer và obfuscation
+- Phân tích import table bất thường
+
+### 10. Phát hiện Injection
+
+- Phát hiện DLL Injection và Process Injection
+- Kiểm tra code integrity
+- Giám sát remote thread creation
+
+### 11. Xuất báo cáo pháp y
+
+- **CSV**: Danh sách chi tiết các mối đe dọa
+- **PNG**: Ảnh chụp giao diện kết quả
+- **PDF**: Báo cáo tổng hợp chuyên nghiệp
+- **Bundle**: Hashes + IOC report cho forensic analysis
+
+### 12. Giao diện đồ họa - Premium GUI
+
+- **Dark mode** với CustomTkinter
+- **Threshold slider** điều chỉnh 0.30 → 0.95
+- **Thống kê thời gian thực**: Files analyzed, threats detected
+- **Cửa sổ cảnh báo**: Chi tiết về từng mối đe dọa
+- **Xuất báo cáo**: CSV, PNG, PDF reports
 
 ---
 
-## Kien truc
+## Kiến trúc
 
 ```
 ransomware_detector_v2/
 ├── core/
-│   ├── feature_extractor.py    # 16 features extraction
-│   ├── ml_engine.py            # ML model + threshold optimizer
-│   ├── fp_reducer.py           # 3-tang FP reduction
-│   ├── yara_engine.py          # YARA rules + fallback
-│   ├── scanner.py              # ML + YARA + Heuristic fusion
-│   ├── process_monitor.py      # Process behavior detection
-│   ├── network_monitor.py       # Network C2 detection
-│   ├── notifications.py        # Windows notifications
-│   ├── watchdog_monitor.py    # Real-time protection
-│   ├── config_manager.py       # Centralized configuration
-│   ├── logger_setup.py         # Structured logging
-│   └── ...
+│   ├── feature_extractor.py    # Trích xuất 16 đặc trưng
+│   ├── ml_engine.py            # ML model + tối ưu ngưỡng
+│   ├── fp_reducer.py           # 3-lớp giảm FP
+│   ├── yara_engine.py          # Quy tắc YARA + fallback
+│   ├── scanner.py              # Tích hợp ML + YARA + Heuristic
+│   ├── process_monitor.py      # Phát hiện hành vi process
+│   ├── network_monitor.py       # Phát hiện C2
+│   ├── notifications.py        # Thông báo Windows
+│   ├── watchdog_monitor.py     # Bảo vệ thời gian thực
+│   ├── auto_responder.py       # Tự động phản ứng
+│   ├── pe_analyzer.py          # Phân tích PE
+│   ├── injection_detector.py   # Phát hiện injection
+│   ├── forensic_exporter.py     # Xuất báo cáo pháp y
+│   ├── report_generator.py     # Tạo báo cáo CSV/PNG/PDF
+│   ├── rule_updater.py         # Cập nhật quy tắc
+│   ├── dataset_generator.py     # Tạo dữ liệu training
+│   ├── smote_trainer.py        # Training với SMOTE
+│   ├── config_manager.py        # Quản lý cấu hình
+│   └── logger_setup.py         # Structured logging
 ├── gui/
-│   ├── main_window.py          # Premium GUI
-│   └── tray_manager.py         # System tray
+│   ├── main_window.py          # Giao diện chính
+│   ├── tray_manager.py         # System tray
+│   └── whitelist_editor.py      # Trình chỉnh sửa whitelist
 ├── tests/
 │   ├── conftest.py              # Shared pytest fixtures
 │   ├── test_feature_extractor.py
@@ -144,54 +182,64 @@ ransomware_detector_v2/
 │   ├── test_ml_engine.py
 │   ├── test_yara_engine.py
 │   └── test_dynamic_signals.py
-├── models/
-│   └── rf_ransomware_detector.joblib  # Trained model
 ├── data/
-│   ├── whitelist.json           # File whitelist
-│   ├── scan_cache.json          # Incremental scan cache
-│   └── config.json              # Runtime configuration
-├── train_model.py               # Model training script
+│   ├── whitelist.json           # Danh sách whitelist
+│   ├── scan_cache.json          # Cache quét tăng dần
+│   ├── config.json              # Cấu hình runtime
+│   └── threat_intel/
+│       └── feodo_ips.json       # Threat intelligence
+├── models/
+│   └── rf_ransomware_detector.joblib  # Model đã train
+├── quarantine/                   # Thư mục cách ly
+├── logs/                        # Log files
+├── train_model.py               # Script train model
 ├── main.py                      # Entry point
 └── requirements.txt             # Dependencies
 ```
 
 ---
 
-## Cai dat
+## Cài đặt
 
-### Yeu cau
+### Yêu cầu
 
-- **Python 3.8+**
-- **Windows 10/11** (notifications va process monitoring toi uu cho Windows)
+- **Python 3.8 trở lên**
+- **Windows 10/11** (notifications và process monitoring được tối ưu cho Windows)
 
-### Buoc 1: Clone va cai dat dependencies
+### Bước 1: Clone và cài đặt dependencies
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/ransomware_detector_v2.git
+git clone https://github.com/in4SECxMinDandy/ransomware_detector_v2.git
 cd ransomware_detector_v2
 
-# Tao virtual environment (khuyen nghi)
+# Tạo virtual environment (khuyến nghị)
 python -m venv venv
 venv\Scripts\activate  # Windows
 
-# Cai dat dependencies
+# Cài đặt dependencies
 pip install -r requirements.txt
 ```
 
-### Buoc 2: Train model (lan dau)
+### Bước 2: Train model (lần đầu)
 
 ```bash
 python train_model.py
 ```
 
-### Buoc 3: Chay ung dung
+Hoặc sử dụng:
+
+```bash
+python main.py --train
+```
+
+### Bước 3: Chạy ứng dụng
 
 ```bash
 python main.py
 ```
 
-### Optional: YARA native (toc do cao hon)
+### Tùy chọn: YARA native (hiệu năng cao hơn)
 
 ```bash
 pip install yara-python
@@ -199,77 +247,90 @@ pip install yara-python
 
 ---
 
-## Huong dan su dung
+## Hướng dẫn sử dụng
 
-### Mode 1: Manual Scan
+### Chế độ 1: Quét thủ công (Manual Scan)
 
-1. Click **"Select Folder"** để chọn thư mục cần quét
-2. Chon **Scan Mode**: Full Scan (de quy), Quick Scan, hoac Incremental Scan
-3. Dieu chinh **Threshold** nếu cần (mặc định: 0.65)
-4. Click **"Start Scan"**
+1. Click **"Chọn thư mục"** để chọn thư mục cần quét
+2. Chọn **Chế độ quét**:
+   - **Quét toàn bộ (Full Scan)**: Đệ quy tất cả thư mục con
+   - **Quét nhanh (Quick Scan)**: Chỉ quét thư mục gốc
+   - **Quét tăng dần (Incremental Scan)**: Chỉ quét file mới/sửa đổi
+3. Điều chỉnh **Ngưỡng (Threshold)** nếu cần (mặc định: 0.65)
+4. Click **"Bắt đầu quét"**
 5. Xem kết quả trong bảng bên dưới
 
-### Mode 2: Real-time Protection
+### Chế độ 2: Bảo vệ thời gian thực (Real-time Protection)
 
-1. Click **"Select Folder"** de chon thu muc giam sat
-2. Click **"Start Protection"**
-3. Tool se giam sat va:
-   - Gui **Windows notification** khi phat hien threat
-   - Hien thi **Behavior Alert window** voi chi tiet process
-   - Ghi log vao console
+1. Click **"Chọn thư mục"** để chọn thư mục giám sát
+2. Click **"Bắt đầu bảo vệ"**
+3. Công cụ sẽ giám sát và:
+   - Gửi **thông báo Windows** khi phát hiện mối đe dọa
+   - Hiển thị **cửa sổ cảnh báo** với chi tiết process
+   - Ghi log vào console
 
-### Adjusting Sensitivity
+### Chế độ 3: Dòng lệnh (CLI)
 
-| Profile | Threshold Delta | Use Case |
+```bash
+# Quét thư mục
+python main.py --scan "C:\Path\To\Folder"
+
+# Chỉ train model
+python main.py --train
+```
+
+### Điều chỉnh độ nhạy
+
+| Chế độ | Điều chỉnh ngưỡng | Trường hợp sử dụng |
 | --- | --- | --- |
-| **Balanced** | +0.00 | Can bang FN/FP |
-| **High Sensitivity** | -0.05 | Uu tien bat ransomware |
-| **Paranoid** | -0.10 | Giam sat nghiem nhat |
+| **Cân bằng** | +0.00 | Cân bằng giữa bỏ sót và cảnh báo sai |
+| **Độ nhạy cao** | -0.05 | Ưu tiên phát hiện ransomware |
+| **Paranoid** | -0.10 | Giám sát nghiêm ngặt nhất |
 
-### Export Reports
+### Xuất báo cáo
 
-- **CSV**: Click "Export CSV"
-- **PNG**: Click "Export PNG"
-- **PDF**: Click "Export PDF"
+- **CSV**: Click "Xuất CSV"
+- **PNG**: Click "Xuất PNG"
+- **PDF**: Click "Xuất PDF"
 
 ---
 
-## ML Engine
+## Máy học - ML Engine
 
-### Features (16)
+### 16 Đặc trưng (Features)
 
-| # | Feature | Mo ta |
+| # | Đặc trưng | Mô tả |
 | --- | --- | --- |
-| 1 | Shannon Entropy | Entropy trung bình |
-| 2 | Chi-Square (log) | Byte distribution uniformity |
+| 1 | Shannon Entropy | Entropy trung bình của file |
+| 2 | Chi-Square (log) | Độ đồng đều phân bố byte |
 | 3 | Mean Byte | Giá trị trung bình byte |
 | 4 | Byte Variance | Phương sai byte |
-| 5 | Serial Correlation | Tương quan byte lien tiep |
-| 6 | Chunk Entropy StdDev | Độ lệch entropy |
+| 5 | Serial Correlation | Tương quan byte liên tiếp |
+| 6 | Chunk Entropy StdDev | Độ lệch chuẩn entropy |
 | 7 | Chunk Entropy Max | Entropy cao nhất |
 | 8 | Chunk Entropy Min | Entropy thấp nhất |
-| 9 | High Entropy Ratio | Tỷ lệ chunk entropy cao |
+| 9 | High Entropy Ratio | Tỷ lệ chunk có entropy cao |
 | 10 | Magic Bytes Mismatch | Magic bytes không khớp |
 | 11 | Normalized Entropy | Entropy chuẩn hóa |
-| 12 | Byte Distribution Mode | Mode phan bo byte |
-| 13 | Compression Ratio Sim | An tinh nen |
-| 14 | Structural Consistency | Nhat quan cau truc |
-| 15 | Extension Entropy Delta | Chenh lech entropy vs extension |
-| 16 | Is Known Benign Format | Format known benign |
+| 12 | Byte Distribution Mode | Mode phân bố byte |
+| 13 | Compression Ratio Sim | Ước tính tỷ lệ nén |
+| 14 | Structural Consistency | Tính nhất quán cấu trúc |
+| 15 | Extension Entropy Delta | Chênh lệch entropy vs extension |
+| 16 | Is Known Benign Format | Kiểm tra format known benign |
 
-### Model
+### Mô hình
 
-- **Algorithm**: RandomForestClassifier
+- **Thuật toán**: RandomForestClassifier
 - **Calibration**: CalibratedClassifierCV
-- **Threshold**: Auto-tuned cho Precision ≥95%
+- **Ngưỡng**: Tự điều chỉnh cho Precision ≥95%
 
 ---
 
-## FP Reduction Pipeline
+## Giảm thiểu False Positive - FP Reduction
 
-### Tang 1: Whitelist
+### Lớp 1: Whitelist
 
-Bo qua cac file he thong:
+Bỏ qua các file hệ thống:
 
 ```python
 WHITELIST_PATHS = [
@@ -279,16 +340,16 @@ WHITELIST_PATHS = [
 ]
 ```
 
-### Tang 2: Per-extension Threshold
+### Lớp 2: Ngưỡng theo đuôi file (Per-extension Threshold)
 
-| Extension | Threshold | Ly do |
+| Đuôi file | Ngưỡng | Lý do |
 | --- | --- | --- |
-| `.png`, `.jpg` | 0.85 | Entropy cao tu nhien |
-| `.zip`, `.7z` | 0.80 | Compressed files |
+| `.png`, `.jpg` | 0.85 | Entropy cao tự nhiên |
+| `.zip`, `.7z` | 0.80 | File nén |
 | `.exe`, `.dll` | 0.75 | PE files |
-| `.txt`, `.doc` | 0.65 | Normal documents |
+| `.txt`, `.doc` | 0.65 | Tài liệu thông thường |
 
-### Tang 3: Magic Bytes Validation
+### Lớp 3: Xác thực Magic Bytes
 
 ```python
 MAGIC_BYTES = {
@@ -299,15 +360,15 @@ MAGIC_BYTES = {
 }
 ```
 
-Neu magic bytes hop le → `probability *= 0.70`
+Nếu magic bytes hợp lệ → `probability *= 0.70`
 
 ---
 
-## YARA Signatures
+## Quy tắc YARA
 
-### Built-in Rules
+### Các quy tắc tích hợp sẵn
 
-| Family | Aliases |
+| Nhóm ransomware | Aliases |
 | --- | --- |
 | WannaCry | wncry, wannacry |
 | LockBit | lockbit, lockbit2, lockbit3 |
@@ -325,122 +386,158 @@ Neu magic bytes hop le → `probability *= 0.70`
 
 ---
 
-## Process Behavior Detection
+## Phát hiện hành vi Process
 
-### Cach hoat dong
+### Cách hoạt động
 
 ```
 File Event → Get PID → Get Process Info → Check Patterns → Alert
 ```
 
-### Patterns
+### Các pattern được phát hiện
 
 1. **ENCRYPTION_BURST**
-   - Phat hien: >10 files bi modify trong 30s
-   - Kem: entropy >7.0 (encrypted)
-   - Action: Critical alert
+   - Phát hiện: >10 files bị sửa đổi trong 30 giây
+   - Kèm: entropy >7.0 (mã hóa)
+   - Hành động: Cảnh báo nghiêm trọng
 
 2. **EXTENSION_CHANGE**
-   - Phat hien: Doi extension sang suspicious
-   - Examples: `.doc` → `.locked`, `.pdf` → `.encrypted`
-   - Action: Critical alert
+   - Phát hiện: Đổi extension sang đáng nghi ngờ
+   - Ví dụ: `.doc` → `.locked`, `.pdf` → `.encrypted`
+   - Hành động: Cảnh báo nghiêm trọng
 
 3. **RAPID_OPS**
-   - Phat hien: >5 files/second
-   - Action: High alert
+   - Phát hiện: >5 files/giây
+   - Hành động: Cảnh báo cao
 
 4. **SUSPICIOUS_PROCESS**
-   - Phat hien: Process chay tu temp/downloads
-   - Kem: Ghi file entropy cao
-   - Action: High alert
+   - Phát hiện: Process chạy từ temp/downloads
+   - Kèm: Ghi file có entropy cao
+   - Hành động: Cảnh báo cao
 
 ---
 
-## Network Traffic Analysis (v2.4)
+## Phân tích mạng - Network Analysis
 
-### C2 Detection Features
+### Các tính năng phát hiện C2
 
-- **DGA Domain Detection**: Tinh toan Shannon entropy cua domain de phat hien Domain Generation Algorithms
-- **Beaconing Detection**: Phat hien request den known malicious IPs (Feodo Tracker C2)
-- **Connection Rate Limiting**: Canh bao neu qua nhieu connections trong thoi gian ngan
-- **DNS Tunneling Indicators**: Phat hien DNS queries bat thuong
+- **DGA Domain Detection**: Tính toán Shannon entropy của domain để phát hiện Domain Generation Algorithms
+- **Beaconing Detection**: Phát hiện request đến known malicious IPs (Feodo Tracker C2)
+- **Connection Rate Limiting**: Cảnh báo nếu quá nhiều kết nối trong thời gian ngắn
+- **DNS Tunneling Indicators**: Phát hiện DNS queries bất thường
 
 ---
 
-## Windows Notifications
+## Bảo vệ thời gian thực - Real-time Protection
 
-### Requirements
+### Yêu cầu
+
+```bash
+pip install watchdog
+```
+
+### Tính năng
+
+- **File System Watcher**: Giám sát thay đổi file theo thời gian thực
+- **Đa luồng xử lý**: Xử lý song song với ThreadPoolExecutor
+- **Debouncing**: 2 giây cooldown tránh spam thông báo
+- **Tự động cảnh báo**: Kích hoạt callback khi phát hiện mối đe dọa
+
+---
+
+## Tự động phản ứng - Auto-Response
+
+### Các hành động tự động
+
+| Mức độ | Hành động | Mô tả |
+| --- | --- | --- |
+| **CRITICAL** | auto_quarantine | Tự động cách ly, không hỏi |
+| **HIGH** | ask_user | Hiển thị hộp thoại với countdown |
+| **MEDIUM** | notify_only | Chỉ thông báo |
+| **LOW** | log_only | Chỉ ghi log |
+
+### Các chức năng chính
+
+- **Cách ly file**: Di chuyển file độc hại vào thư mục `quarantine/`
+- **Khôi phục file**: Hoàn tác cách ly khi cần
+- **Kết thúc Process**: Dừng process độc hại một cách an toàn
+- **Chặn mạng**: Sử dụng Windows Firewall để ngăn chặn kết nối C2
+
+---
+
+## Thông báo Windows
+
+### Yêu cầu
 
 ```bash
 pip install win10toast plyer
 ```
 
-### Notification Levels
+### Các mức thông báo
 
-| Level | Sound | Use Case |
+| Mức | Âm thanh | Trường hợp sử dụng |
 | --- | --- | --- |
-| LOW | None | Info messages |
-| MEDIUM | SystemAsterisk | Warnings |
-| HIGH | SystemExclamation | Threats |
-| CRITICAL | SystemHand | Critical alerts |
+| LOW | Không | Thông tin |
+| MEDIUM | SystemAsterisk | Cảnh báo |
+| HIGH | SystemExclamation | Mối đe dọa |
+| CRITICAL | SystemHand | Cảnh báo nghiêm trọng |
 
 ---
 
-## GUI
+## Giao diện đồ họa - GUI
 
-### Layout
+### Bố cục
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  HEADER: Logo + Title + Version + Status badge              │
+│  HEADER: Logo + Tiêu đề + Phiên bản + Trạng thái            │
 ├──────────────┬──────────────────────────────────────────────┤
-│  LEFT PANEL  │  RIGHT: Results Table                        │
-│  - Directory │                                              │
-│  - Scan mode │  - Status | File | Path | Risk | Prob | H   │
-│  - Threshold │                                              │
-│    Slider    │                                              │
-│  - Start btn │                                              │
-│  - Stats     │                                              │
-│  - Watchdog  │                                              │
-│  - FP Info   │                                              │
-│  - Export    │                                              │
-│  - ML Engine │                                              │
+│  PANEL TRÁI │  PHẢI: Bảng kết quả                          │
+│  - Thư mục  │                                              │
+│  - Chế độ   │  - Trạng thái | File | Đường dẫn | Nguy cơ  │
+│  - Ngưỡng   │                                              │
+│  - Bắt đầu │                                              │
+│  - Thống kê│                                              │
+│  - Bảo vệ  │                                              │
+│  - FP Info  │                                              │
+│  - Xuất    │                                              │
+│  - ML Engine│                                             │
 ├──────────────┴──────────────────────────────────────────────┤
-│  BOTTOM: Log console (real-time events)                     │
+│  DƯỚI: Console log (sự kiện thời gian thực)                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Performance
+## Hiệu năng
 
-| Metric | Target |
+| Chỉ số | Mục tiêu |
 | --- | --- |
 | Precision | ≥ 95% |
 | False Positive Rate | < 5% |
 | Recall | ≥ 90% |
-| Scan Speed | ~100 files/second |
-| Memory Usage | < 200MB |
+| Tốc độ quét | ~100 files/giây |
+| Bộ nhớ sử dụng | < 200MB |
 
 ---
 
-## Testing
+## Kiểm tra - Testing
 
 ### Unit Tests
 
-116 unit tests voi coverage 80%+ cho tat ca core modules.
+116 unit tests với coverage 80%+ cho tất cả core modules.
 
 ```bash
-# Chay tat ca tests
+# Chạy tất cả tests
 pytest tests/ -v
 
-# Voi coverage report
+# Với coverage report
 pytest tests/ --cov=core --cov-report=term-missing
 ```
 
-### Test Modules
+### Các module test
 
-| File | Mo ta |
+| File | Mô tả |
 | --- | --- |
 | `test_feature_extractor.py` | 49 tests cho 16 features extraction |
 | `test_fp_reducer.py` | 24 tests cho FP reduction pipeline |
@@ -454,48 +551,46 @@ Shared fixtures trong `conftest.py`: `sample_safe_file`, `sample_random_file`, `
 
 ---
 
-## Roadmap
+## Lộ trình phát triển - Roadmap
 
-### v2.5 (Current)
+### v2.5 (Hiện tại)
 
-- [x] **Unit test suite** voi 116 tests va 80%+ coverage ✅
-- [x] **Incremental scan** — chi scan file moi/da sua ✅
+- [x] **Bộ test unit** với 116 tests và 80%+ coverage ✅
+- [x] **Quét tăng dần** — chỉ scan file mới/đã sửa ✅
 - [x] **Config manager** — centralized configuration ✅
 - [x] **Logger setup** — structured logging ✅
 - [x] **Bug fixes**: entropy formula, file handle leak, exception handling ✅
-
-- [x] ~~Retrain tren malware dataset thuc te (VirusTotal, MalwareBazaar)~~
-- [x] **Dynamic behavior signals** (file rename bursts, mass IO) (v2.2) ✅
-- [x] **Rule pack updater** (auto update YARA rules) (v2.3) ✅
-- [x] **Export forensic bundle** (hashes + IOC report) (v2.3) ✅
-- [x] **System Tray integration** (v2.3) ✅
-- [x] **Auto-response actions** (quarantine, kill process) (v2.3) ✅
-- [x] **Network traffic analysis** (C2 detection, DGA, beacon) (v2.4) ✅
+- [x] **Dynamic behavior signals** (file rename bursts, mass IO) ✅
+- [x] **Rule pack updater** (auto update YARA rules) ✅
+- [x] **Export forensic bundle** (hashes + IOC report) ✅
+- [x] **System Tray integration** ✅
+- [x] **Auto-response actions** (quarantine, kill process) ✅
+- [x] **Network traffic analysis** (C2 detection, DGA, beacon) ✅
 
 ---
 
-## License
+## Giấy phép - License
 
-MIT License - Xem [LICENSE](LICENSE) de biet them chi tiet.
+MIT License - Xem [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ---
 
-## Author
+## Tác giả
 
-- **Name**: Hà Quang Minh
+- **Họ tên**: Hà Quang Minh
 - **Email**: minhhq.in4sec@gmail.com
 - **GitHub**: https://github.com/in4SECxMinDandy
 
 ---
 
-## Acknowledgments
+## Acknowledgments - Cảm ơn
 
-- [scikit-learn](https://scikit-learn.org/) - ML framework
+- [scikit-learn](https://scikit-learn.org/) - Khung máy học
 - [YARA](https://virustotal.github.io/yara/) - Pattern matching
-- [watchdog](https://pythonhosted.org/watchdog/) - File system monitoring
-- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) - Modern GUI
-- [psutil](https://psutil.readthedocs.io/) - Process monitoring
+- [watchdog](https://pythonhosted.org/watchdog/) - Giám sát file system
+- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) - Giao diện hiện đại
+- [psutil](https://psutil.readthedocs.io/) - Giám sát process
 
 ---
 
-**⭐ Nếu thấy hưu ích, hãy cho tôi 1 ⭐ để ủng hộ!**
+**⭐ Nếu thấy hữu ích, hãy cho tôi 1 ⭐ để ủng hộ!**

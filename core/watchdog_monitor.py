@@ -202,17 +202,13 @@ class RealTimeMonitor:
             t.start()
             self._workers.append(t)
 
-        # Khởi động watchdog observer trong thread riêng
-        # (recursive schedule có thể chặn vài giây trên thư mục lớn)
+        # Khởi động watchdog observer trong thread riêng; không chờ trên luồng gọi
+        # (schedule(recursive=True) trên thư mục lớn có thể mất rất lâu → tránh chặn GUI)
         self._watch_directory = watch_directory
         self._watch_recursive = recursive
         self._observer_ready_event = threading.Event()
         t = threading.Thread(target=self._observer_start_thread, daemon=True)
         t.start()
-        # Chờ observer ready để tránh race condition (tối đa 5s)
-        if not self._observer_ready_event.wait(timeout=5.0):
-            logger.warning("Observer startup timed out")
-
         self._is_running = True
         return True
 
