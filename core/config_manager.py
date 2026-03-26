@@ -166,6 +166,87 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "backup_count":     3,
         "console_level":    "WARNING",
     },
+
+    # ─── VirusTotal Integration ─────────────────────────────────────────────
+    "virustotal": {
+        "api_key":         "",
+        "cache_ttl_hours":  24,
+        "rate_limit_rpm":   4,
+        "enabled":         False,
+        "auto_check":      False,
+    },
+
+    # ─── Entropy Monitoring ─────────────────────────────────────────────────
+    "entropy": {
+        "enabled":               True,
+        "threshold":             7.5,
+        "consecutive_files":     5,
+        "time_window_seconds":   30,
+        "entropy_alert_log":    "logs/entropy_alerts.log",
+    },
+
+    # ─── Honeypot Configuration ─────────────────────────────────────────────
+    "honeypot": {
+        "enabled":         False,
+        "auto_deploy":     False,
+        "names": [
+            "passwords.xlsx",
+            "backup.docx",
+            "financial_report_2025.pdf",
+            "company_secrets.txt",
+            "wallet_keys.txt",
+            "tax_returns_2024.pdf",
+            "credentials.xlsx",
+            "banking_info.xlsx",
+            "private_keys.pem",
+            "recovery_codes.txt",
+        ],
+        "locations": [
+            "Desktop",
+            "Documents",
+            "Downloads",
+        ],
+        "max_per_location": 3,
+    },
+
+    # ─── FastAPI Server ────────────────────────────────────────────────────
+    "api": {
+        "enabled":                    False,
+        "host":                      "0.0.0.0",
+        "port":                      8000,
+        "api_key":                   "",
+        "jwt_secret":                "",
+        "jwt_algorithm":             "HS256",
+        "access_token_expire_minutes": 60,
+        "reload":                    False,
+    },
+
+    # ─── ML Feedback Loop ──────────────────────────────────────────────────
+    "ml_feedback": {
+        "auto_retrain_threshold":    50,
+        "retrain_interval_hours":    168,
+        "auto_retrain_enabled":      False,
+    },
+
+    # ─── Office Document Scanner ───────────────────────────────────────────
+    "office_scanner": {
+        "enabled":      True,
+        "yara_enabled": True,
+        "max_file_size_mb": 100,
+    },
+
+    # ─── AI Analysis (Claude) ────────────────────────────────────────────────
+    "ai": {
+        "enabled":    True,
+        "api_key":    "",
+        # Model IDs via taphoaapi.info.vn proxy:
+        #   'claude-sonnet-4-6'     → Claude Sonnet 4.6 (balanced, recommended)
+        #   'claude-opus-4-6'       → Claude Opus 4.6 (most capable)
+        #   'claude-haiku-4-5-20251001' → Claude Haiku 4.5 (fastest, lightweight)
+        "model":      "claude-sonnet-4-6",
+        "max_tokens": 1024,
+        "temperature": 0.2,
+    },
 }
 
 

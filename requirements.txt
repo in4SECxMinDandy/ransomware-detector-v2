@@ -13,15 +13,23 @@ psutil>=5.9.0             # Process monitoring, IO counters, network
                         # pip install yara-python  (requires YARA dev headers)
 
 # ─── Filesystem Monitoring ────────────────────────────────────────────────────
-watchdog>=3.0.0          # Real-time filesystem watcher (RealTimeMonitor)
+watchdog>=3.0.0           # Real-time filesystem watcher (RealTimeMonitor)
 
-# ─── GUI ──────────────────────────────────────────────────────────────────────
-customtkinter>=5.2.0      # Modern dark-mode Tkinter GUI
-Pillow>=10.0.0           # Image handling (for GUI icons)
+# ─── Office Document Analysis ──────────────────────────────────────────────────
+oletools>=0.60            # VBA macro extraction (olevba, mraptor, rtfobj)
+PyMuPDF>=1.23             # PDF analysis (OpenAction, JavaScript, /AA, /Launch)
+python-docx>=1.1           # DOCX analysis
+openpyxl>=3.1              # XLSX/XLSM analysis
+python-pptx>=0.6           # PPTX analysis
+pdfminer.six>=20231228     # PDF text extraction (fallback)
+
+# ─── GUI (CustomTkinter — lightweight, modern dark theme) ────────────────────
+customtkinter>=5.2.0         # Modern dark-themed Tkinter wrapper
+Pillow>=10.0.0               # Image handling (for GUI icons)
 
 # ─── Reporting / Export ───────────────────────────────────────────────────────
 matplotlib>=3.7.0         # Charts, PNG export, PR curves
-reportlab>=4.0.0           # PDF report generation
+reportlab>=4.0.0          # PDF report generation
 joblib>=1.3.0              # Model serialization
 
 # ─── Notifications ────────────────────────────────────────────────────────────
@@ -29,15 +37,28 @@ win10toast>=0.9            # Windows 10/11 toast notifications
 plyer>=2.1.0              # Cross-platform notifications (fallback)
 
 # ─── System Tray ──────────────────────────────────────────────────────────────
-pystray>=0.19.5           # System tray integration
+pystray>=0.19.5            # System tray integration
 
 # ─── Threat Intelligence (optional) ────────────────────────────────────────────
-stix2>=3.0.0              # STIX/TAXII threat intel format
-scapy>=2.5.0             # Network packet analysis (advanced C2 detection)
+stix2>=3.0.0               # STIX/TAXII threat intel format
+scapy>=2.5.0              # Network packet analysis (advanced C2 detection)
 
 # ─── Imbalanced Learning ──────────────────────────────────────────────────────
-imbalanced-learn>=0.11.0  # SMOTE oversampling for class imbalance
+imbalanced-learn>=0.11.0   # SMOTE oversampling for class imbalance
 
-# ─── Testing ────────────────────────────────────────────────────────────────────
-pytest>=8.0.0             # Unit tests
-pytest-cov>=4.0.0        # Coverage reports: pytest tests/ --cov=core
+# ─── FastAPI & API Server ─────────────────────────────────────────────────────
+fastapi>=0.109             # REST API framework
+uvicorn[standard]>=0.27   # ASGI server
+python-multipart>=0.0.9   # File upload support
+python-jose[cryptography]>=3.3  # JWT token handling
+passlib[bcrypt]>=1.7      # Password hashing
+pydantic>=2.5             # Data validation
+pydantic-settings>=2.0     # Settings management
+
+# ─── AI Analysis (Claude Integration) ────────────────────────────────────────
+anthropic>=0.21.0           # Anthropic Claude API client (ai_analyzer.py)
+requests>=2.31.0           # HTTP client (VirusTotal, DeepSeek API calls)
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+pytest>=8.0.0              # Unit tests
+pytest-cov>=4.0.0         # Coverage reports: pytest tests/ --cov=core

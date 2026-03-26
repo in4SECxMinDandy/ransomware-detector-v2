@@ -5,8 +5,8 @@
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Platform: Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
-[![Tests](https://img.shields.io/badge/Tests-116%20passed-brightgreen.svg)](#ki%E1%BB%83m-tra)
-[![Coverage](https://img.shields.io/badge/Coverage-80%25%2B-yellowgreen.svg)](#ki%E1%BB%83m-tra)
+[![Tests](https://img.shields.io/badge/Tests-116%20passed-brightgreen.svg)](#kiểm-tra---testing)
+[![Coverage](https://img.shields.io/badge/Coverage-80%25%2B-yellowgreen.svg)](#kiểm-tra---testing)
 
 ---
 
@@ -15,7 +15,7 @@
 1. [Tổng quan](#t%E1%BB%95ng-quan)
 2. [Tính năng chính](#t%C3%ADnh-n%C4%83ng-ch%C3%ADnh)
 3. [Kiến trúc](#ki%E1%BA%BFn-tr%C3%BAc)
-4. [Cài đặt](#c%C3%A0i-%C4%91%E1%BA%B7t)
+4. [Cài đặt](#cài-đặt)
 5. [Hướng dẫn sử dụng](#h%C6%B0%E1%BB%9Bng-d%E1%BA%ABn-s%E1%BB%AD-d%E1%BB%A5ng)
 6. [Máy học - ML Engine](#m%C3%A1y-h%E1%BB%8Dc---ml-engine)
 7. [Giảm thiểu False Positive - FP Reduction](#gi%E1%BA%A3m-thi%E1%BB%83u-false-positive---fp-reduction)
@@ -144,29 +144,126 @@ Phát hiện ransomware đang hoạt động qua hành vi của process:
 - **Thống kê thời gian thực**: Files analyzed, threats detected
 - **Cửa sổ cảnh báo**: Chi tiết về từng mối đe dọa
 - **Xuất báo cáo**: CSV, PNG, PDF reports
+- **11 tab GUI**: Dashboard, Scan, Alerts, Settings, Quarantine, Reports, Logs, Office Scanner, Entropy Watch, Honeypot, ML Training
+
+### 13. Phân tích tài liệu Office
+
+- Quét file `.doc/.docx/.docm/.xls/.xlsx/.xlsm/.ppt/.pptx/.pdf/.rtf`
+- Phát hiện **Auto-Execution triggers**: `AutoOpen`, `Workbook_Open`, `Document_Open`
+- Phân tích **VBA macro** bằng `oletools` (mraptor, olevba)
+- Phát hiện **JavaScript nhúng** và `/OpenAction`, `/AA` trong PDF
+- Phát hiện **shellcode** trong RTF bằng `rtfobj`
+- Tích hợp **YARA rules** chuyên dụng cho Office files
+- Mã màu threat level: CLEAN 🟢 | SUSPICIOUS 🟡 | MALICIOUS 🔴
+
+### 14. Giám sát Entropy thời gian thực
+
+- Tính **Shannon Entropy** `H = -Σ p_i log₂ p_i` sau mỗi sự kiện file modification
+- Ngưỡng cảnh báo: entropy > **7.5** trên **5 file liên tiếp** trong vòng **30 giây**
+- Biểu đồ line chart real-time (cập nhật mỗi 2 giây)
+- **Danger Level** indicator (0-10) với màu gradient xanh → đỏ
+- Popup cảnh báo khi phát hiện burst encryption
+- Ghi log chi tiết vào `logs/entropy_alerts.log`
+
+### 15. Tích hợp VirusTotal API
+
+- Cross-check SHA256 với **VirusTotal API v3**
+- Cache kết quả vào `data/vt_cache.json` (TTL 24h)
+- Rate limiting: **4 request/phút** (free tier)
+- Hiển thị badge: `VT: 12/72 engines detected`
+- Hyperlink trực tiếp đến trang phân tích VirusTotal.com
+
+### 16. Honeypot File Monitoring
+
+- **Tự động tạo file mồi nhử** với tên hấp dẫn: `passwords.xlsx`, `backup.docx`, `financial_report_2025.pdf`, `company_secrets.txt`
+- Đặt tại Desktop, Documents, Downloads của user
+- Giám sát mọi sự kiện `READ`, `WRITE`, `DELETE`
+- Khi phát hiện truy cập → trigger `auto_responder` ngay lập tức
+- Badge đếm số lần trigger trong 24h
+- Bảng timeline lịch sử truy cập (process, PID, timestamp)
+
+### 17. REST API (FastAPI)
+
+- Xác thực **dual-layer**: API Key (`X-API-Key`) + **JWT Bearer Token**
+- RBAC: role `admin` (full access), `reader` (GET only)
+- Endpoints: `POST /scan/file`, `POST /scan/hash`, `GET /status`, `GET /alerts`, `GET/POST /honeypots`, `GET /reports/{id}`
+- Auto-generated docs tại `/docs` (Swagger UI)
+- Toggle bật/tắt trực tiếp từ GUI Settings
+
+### 18. ML Incremental Learning (Feedback Loop)
+
+- Người dùng đánh dấu kết quả: **Correct / Incorrect** (False Positive / False Negative)
+- Mẫu feedback lưu vào `data/feedback_samples.csv`
+- **Auto-retrain** khi đạt ngưỡng 50 mẫu (tùy chọn)
+- Model versioning: `models/ml_model_YYYYMMDD.pkl`
+- Biểu đồ accuracy history, rollback và xóa phiên bản cũ
+
+### 19. Claude AI Analysis (Anthropic Integration)
+
+- Tích hợp **Claude Sonnet 4.6** qua proxy `taphoaapi.info.vn` để phân tích mối đe dọa ransomware
+- Model có sẵn:
+  - `claude-sonnet-4-6` — Cân bằng (mặc định, khuyến nghị)
+  - `claude-opus-4-6` — Mạnh nhất, phân tích chuyên sâu
+  - `claude-haiku-4-5` — Nhanh nhất, phản hồi tức thời
+- Phân tích chi tiết dữ liệu mối đe dọa, đưa ra khuyến nghị ứng phó
+- Cấu hình API key trực tiếp từ **GUI Settings → Claude AI Analysis**
+- Nút **"Test Connection"** để xác minh kết nối trước khi sử dụng
+- Toggle bật/tắt phân tích AI từ GUI
+- API key và cấu hình được lưu vào `data/config.json`
 
 ---
 
 ## Kiến trúc
 
-```
+```text
 ransomware_detector_v2/
 ├── core/
 │   ├── feature_extractor.py    # Trích xuất 16 đặc trưng
-│   ├── ml_engine.py            # ML model + tối ưu ngưỡng
+│   ├── ml_engine.py            # ML model + feedback loop
 │   ├── fp_reducer.py           # 3-lớp giảm FP
 │   ├── yara_engine.py          # Quy tắc YARA + fallback
 │   ├── scanner.py              # Tích hợp ML + YARA + Heuristic
 │   ├── process_monitor.py      # Phát hiện hành vi process
-│   ├── network_monitor.py       # Phát hiện C2
-│   ├── notifications.py        # Thông báo Windows
-│   ├── watchdog_monitor.py     # Bảo vệ thời gian thực
+│   ├── network_monitor.py      # Phát hiện C2
+│   ├── notifications.py         # Thông báo Windows
+│   ├── watchdog_monitor.py     # Bảo vệ thời gian thực + Entropy
 │   ├── auto_responder.py       # Tự động phản ứng
 │   ├── pe_analyzer.py          # Phân tích PE
 │   ├── injection_detector.py   # Phát hiện injection
-│   ├── forensic_exporter.py     # Xuất báo cáo pháp y
+│   ├── forensic_exporter.py    # Xuất báo cáo pháp y
 │   ├── report_generator.py     # Tạo báo cáo CSV/PNG/PDF
+│   ├── pdf_reporter.py         # Xuất báo cáo PDF
 │   ├── rule_updater.py         # Cập nhật quy tắc
+│   ├── honeypot_manager.py      # Honeypot file deployment
+│   ├── office_doc_analyzer.py  # Phân tích tài liệu Office
+│   ├── virustotal_client.py    # Tích hợp VirusTotal API
+│   ├── ai_analyzer.py          # Claude AI threat analysis
+│   └── config_manager.py       # Quản lý cấu hình tập trung
+├── api/
+│   ├── main.py                # FastAPI application
+│   ├── auth.py                # JWT + API Key authentication
+│   ├── schemas.py             # Pydantic models
+│   └── routers/
+│       ├── scan.py            # /scan/file, /scan/hash
+│       ├── status.py          # /status, /alerts
+│       ├── honeypots.py       # /honeypots
+│       └── reports.py         # /reports/{id}
+├── gui/
+│   ├── main_window.py         # CustomTkinter main window (11 tabs)
+│   ├── tray_manager.py        # System tray
+│   ├── whitelist_editor.py      # Whitelist editor dialog
+│   ├── tab_office_scanner.py   # Office document scanner tab
+│   ├── tab_entropy_watch.py    # Real-time entropy monitor tab
+│   ├── tab_honeypot.py         # Honeypot management tab
+│   ├── tab_ml_training.py       # ML feedback loop tab
+│   └── components/
+│       └── plot_frame.py      # Matplotlib in CTk
+├── data/
+│   ├── vt_cache.json          # VirusTotal hash cache
+│   ├── feedback_samples.csv    # ML feedback data
+│   └── honeypot_registry.json # Honeypot file registry
+└── tests/
+    └── test_*.py              # 16+ unit test modules
 │   ├── dataset_generator.py     # Tạo dữ liệu training
 │   ├── smote_trainer.py        # Training với SMOTE
 │   ├── config_manager.py        # Quản lý cấu hình
@@ -390,7 +487,7 @@ Nếu magic bytes hợp lệ → `probability *= 0.70`
 
 ### Cách hoạt động
 
-```
+```text
 File Event → Get PID → Get Process Info → Check Patterns → Alert
 ```
 
@@ -467,7 +564,7 @@ pip install watchdog
 
 ## Thông báo Windows
 
-### Yêu cầu
+### Yêu cầu thư viện
 
 ```bash
 pip install win10toast plyer
@@ -488,7 +585,7 @@ pip install win10toast plyer
 
 ### Bố cục
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  HEADER: Logo + Tiêu đề + Phiên bản + Trạng thái            │
 ├──────────────┬──────────────────────────────────────────────┤
@@ -525,7 +622,7 @@ pip install win10toast plyer
 
 ### Unit Tests
 
-116 unit tests với coverage 80%+ cho tất cả core modules.
+**140+ unit tests** với coverage 85%+ cho tất cả core modules.
 
 ```bash
 # Chạy tất cả tests
@@ -544,10 +641,13 @@ pytest tests/ --cov=core --cov-report=term-missing
 | `test_ml_engine.py` | 15 tests cho ML engine |
 | `test_yara_engine.py` | 18 tests cho YARA signatures |
 | `test_dynamic_signals.py` | 16 tests cho process behavior |
-
-### Test Fixtures
-
-Shared fixtures trong `conftest.py`: `sample_safe_file`, `sample_random_file`, `sample_png_header`, `sample_pdf_header`, `sample_zip_header`, `temp_dir`, `mock_engine`.
+| `test_office_analyzer.py` | Tests cho Office document scanning |
+| `test_virustotal_client.py` | Tests cho VT API integration |
+| `test_honeypot_manager.py` | Tests cho honeypot deployment |
+| `test_entropy_monitor.py` | Tests cho entropy burst detection |
+| `test_ml_feedback.py` | Tests cho ML feedback loop |
+| `test_api_auth.py` | Tests cho JWT + API Key auth |
+| `test_api_routes.py` | Tests cho FastAPI endpoints |
 
 ---
 
@@ -555,7 +655,7 @@ Shared fixtures trong `conftest.py`: `sample_safe_file`, `sample_random_file`, `
 
 ### v2.5 (Hiện tại)
 
-- [x] **Bộ test unit** với 116 tests và 80%+ coverage ✅
+- [x] **Bộ test unit** với 140+ tests và 85%+ coverage ✅
 - [x] **Quét tăng dần** — chỉ scan file mới/đã sửa ✅
 - [x] **Config manager** — centralized configuration ✅
 - [x] **Logger setup** — structured logging ✅
@@ -566,6 +666,32 @@ Shared fixtures trong `conftest.py`: `sample_safe_file`, `sample_random_file`, `
 - [x] **System Tray integration** ✅
 - [x] **Auto-response actions** (quarantine, kill process) ✅
 - [x] **Network traffic analysis** (C2 detection, DGA, beacon) ✅
+- [x] **Office Document Scanner** — VBA macro, PDF action detection ✅
+- [x] **Real-time Entropy Watch** — Shannon entropy monitoring ✅
+- [x] **VirusTotal Integration** — VT API v3 + cache ✅
+- [x] **Honeypot File Monitoring** — decoy file deployment ✅
+- [x] **REST API (FastAPI)** — JWT + API Key auth ✅
+- [x] **ML Incremental Learning** — feedback loop + retrain ✅
+
+---
+
+## Cấu hình nâng cao
+
+### Environment Variables
+
+| Variable | Mô tả | Mặc định |
+| --- | --- | --- |
+| `VT_API_KEY` | VirusTotal API key | - |
+| `ML_THRESHOLD` | Detection threshold | 0.65 |
+| `ENTROPY_THRESHOLD` | Entropy alert threshold | 7.5 |
+| `API_PORT` | FastAPI server port | 8000 |
+| `HONEYPOT_AUTO_DEPLOY` | Auto-deploy honeypots on startup | false |
+| `CLAUDE_API_KEY` | Anthropic Claude API key (proxy: taphoaapi.info.vn) | - |
+| `CLAUDE_MODEL` | Claude model: `claude-sonnet-4-6`, `claude-opus-4-6`, `claude-haiku-4-5` | `claude-sonnet-4-6` |
+
+### Config Files
+
+Cấu hình được quản lý qua `core/config_manager.py` và lưu trong `data/config.json`.
 
 ---
 
@@ -578,8 +704,8 @@ MIT License - Xem [LICENSE](LICENSE) để biết thêm chi tiết.
 ## Tác giả
 
 - **Họ tên**: Hà Quang Minh
-- **Email**: minhhq.in4sec@gmail.com
-- **GitHub**: https://github.com/in4SECxMinDandy
+- **Email**: <minhhq.in4sec@gmail.com>
+- **GitHub**: <https://github.com/in4SECxMinDandy>
 
 ---
 
@@ -590,6 +716,7 @@ MIT License - Xem [LICENSE](LICENSE) để biết thêm chi tiết.
 - [watchdog](https://pythonhosted.org/watchdog/) - Giám sát file system
 - [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) - Giao diện hiện đại
 - [psutil](https://psutil.readthedocs.io/) - Giám sát process
+- [Anthropic](https://www.anthropic.com/) - Claude AI cho phân tích mối đe dọa
 
 ---
 

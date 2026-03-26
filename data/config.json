@@ -1,0 +1,260 @@
+{
+  "ml": {
+    "default_threshold": 0.6000000000000001,
+    "min_threshold": 0.3,
+    "max_threshold": 0.95,
+    "target_precision": 0.95,
+    "target_recall": 0.9,
+    "max_fp_rate": 0.05,
+    "class_weight_safe": 3.0,
+    "class_weight_enc": 1.0,
+    "cost_fp": 3.0,
+    "cost_fn": 10.0,
+    "rf_n_estimators": 300,
+    "rf_max_depth": null,
+    "rf_min_samples_split": 4,
+    "rf_min_samples_leaf": 2,
+    "rf_random_state": 42,
+    "calibration_method": "isotonic",
+    "cv_folds": 3,
+    "smote_strategy": "smote_tomek"
+  },
+  "scanner": {
+    "max_workers": 8,
+    "max_file_size_mb": 2048,
+    "min_file_size_bytes": 64,
+    "default_sensitivity": "balanced",
+    "available_sensitivities": [
+      "balanced",
+      "high_sensitivity",
+      "paranoid"
+    ],
+    "scan_extensions": [
+      ".doc",
+      ".docx",
+      ".pdf",
+      ".txt",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".bmp",
+      ".svg",
+      ".ico",
+      ".mp3",
+      ".mp4",
+      ".avi",
+      ".mkv",
+      ".mov",
+      ".wav",
+      ".zip",
+      ".rar",
+      ".7z",
+      ".tar",
+      ".gz",
+      ".html",
+      ".css",
+      ".js",
+      ".ts",
+      ".py",
+      ".java",
+      ".cpp",
+      ".c",
+      ".h",
+      ".exe",
+      ".dll",
+      ".sys",
+      ".msi",
+      ".json",
+      ".xml",
+      ".yaml",
+      ".yml",
+      ".toml",
+      ".sql",
+      ".db",
+      ".sqlite"
+    ]
+  },
+  "process_monitor": {
+    "encryption_burst_threshold": 10,
+    "encryption_burst_window": 30,
+    "rapid_ops_threshold": 5,
+    "rapid_ops_window": 10,
+    "rename_burst_threshold": 5,
+    "rename_burst_window": 10,
+    "mass_io_threshold_mbps": 50,
+    "mass_io_duration": 5,
+    "suspicious_paths": [
+      "temp",
+      "tmp",
+      "appdata\\local\\temp",
+      "downloads"
+    ]
+  },
+  "watchdog": {
+    "debounce_seconds": 2.0,
+    "queue_max_size": 500,
+    "worker_threads": 3,
+    "alert_threshold": 0.45,
+    "scan_on_create": true,
+    "scan_on_modify": true,
+    "recursive": true
+  },
+  "fp_reducer": {
+    "magic_bytes_multiplier": 0.7,
+    "magic_mismatch_boost": 1.15,
+    "default_threshold": 0.65,
+    "extension_thresholds": {
+      ".png": 0.8,
+      ".jpg": 0.8,
+      ".jpeg": 0.8,
+      ".gif": 0.8,
+      ".webp": 0.8,
+      ".mp4": 0.82,
+      ".mkv": 0.82,
+      ".avi": 0.82,
+      ".mov": 0.82,
+      ".mp3": 0.8,
+      ".aac": 0.8,
+      ".flac": 0.78,
+      ".opus": 0.8,
+      ".zip": 0.82,
+      ".gz": 0.82,
+      ".bz2": 0.82,
+      ".xz": 0.82,
+      ".7z": 0.82,
+      ".rar": 0.82,
+      ".tar": 0.75,
+      ".docx": 0.75,
+      ".xlsx": 0.75,
+      ".pptx": 0.75,
+      ".exe": 0.85,
+      ".dll": 0.85,
+      ".so": 0.82,
+      ".py": 0.6,
+      ".js": 0.6,
+      ".ts": 0.6,
+      ".php": 0.6,
+      ".pdf": 0.7,
+      ".txt": 0.55,
+      ".csv": 0.55,
+      ".json": 0.55,
+      ".xml": 0.55,
+      ".html": 0.55,
+      ".md": 0.55
+    }
+  },
+  "notifications": {
+    "enabled": true,
+    "sound_enabled": true,
+    "toast_duration": 5,
+    "min_level": "LOW",
+    "win32_toast": true,
+    "plyer_fallback": true,
+    "powershell_fallback": true
+  },
+  "auto_response": {
+    "enabled": true,
+    "countdown_seconds": 30,
+    "actions": {
+      "CRITICAL": "auto_quarantine",
+      "HIGH": "ask_user",
+      "MEDIUM": "notify_only",
+      "LOW": "notify_only",
+      "SAFE": "none"
+    }
+  },
+  "yara": {
+    "auto_update": false,
+    "update_interval_hours": 24,
+    "max_rules_per_scan": 100
+  },
+  "network_monitor": {
+    "enabled": true,
+    "dga_entropy_threshold": 3.5,
+    "beacon_cov_max": 0.1,
+    "connection_history_max": 100
+  },
+  "ui": {
+    "theme": "dark",
+    "accent_color": "#3B82F6",
+    "refresh_interval_ms": 150,
+    "max_log_lines": 500,
+    "chart_update_seconds": 2
+  },
+  "logging": {
+    "level": "INFO",
+    "log_dir": "logs",
+    "log_file": "detector.log",
+    "max_bytes": 5242880,
+    "backup_count": 3,
+    "console_level": "WARNING"
+  },
+  "virustotal": {
+    "api_key": "945929b661bff107393f67c2685faa2928481758d7f8c7283ec9a0be68c081be",
+    "cache_ttl_hours": 24,
+    "rate_limit_rpm": 4,
+    "enabled": true,
+    "auto_check": false
+  },
+  "entropy": {
+    "enabled": true,
+    "threshold": 7.5,
+    "consecutive_files": 5,
+    "time_window_seconds": 30,
+    "entropy_alert_log": "logs/entropy_alerts.log"
+  },
+  "honeypot": {
+    "enabled": false,
+    "auto_deploy": false,
+    "names": [
+      "passwords.xlsx",
+      "backup.docx",
+      "financial_report_2025.pdf",
+      "company_secrets.txt",
+      "wallet_keys.txt",
+      "tax_returns_2024.pdf",
+      "credentials.xlsx",
+      "banking_info.xlsx",
+      "private_keys.pem",
+      "recovery_codes.txt"
+    ],
+    "locations": [
+      "Desktop",
+      "Documents",
+      "Downloads"
+    ],
+    "max_per_location": 3
+  },
+  "api": {
+    "enabled": false,
+    "host": "0.0.0.0",
+    "port": 8000,
+    "api_key": "",
+    "jwt_secret": "",
+    "jwt_algorithm": "HS256",
+    "access_token_expire_minutes": 60,
+    "reload": false
+  },
+  "ml_feedback": {
+    "auto_retrain_threshold": 50,
+    "retrain_interval_hours": 168,
+    "auto_retrain_enabled": true
+  },
+  "office_scanner": {
+    "enabled": true,
+    "yara_enabled": true,
+    "max_file_size_mb": 100
+  },
+  "ai": {
+    "enabled": true,
+    "api_key": "sk-proj-69981a1c7a6c4bb3ad6f5c34f274cadd",
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 1024,
+    "temperature": 0.2
+  }
+}

@@ -46,6 +46,10 @@ from core.logger_setup import get_logger, setup_logging
 # ─── GUI module imports ────────────────────────────────────────────────────
 from gui.tray_manager import TrayManager
 from gui.whitelist_editor import WhitelistEditorWindow
+from gui.tab_office_scanner import OfficeScannerTab
+from gui.tab_entropy_watch import EntropyWatchTab
+from gui.tab_honeypot import HoneypotTab
+from gui.tab_ml_training import MLTrainingTab
 
 setup_logging()
 logger = get_logger("gui.main_window")
@@ -404,6 +408,22 @@ class MainWindow(ctk.CTk):
         self._engine     = get_engine()
         self._network    = NetworkAnalyzer()
 
+        # ── New modules ────────────────────────────────────────────────
+        try:
+            from core.honeypot_manager import HoneypotManager
+            self._honeypot_manager = HoneypotManager(
+                watchdog_callback=None, config={}
+            )
+        except Exception:
+            self._honeypot_manager = None
+
+        try:
+            from core.virustotal_client import VirusTotalClient
+            vt_key = config.get("virustotal.api_key", "")
+            self._vt_client = VirusTotalClient(vt_key) if vt_key else None
+        except Exception:
+            self._vt_client = None
+
         # ── UI state ────────────────────────────────────────────────────
         self._current_page    = 0
         self._scan_start_time: Optional[float] = None
@@ -436,6 +456,7 @@ class MainWindow(ctk.CTk):
         self._bind_events()
         self._load_engine()
         self._start_polling()
+        self._wire_new_modules()
 
         # ── Protocol ─────────────────────────────────────────────────────
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -670,13 +691,17 @@ class MainWindow(ctk.CTk):
         sidebar.pack_propagate(False)
 
         nav_items = [
-            ("⛨",  "Dashboard",  self._show_dashboard),
-            ("◈",  "Scan",       self._show_scan),
-            ("⚠",  "Alerts",     self._show_alerts),
-            ("⚙",  "Settings",   self._show_settings),
-            ("◻",  "Quarantine", self._show_quarantine),
-            ("⎙",  "Reports",    self._show_reports),
-            ("☰",  "Logs",       self._show_logs),
+            ("⛨",  "Dashboard",      self._show_dashboard),
+            ("◈",  "Scan",           self._show_scan),
+            ("⚠",  "Alerts",         self._show_alerts),
+            ("⚙",  "Settings",       self._show_settings),
+            ("◻",  "Quarantine",     self._show_quarantine),
+            ("⎙",  "Reports",        self._show_reports),
+            ("☰",  "Logs",           self._show_logs),
+            ("📄", "Office Scanner",  self._show_office_scanner),
+            ("📊", "Entropy Watch",   self._show_entropy_watch),
+            ("🎣", "Honeypot",       self._show_honeypot),
+            ("🤖", "ML Training",    self._show_ml_training),
         ]
 
         self._nav_buttons: List[ctk.CTkButton] = []
@@ -750,6 +775,10 @@ class MainWindow(ctk.CTk):
         self._build_quarantine_page()
         self._build_reports_page()
         self._build_logs_page()
+        self._build_office_scanner_page()
+        self._build_entropy_watch_page()
+        self._build_honeypot_page()
+        self._build_ml_training_page()
 
     # ─── Page: Dashboard ────────────────────────────────────────────────────
 
@@ -1007,8 +1036,11 @@ class MainWindow(ctk.CTk):
         tree_frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         columns = ("filename", "size", "entropy", "prob", "risk")
-        self._results_tree = ctk.CTkScrollableFrame(tree_frame, fg_color="transparent",
-                                                     scrollbar_button_color=C["border"])
+        self._results_tree = ctk.CTkScrollableFrame(
+            tree_frame, fg_color="transparent",
+            scrollbar_button_color=C["border"],
+            height=460
+        )
         self._results_tree.pack(fill="both", expand=True)
 
         # Header row
@@ -1215,6 +1247,208 @@ class MainWindow(ctk.CTk):
         )
         self._sound_toggle.on = config.get("notifications.sound_enabled", True)
         self._sound_toggle.pack(side="left", padx=(16, 0))
+
+        # ── VirusTotal ─────────────────────────────────────────────────────────
+        vt_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
+        vt_card.pack(fill="x", padx=8, pady=4)
+
+        ctk.CTkLabel(vt_card, text="VirusTotal Integration",
+                     font=("Consolas", 11, "bold"), text_color=C["accent"]
+                     ).pack(anchor="w", padx=12, pady=(10, 4))
+
+        vt_row = ctk.CTkFrame(vt_card, fg_color="transparent")
+        vt_row.pack(fill="x", padx=12, pady=(0, 8))
+
+        ctk.CTkLabel(vt_row, text="API Key:", font=("Consolas", 9),
+                     text_color=C["text_dim"]).pack(side="left", padx=(0, 8))
+        self._vt_api_key_var = ctk.StringVar(
+            value=config.get("virustotal.api_key", "")
+        )
+        self._vt_api_key_entry = ctk.CTkEntry(
+            vt_row, textvariable=self._vt_api_key_var,
+            font=("Consolas", 9), fg_color=C["bg_dark"],
+            border_color=C["border"], text_color=C["text"],
+            width=300, show="*"
+        )
+        self._vt_api_key_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        self._btn_vt_save = ctk.CTkButton(
+            vt_row, text="Save", height=28,
+            font=("Consolas", 9), fg_color=C["accent"],
+            hover_color=C["accent_h"], text_color="#FFF",
+            command=self._on_vt_save
+        )
+        self._btn_vt_save.pack(side="left")
+
+        vt_status_row = ctk.CTkFrame(vt_card, fg_color="transparent")
+        vt_status_row.pack(fill="x", padx=12, pady=(0, 10))
+
+        self._vt_status_lbl = ctk.CTkLabel(
+            vt_status_row, text="Not configured",
+            font=("Consolas", 9), text_color=C["text_dim"]
+        )
+        self._vt_status_lbl.pack(side="left")
+
+        self._vt_toggle = ctk.CTkSwitch(
+            vt_status_row, text="Enable VT Checks",
+            font=("Consolas", 9), text_color=C["text_dim"],
+            progress_color=C["accent"], fg_color=C["border"],
+            command=self._on_vt_toggle
+        )
+        self._vt_toggle.pack(side="right")
+        self._vt_toggle.select() if config.get("virustotal.enabled", True) else self._vt_toggle.deselect()
+
+        # ── DeepSeek AI Analysis ──────────────────────────────────────────────
+        ai_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
+        ai_card.pack(fill="x", padx=8, pady=4)
+
+        ai_title_row = ctk.CTkFrame(ai_card, fg_color="transparent")
+        ai_title_row.pack(fill="x", padx=12, pady=(10, 4))
+        ctk.CTkLabel(ai_title_row, text="🤖  Claude AI Analysis",
+                     font=("Consolas", 11, "bold"), text_color=C["cyan"]
+                     ).pack(side="left")
+        ctk.CTkLabel(ai_title_row,
+                     text="Get AI-powered threat analysis. Proxy: taphoaapi.info.vn",
+                     font=("Consolas", 8), text_color=C["text_dim"]
+                     ).pack(side="left", padx=(12, 0))
+
+        ai_key_row = ctk.CTkFrame(ai_card, fg_color="transparent")
+        ai_key_row.pack(fill="x", padx=12, pady=(0, 6))
+
+        ctk.CTkLabel(ai_key_row, text="API Key:", font=("Consolas", 9),
+                     text_color=C["text_dim"]).pack(side="left", padx=(0, 8))
+        self._ai_api_key_var = ctk.StringVar(
+            value=config.get("ai.api_key", "")
+        )
+        self._ai_api_key_entry = ctk.CTkEntry(
+            ai_key_row, textvariable=self._ai_api_key_var,
+            font=("Consolas", 9), fg_color=C["bg_dark"],
+            border_color=C["border"], text_color=C["text"],
+            width=340, show="*"
+        )
+        self._ai_api_key_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        self._btn_ai_save = ctk.CTkButton(
+            ai_key_row, text="Save", height=28,
+            font=("Consolas", 9), fg_color=C["accent"],
+            hover_color=C["accent_h"], text_color="#FFF",
+            command=self._on_ai_save
+        )
+        self._btn_ai_save.pack(side="left")
+
+        ai_model_row = ctk.CTkFrame(ai_card, fg_color="transparent")
+        ai_model_row.pack(fill="x", padx=12, pady=(0, 4))
+
+        ctk.CTkLabel(ai_model_row, text="Model:", font=("Consolas", 9),
+                     text_color=C["text_dim"]).pack(side="left", padx=(0, 8))
+        self._ai_model_var = ctk.StringVar(
+            value=config.get("ai.model", "claude-sonnet-4-6")
+        )
+        ai_model_menu = ctk.CTkOptionMenu(
+            ai_model_row,
+            values=["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5-20251001"],
+            variable=self._ai_model_var,
+            font=("Consolas", 9), fg_color=C["bg_dark"],
+            button_color=C["accent"], button_hover_color=C["accent_h"],
+            dropdown_fg_color=C["bg_card"],
+            text_color=C["text"], width=220,
+            command=self._on_ai_model_change
+        )
+        ai_model_menu.pack(side="left", padx=(0, 12))
+        ctk.CTkLabel(ai_model_row,
+                     text="sonnet = balanced  |  opus = most capable  |  haiku = fastest",
+                     font=("Consolas", 7), text_color=C["text_dim"]
+                     ).pack(side="left")
+
+        ai_status_row = ctk.CTkFrame(ai_card, fg_color="transparent")
+        ai_status_row.pack(fill="x", padx=12, pady=(0, 10))
+
+        self._ai_status_lbl = ctk.CTkLabel(
+            ai_status_row,
+            text="Not configured — enter API key above",
+            font=("Consolas", 9), text_color=C["text_dim"]
+        )
+        self._ai_status_lbl.pack(side="left")
+
+        self._btn_ai_test = ctk.CTkButton(
+            ai_status_row, text="Test Connection", height=26,
+            font=("Consolas", 8), fg_color=C["bg_dark"],
+            hover_color=C["border"], text_color=C["cyan"],
+            command=self._on_ai_test
+        )
+        self._btn_ai_test.pack(side="left", padx=(12, 0))
+
+        self._ai_toggle = ctk.CTkSwitch(
+            ai_status_row, text="Enable AI Analysis",
+            font=("Consolas", 9), text_color=C["text_dim"],
+            progress_color=C["cyan"], fg_color=C["border"],
+            command=self._on_ai_toggle
+        )
+        self._ai_toggle.pack(side="right")
+        if config.get("ai.enabled", True):
+            self._ai_toggle.select()
+        else:
+            self._ai_toggle.deselect()
+
+        # Refresh status on open
+        if config.get("ai.api_key", ""):
+            self._ai_status_lbl.configure(text="API key saved ✓", text_color=C["green"])
+
+        # ── API Server ─────────────────────────────────────────────────────────
+        api_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
+        api_card.pack(fill="x", padx=8, pady=4)
+
+        ctk.CTkLabel(api_card, text="REST API Server (FastAPI)",
+                     font=("Consolas", 11, "bold"), text_color=C["accent"]
+                     ).pack(anchor="w", padx=12, pady=(10, 4))
+
+        api_row = ctk.CTkFrame(api_card, fg_color="transparent")
+        api_row.pack(fill="x", padx=12, pady=(0, 4))
+
+        ctk.CTkLabel(api_row, text="Host:", font=("Consolas", 9),
+                     text_color=C["text_dim"]).pack(side="left", padx=(0, 4))
+        self._api_host_var = ctk.StringVar(value=config.get("api.host", "0.0.0.0"))
+        ctk.CTkEntry(api_row, textvariable=self._api_host_var,
+                     font=("Consolas", 9), fg_color=C["bg_dark"],
+                     border_color=C["border"], text_color=C["text"],
+                     width=100).pack(side="left", padx=(0, 8))
+
+        ctk.CTkLabel(api_row, text="Port:", font=("Consolas", 9),
+                     text_color=C["text_dim"]).pack(side="left", padx=(0, 4))
+        self._api_port_var = ctk.StringVar(value=str(config.get("api.port", 8000)))
+        ctk.CTkEntry(api_row, textvariable=self._api_port_var,
+                     font=("Consolas", 9), fg_color=C["bg_dark"],
+                     border_color=C["border"], text_color=C["text"],
+                     width=80).pack(side="left", padx=(0, 8))
+
+        self._btn_api_toggle = ctk.CTkButton(
+            api_row, text="Start Server", height=32,
+            font=("Consolas", 10, "bold"), fg_color=C["green"],
+            hover_color="#1EA34A", text_color=C["bg_dark"],
+            command=self._on_api_toggle
+        )
+        self._btn_api_toggle.pack(side="right")
+
+        api_status_row = ctk.CTkFrame(api_card, fg_color="transparent")
+        api_status_row.pack(fill="x", padx=12, pady=(0, 10))
+
+        self._api_status_lbl = ctk.CTkLabel(
+            api_status_row, text="API server is not running",
+            font=("Consolas", 9), text_color=C["text_dim"]
+        )
+        self._api_status_lbl.pack(side="left")
+
+        self._api_log = ctk.CTkTextbox(
+            api_card, font=("Cascadia Code", 8),
+            fg_color=C["bg_dark"], text_color=C["text"],
+            border_color=C["border"], border_width=1,
+            scrollbar_button_color=C["border"],
+            wrap="word", height=80
+        )
+        self._api_log.pack(fill="x", padx=12, pady=(0, 10))
+        self._api_log.configure(state="disabled")
+        self._api_server_running = False
+        self._api_server = None
 
         # About / Model info
         about_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
@@ -1446,6 +1680,9 @@ class MainWindow(ctk.CTk):
         self._set_status(f"Scanning: {path}", C["blue"])
 
         def _run():
+            # VirusTotal: dùng cùng cài đặt Settings (virustotal.enabled / auto_check)
+            vt_on = bool(config.get("virustotal.enabled", False))
+            vt_all = bool(config.get("virustotal.auto_check", False))
             self._scanner.scan(
                 directory=path,
                 recursive=(self._scan_type == "full"),
@@ -1453,6 +1690,8 @@ class MainWindow(ctk.CTk):
                 on_complete=self._on_scan_complete,
                 on_error=self._on_scan_error,
                 scan_mode=self._scan_type,
+                vt_enabled=vt_on,
+                vt_auto_check=vt_all,
             )
 
         threading.Thread(target=_run, daemon=True).start()
@@ -1483,6 +1722,13 @@ class MainWindow(ctk.CTk):
         self.after(0, lambda: self._progress_bar.set_progress(current, total, elapsed))
         self.after(0, lambda: self._update_scan_stats())
         self.after(0, lambda: self._add_result_row(result))
+
+        # ── Route HIGH/CRITICAL results to Alerts tab ──────────────────────
+        if result.risk_level in ("CRITICAL", "HIGH") and not result.error:
+            from core.watchdog_monitor import ThreatEvent
+            threat = ThreatEvent(result, "scan")
+            self._threat_events.append(threat)
+            self.after(0, lambda t=threat: self._add_threat_widget(t))
 
     def _on_scan_complete(self, results: List[ScanResult]):
         elapsed = time.time() - self._scan_start_time
@@ -1695,6 +1941,16 @@ class MainWindow(ctk.CTk):
                      anchor="w", wraplength=600
                      ).pack(anchor="w", padx=8, pady=(0, 6))
 
+        action_row = ctk.CTkFrame(card, fg_color="transparent")
+        action_row.pack(fill="x", padx=8, pady=(0, 6))
+        
+        ctk.CTkButton(
+            action_row, text="Analyze with AI", height=24,
+            font=("Consolas", 8), text_color=C["cyan"],
+            fg_color="transparent", hover_color=C["bg_card"],
+            command=lambda e=event: self._ai_analyze_threat_event(e)
+        ).pack(side="left")
+
         self._threat_event_widgets.append(card)
         if len(self._threat_event_widgets) > 50:
             oldest = self._threat_event_widgets.pop(0)
@@ -1750,6 +2006,13 @@ class MainWindow(ctk.CTk):
                 command=lambda p=alert.process: self._block_network_action(p)
             ).pack(side="left")
 
+        ctk.CTkButton(
+            action_row, text="Analyze with AI", height=24,
+            font=("Consolas", 8), text_color=C["cyan"],
+            fg_color="transparent", hover_color=C["bg_card"],
+            command=lambda a=alert: self._ai_analyze_alert(a)
+        ).pack(side="left", padx=(4, 0))
+
         self._behavior_widgets.append(card)
         if len(self._behavior_widgets) > 50:
             oldest = self._behavior_widgets.pop(0)
@@ -1799,6 +2062,125 @@ class MainWindow(ctk.CTk):
             self._log("success", f"Network blocked for {process.name}")
         else:
             self._log("danger", f"Failed to block network for {process.name}")
+
+    def _ai_analyze_alert(self, alert: BehaviorAlert):
+        def _run_ai():
+            from core.ai_analyzer import get_ai_analyzer
+            analyzer = get_ai_analyzer()
+            self._log("info", f"Sending alert for AI analysis: {alert.behavior_type.value}...")
+            self._set_status("Analyzing threat with AI...", C["cyan"])
+            
+            threat_context = {
+                "behavior_type": alert.behavior_type.value,
+                "process_name": alert.process.name,
+                "pid": alert.process.pid,
+                "severity": alert.severity,
+                "description": alert.description,
+            }
+            
+            result = analyzer.analyze_threat(threat_context)
+            
+            self.after(0, lambda: self._show_ai_result_popup(alert.process.name, result))
+            
+        import threading
+        threading.Thread(target=_run_ai, daemon=True).start()
+
+    def _ai_analyze_threat_event(self, event: ThreatEvent):
+        def _run_ai():
+            from core.ai_analyzer import get_ai_analyzer
+            analyzer = get_ai_analyzer()
+            self._log("info", f"Sending file threat for AI analysis: {event.result.filename}...")
+            self._set_status("Analyzing file threat with AI...", C["cyan"])
+            
+            threat_context = {
+                "filename": event.result.filename,
+                "file_size": event.result.size,
+                "entropy": event.result.entropy,
+                "ml_probability": event.result.probability,
+                "risk_level": event.result.risk_level,
+                "event_type": event.event_type,
+            }
+            
+            result = analyzer.analyze_threat(threat_context)
+            filename_short = event.result.filename.split("/")[-1].split("\\")[-1]
+            
+            self.after(0, lambda: self._show_ai_result_popup(filename_short, result))
+            
+        import threading
+        threading.Thread(target=_run_ai, daemon=True).start()
+
+    def _show_ai_result_popup(self, process_name: str, result: str):
+        self._set_status("AI Analysis complete", C["green"])
+        self._log("success", f"AI Analysis finished for {process_name}")
+        win = ctk.CTkToplevel(self)
+        win.title(f"AI Analysis - {process_name}")
+        win.geometry("700x500")
+        win.attributes("-topmost", True)
+        
+        textbox = ctk.CTkTextbox(win, font=("Consolas", 11), wrap="word")
+        textbox.pack(fill="both", expand=True, padx=10, pady=10)
+        textbox.insert("0.0", result)
+        textbox.configure(state="disabled")
+
+    # ─── DeepSeek AI Settings handlers ──────────────────────────────────────
+
+    def _on_ai_save(self):
+        """Save Claude API key to config and reinitialize analyzer."""
+        api_key = self._ai_api_key_var.get().strip()
+        config.set("ai.api_key", api_key)
+        # Force re-create singleton so new key takes effect
+        import core.ai_analyzer as _ai_mod
+        _ai_mod._ai_analyzer_instance = None
+        if api_key:
+            self._ai_status_lbl.configure(text="API key saved ✓  (click Test to verify)", text_color=C["green"])
+            self._log("success", "Claude API key saved")
+        else:
+            self._ai_status_lbl.configure(text="API key cleared", text_color=C["text_dim"])
+
+    def _on_ai_model_change(self, model: str):
+        config.set("ai.model", model)
+        # Reset singleton so model update takes effect
+        import core.ai_analyzer as _ai_mod
+        _ai_mod._ai_analyzer_instance = None
+        self._log("info", f"Claude model changed to: {model}")
+
+    def _on_ai_toggle(self):
+        enabled = self._ai_toggle.get() == 1
+        config.set("ai.enabled", enabled)
+        self._log("info", f"AI Analysis {'enabled' if enabled else 'disabled'}")
+
+    def _on_ai_test(self):
+        """Test Claude connection with a minimal API call."""
+        if not config.get("ai.api_key", ""):
+            self._ai_status_lbl.configure(text="⚠ No API key — save one first", text_color=C["orange"])
+            return
+        self._ai_status_lbl.configure(text="Testing connection…", text_color=C["text_dim"])
+        self._btn_ai_test.configure(state="disabled")
+
+        def _test():
+            from core.ai_analyzer import get_ai_analyzer
+            import core.ai_analyzer as _ai_mod
+            _ai_mod._ai_analyzer_instance = None  # fresh instance with latest key
+            analyzer = get_ai_analyzer()
+            result = analyzer.analyze_threat({"test": "ping", "message": "Reply with: OK"})
+            ok = "error" not in result.lower() and "401" not in result and "403" not in result
+            self.after(0, lambda: self._on_ai_test_done(ok, result))
+
+        threading.Thread(target=_test, daemon=True).start()
+
+    def _on_ai_test_done(self, ok: bool, message: str):
+        self._btn_ai_test.configure(state="normal")
+        if ok:
+            self._ai_status_lbl.configure(
+                text="✓ Connected to Claude API", text_color=C["green"]
+            )
+            self._log("success", "Claude API connection verified")
+        else:
+            short = message[:120].replace("\n", " ")
+            self._ai_status_lbl.configure(
+                text=f"✗ {short}", text_color=C["red"]
+            )
+            self._log("danger", f"Claude API test failed: {message[:200]}")
 
     def _clear_alerts(self):
         self._threat_events.clear()
@@ -1862,6 +2244,99 @@ class MainWindow(ctk.CTk):
             f"  Features:    {info.get('n_features', 16)}"
         )
         self._model_info_lbl.configure(text=text)
+
+    # ─── VirusTotal handlers ───────────────────────────────────────────────
+
+    def _on_vt_save(self):
+        api_key = self._vt_api_key_var.get().strip()
+        config.set("virustotal.api_key", api_key)
+        if api_key:
+            try:
+                from core.virustotal_client import VirusTotalClient
+                self._vt_client = VirusTotalClient(api_key)
+                self._vt_status_lbl.configure(
+                    text="Connected", text_color=C["green"]
+                )
+                self._log("success", "VirusTotal API key saved and client initialized")
+            except Exception as e:
+                self._vt_status_lbl.configure(
+                    text=f"Error: {e}", text_color=C["red"]
+                )
+                self._log("danger", f"VT client init failed: {e}")
+        else:
+            self._vt_client = None
+            self._vt_status_lbl.configure(text="Not configured", text_color=C["text_dim"])
+
+    def _on_vt_toggle(self):
+        enabled = self._vt_toggle.get() == 1
+        config.set("virustotal.enabled", enabled)
+        self._log("info", f"VirusTotal checks {'enabled' if enabled else 'disabled'}")
+
+    # ─── API Server handlers ─────────────────────────────────────────────────
+
+    def _on_api_toggle(self):
+        if self._api_server_running:
+            self._stop_api_server()
+        else:
+            self._start_api_server()
+
+    def _start_api_server(self):
+        try:
+            import uvicorn
+            from api.main import app
+        except ImportError:
+            messagebox.showwarning("Missing Dependency",
+                                   "FastAPI/uvicorn not installed.\nRun: pip install fastapi uvicorn")
+            return
+
+        host = self._api_host_var.get().strip() or "0.0.0.0"
+        try:
+            port = int(self._api_port_var.get().strip())
+        except ValueError:
+            messagebox.showwarning("Invalid Port", "Port must be a number.")
+            return
+
+        def run_server():
+            try:
+                import asyncio
+                config.set("api.host", host)
+                config.set("api.port", port)
+                uvicorn.run(app, host=host, port=port, log_level="info")
+            except Exception as e:
+                self.after(0, lambda: self._on_api_error(str(e)))
+
+        self._api_server_thread = threading.Thread(target=run_server, daemon=True)
+        self._api_server_thread.start()
+        self._api_server_running = True
+        self._btn_api_toggle.configure(text="Stop Server", fg_color=C["red"],
+                                       hover_color=C["danger"], text_color="#FFF")
+        self._api_status_lbl.configure(
+            text=f"Running at http://{host}:{port}", text_color=C["green"]
+        )
+        self._log("success", f"API server started at http://{host}:{port}")
+        self._append_api_log(f"[INFO] Server started at http://{host}:{port}")
+
+    def _stop_api_server(self):
+        self._api_server_running = False
+        self._btn_api_toggle.configure(text="Start Server", fg_color=C["green"],
+                                      hover_color="#1EA34A", text_color=C["bg_dark"])
+        self._api_status_lbl.configure(text="API server stopped", text_color=C["text_dim"])
+        self._log("info", "API server stopped")
+        self._append_api_log("[INFO] Server stopped")
+
+    def _on_api_error(self, error: str):
+        self._api_server_running = False
+        self._btn_api_toggle.configure(text="Start Server", fg_color=C["green"],
+                                      hover_color="#1EA34A", text_color=C["bg_dark"])
+        self._api_status_lbl.configure(text=f"Error: {error}", text_color=C["red"])
+        self._log("danger", f"API server error: {error}")
+        self._append_api_log(f"[ERROR] {error}")
+
+    def _append_api_log(self, message: str):
+        self._api_log.configure(state="normal")
+        self._api_log.insert("end", message + "\n")
+        self._api_log.see("end")
+        self._api_log.configure(state="disabled")
 
     # ═══════════════════════════════════════════════════════════════════════
     # QUARANTINE
@@ -2009,6 +2484,68 @@ class MainWindow(ctk.CTk):
             self._log_text.configure(state="normal")
             self._log_text.delete("1.0", "end")
             self._log_text.configure(state="disabled")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # NEW TABS — Office Scanner, Entropy Watch, Honeypot, ML Training
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def _build_office_scanner_page(self):
+        page = OfficeScannerTab(self._page_container)
+        page.grid(row=0, column=0, sticky="nsew")
+        self._pages.append(page)
+        self._office_scanner_tab = page
+
+    def _build_entropy_watch_page(self):
+        page = EntropyWatchTab(self._page_container)
+        page.grid(row=0, column=0, sticky="nsew")
+        self._pages.append(page)
+        self._entropy_watch_tab = page
+        # Wire entropy events from monitor to tab
+        if hasattr(self, "_monitor") and self._monitor:
+            def _on_entropy_entry(file_path, entropy):
+                ts = datetime.now().strftime("%H:%M:%S")
+                self.after(0, lambda fp=file_path, e=entropy, t=ts:
+                          self._entropy_watch_tab.add_entropy_entry(fp, e, t))
+            self._monitor.on_entropy_alert = _on_entropy_entry
+
+    def _build_honeypot_page(self):
+        page = HoneypotTab(self._page_container)
+        page.grid(row=0, column=0, sticky="nsew")
+        self._pages.append(page)
+        self._honeypot_tab = page
+        # Inject honeypot manager when available
+        if hasattr(self, "_honeypot_manager") and self._honeypot_manager:
+            page.set_honeypot_manager(self._honeypot_manager)
+
+    def _build_ml_training_page(self):
+        page = MLTrainingTab(self._page_container)
+        page.grid(row=0, column=0, sticky="nsew")
+        self._pages.append(page)
+        self._ml_training_tab = page
+        # Inject ML engine
+        if hasattr(self, "_engine") and self._engine:
+            page.set_ml_engine(self._engine)
+
+    def _show_office_scanner(self):
+        self._show_page(7)
+
+    def _show_entropy_watch(self):
+        self._show_page(8)
+
+    def _show_honeypot(self):
+        self._show_page(9)
+
+    def _show_ml_training(self):
+        self._show_page(10)
+
+    # ─── Wire new tabs after init ──────────────────────────────────────────
+
+    def _wire_new_modules(self):
+        """Called from __init__ after all modules are loaded."""
+        if hasattr(self, "_honeypot_manager") and hasattr(self, "_honeypot_tab"):
+            self._honeypot_tab.set_honeypot_manager(self._honeypot_manager)
+        if hasattr(self, "_engine") and hasattr(self, "_ml_training_tab"):
+            self._ml_training_tab.set_ml_engine(self._engine)
 
     # ═══════════════════════════════════════════════════════════════════════
     # TRAY
