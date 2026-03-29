@@ -196,7 +196,7 @@
     "console_level": "WARNING"
   },
   "virustotal": {
-    "api_key": "",
+    "api_key": "945929b661bff107393f67c2685faa2928481758d7f8c7283ec9a0be68c081be",
     "cache_ttl_hours": 24,
     "rate_limit_rpm": 4,
     "enabled": true,
@@ -272,12 +272,12 @@
       "cache_ttl_hours": 24
     },
     "threatfox": {
-      "api_key": "",
+      "api_key": "f2a488ca94a8faf695ee9398352e10747c5ffd7eb774df83",
       "enabled": true,
       "cache_ttl_hours": 24
     },
     "alienvault_otx": {
-      "api_key": "",
+      "api_key": "fb1afdc5636105f1dcb6fdb39fe225867cf78d766ea126d586c5e9641d006f4a",
       "enabled": true,
       "cache_ttl_hours": 24
     }
