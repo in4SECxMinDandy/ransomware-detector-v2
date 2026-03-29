@@ -174,6 +174,12 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "rate_limit_rpm":   4,
         "enabled":         False,
         "auto_check":      False,
+        # Khi bật VT: vẫn tra cứu hash cho .exe/.dll/... kể cả khi ML chỉ báo MEDIUM (tận dụng API)
+        "check_binaries":  True,
+        # Gộp rủi ro: nếu đủ engine VT đồng thuận “sạch”, hạ CRITICAL/HIGH xuống MEDIUM
+        "fusion_min_engines":    40,
+        "fusion_max_suspicious": 2,
+        "fusion_downgrade":      True,
     },
 
     # ─── Entropy Monitoring ─────────────────────────────────────────────────
@@ -244,8 +250,39 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         #   'claude-opus-4-6'       → Claude Opus 4.6 (most capable)
         #   'claude-haiku-4-5-20251001' → Claude Haiku 4.5 (fastest, lightweight)
         "model":      "claude-sonnet-4-6",
+        "base_url":   "",
         "max_tokens": 1024,
         "temperature": 0.2,
+    },
+
+    # ─── Threat Intelligence (TI) Correlation ───────────────────────────────
+    # Enriches scan results with global threat intelligence before AI analysis.
+    # All sources are free; API keys available at:
+    #   - MalwareBazaar + ThreatFox: https://auth.abuse.ch/
+    #   - AlienVault OTX: https://otx.alienvault.com/api
+    "threat_intel": {
+        "malwarebazaar": {
+            "api_key":        "",
+            "enabled":        False,
+            "cache_ttl_hours": 24,
+        },
+        "threatfox": {
+            "api_key":        "",
+            "enabled":        False,
+            "cache_ttl_hours": 24,
+        },
+        "alienvault_otx": {
+            "api_key":        "",
+            "enabled":        False,
+            "cache_ttl_hours": 24,
+        },
+    },
+
+    # ─── Global Proxy Settings ─────────────────────────────────────────────
+    # Sets OS-level environment variables (HTTP_PROXY, HTTPS_PROXY) for all libraries.
+    "proxy": {
+        "http_proxy":  "",
+        "https_proxy": "",
     },
 }
 
@@ -262,6 +299,24 @@ class ConfigManager:
         self._config = copy.deepcopy(DEFAULT_CONFIG)
         self._defaults = copy.deepcopy(DEFAULT_CONFIG)
         self._load()
+        self._apply_env_vars()
+
+    # ─── Environment Variable Handling ─────────────────────────────────────
+
+    def _apply_env_vars(self):
+        """Set proxy environment variables for the entire application session."""
+        proxy_config = self.get("proxy", {})
+        http = proxy_config.get("http_proxy")
+        https = proxy_config.get("https_proxy")
+
+        if http:
+            os.environ["HTTP_PROXY"] = http
+        if https:
+            os.environ["HTTPS_PROXY"] = https
+        
+        # httpx and requests will pick these up automatically.
+        if http or https:
+            logger.info(f"Proxy configured: HTTP={http}, HTTPS={https}")
 
     # ─── Persistence ─────────────────────────────────────────────────────────
 

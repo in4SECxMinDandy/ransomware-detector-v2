@@ -14,7 +14,6 @@ from core.yara_engine import (
     YaraEngine,
     YaraMatch,
     PYTHON_SIGNATURES,
-    get_yara_engine,
 )
 
 

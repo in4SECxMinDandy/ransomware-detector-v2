@@ -19,7 +19,7 @@ import struct
 import os
 import math
 import logging
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -324,7 +324,8 @@ def analyze_pe(file_path: str) -> PEAnalysisResult:
                 suspicion_reason = ""
                 clean_name = section_name.lower()
                 
-                if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.')) 
+                if not any(bs.decode("utf-8", errors="ignore").lower().startswith(clean_name) or 
+                           clean_name.startswith(bs.decode("utf-8", errors="ignore").lower().rstrip("\0").lstrip(".")) 
                           for bs in BENIGN_SECTIONS):
                     if not clean_name.startswith("."):
                         is_suspicious = True

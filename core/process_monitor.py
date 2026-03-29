@@ -27,7 +27,7 @@ import time
 import threading
 import collections
 import logging
-from typing import Dict, List, Optional, Callable, Any, Set
+from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -672,9 +672,9 @@ class ProcessMonitor:
             metadata=metadata or {}
         )
 
-        # After creating alert, update signal aggregator
         self._update_signal_aggregator(behavior_type, process, severity)
 
+        self.alerts.append(alert)
         self.total_alerts += 1
 
         if self.on_behavior:

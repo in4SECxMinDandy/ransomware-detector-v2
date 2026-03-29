@@ -20,8 +20,8 @@ Tích hợp với fp_reducer.py:
 import os
 import json
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
-from typing import Dict, Set, List, Optional
+from tkinter import filedialog, messagebox
+from typing import Dict
 from datetime import datetime
 
 import customtkinter as ctk

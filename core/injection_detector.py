@@ -23,12 +23,10 @@ Usage:
 
 import os
 import sys
-import time
 import ctypes
-import hashlib
 import logging
 from ctypes import wintypes
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime

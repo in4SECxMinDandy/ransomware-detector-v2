@@ -16,9 +16,7 @@ Root Cause FP (PNG screenshots bị flagged CRITICAL):
 """
 
 import os
-import struct
-from typing import Optional, Dict, Tuple, Set
-import numpy as np
+from typing import Dict, Tuple, Set
 
 # ─────────────────────────────────────────────────────────────
 # TẦNG 1: Whitelist — Extensions không bao giờ bị scan

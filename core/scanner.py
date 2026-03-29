@@ -21,7 +21,9 @@ Xử lý đa luồng:
 
 import os
 import time
+import hashlib
 import threading
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List, Dict, Optional, Any
 
@@ -31,7 +33,6 @@ from core.yara_engine import get_yara_engine  # type: ignore[import]
 from core.fp_reducer import (  # type: ignore[import]
     check_path_whitelist,
     apply_fp_reduction,
-    ALWAYS_SAFE_EXTENSIONS,
 )
 from core.pe_analyzer import analyze_pe  # type: ignore[import]
 from core.logger_setup import get_logger
@@ -110,6 +111,11 @@ SUSPICIOUS_EXTENSIONS = {
     ".lockbit", ".blackcat", ".alphv", ".wncry",
 }
 
+# PE / nhị phân: luôn hỏi VT (khi bật check_binaries) để không chỉ dựa Entropy+ML
+VT_BINARY_EXTENSIONS = {
+    ".exe", ".dll", ".sys", ".msi", ".scr", ".com", ".pif",
+}
+
 # Heuristic thresholds (tăng nhạy nhưng tránh FP)
 HEURISTIC_ENTROPY_HIGH = 7.35
 HEURISTIC_ENTROPY_EXT_Z = 2.0
@@ -150,6 +156,42 @@ MIN_FILE_SIZE = 64                        # 64 bytes
 MAX_THREADS   = 8
 
 
+def apply_vt_risk_fusion(
+    risk_level: str,
+    *,
+    vt_malicious: int,
+    vt_suspicious: int,
+    vt_total_engines: int,
+    vt_error: str,
+    fusion_min_engines: int,
+    fusion_max_suspicious: int,
+    fusion_downgrade: bool,
+    yara_boosted: bool,
+    injection_found: bool,
+) -> tuple[str, str]:
+    """
+    Khi VirusTotal có đủ engine và 0 malicious (đồng thuận sạch), hạ mức HIGH/CRITICAL
+    do ML/heuristic để tránh FP kiểu installer hợp lệ bị CRITICAL.
+
+    Không hạ nếu có YARA boost hoặc PE injection — tín hiệu cục bộ mạnh hơn VT crowd.
+    """
+    if not fusion_downgrade:
+        return risk_level, ""
+    if risk_level not in ("HIGH", "CRITICAL"):
+        return risk_level, ""
+    if vt_error:
+        return risk_level, ""
+    if vt_total_engines < fusion_min_engines:
+        return risk_level, ""
+    if vt_malicious > 0:
+        return risk_level, ""
+    if vt_suspicious > fusion_max_suspicious:
+        return risk_level, ""
+    if yara_boosted or injection_found:
+        return risk_level, ""
+    return "MEDIUM", " | VT_consensus_clean(downgrade)"
+
+
 class ScanResult:
     """Kết quả quét một file — v2 thêm FP metadata."""
     __slots__ = [
@@ -166,6 +208,35 @@ class ScanResult:
         "yara_boosted",          # True nếu probability được boost bởi YARA
         # v2.5: PE analysis
         "pe_info",               # {"rwx_sections": [...], "suspicious_sections": [...], "is_packed": bool}
+        # v3.0: VirusTotal (must be in __slots__ or AttributeError on assign/access)
+        "sha256",
+        "vt_available",
+        "vt_malicious_count",
+        "vt_suspicious_count",
+        "vt_total_engines",
+        "vt_detection_ratio",
+        "vt_permalink",
+        "vt_from_cache",
+        "vt_error",
+        "vt_pending",
+        # v3.5: Threat Intelligence Correlation
+        "ti_available",
+        "ti_mb_available",
+        "ti_mb_family",
+        "ti_mb_signature",
+        "ti_mb_first_seen",
+        "ti_mb_tags",
+        "ti_mb_delivery_method",
+        "ti_tf_available",
+        "ti_tf_threat_type",
+        "ti_tf_malware_family",
+        "ti_tf_confidence",
+        "ti_tf_tags",
+        "ti_otx_available",
+        "ti_otx_pulse_count",
+        "ti_otx_pulse_names",
+        "ti_otx_analysis_metadata",
+        "ti_error",
     ]
 
     def __init__(self, path: str):
@@ -189,6 +260,35 @@ class ScanResult:
         self.yara_boosted: bool  = False
         # v2.5: PE analysis results
         self.pe_info: dict = {}  # {"rwx_sections": [...], "suspicious_sections": [...], "is_packed": bool}
+        # v3.0: VirusTotal integration
+        self.sha256: str = ""
+        self.vt_available: bool = False        # VT was checked (cache hit or API call)
+        self.vt_malicious_count: int = 0
+        self.vt_suspicious_count: int = 0
+        self.vt_total_engines: int = 0
+        self.vt_detection_ratio: str = "0/0"
+        self.vt_permalink: str = ""
+        self.vt_from_cache: bool = False
+        self.vt_error: str = ""
+        self.vt_pending: bool = False          # True if VT query is in progress
+        # v3.5: Threat Intelligence Correlation
+        self.ti_available: bool = False
+        self.ti_mb_available: bool = False
+        self.ti_mb_family: str = ""
+        self.ti_mb_signature: str = ""
+        self.ti_mb_first_seen: str = ""
+        self.ti_mb_tags: list = []
+        self.ti_mb_delivery_method: str = ""
+        self.ti_tf_available: bool = False
+        self.ti_tf_threat_type: str = ""
+        self.ti_tf_malware_family: str = ""
+        self.ti_tf_confidence: int = 0
+        self.ti_tf_tags: list = []
+        self.ti_otx_available: bool = False
+        self.ti_otx_pulse_count: int = 0
+        self.ti_otx_pulse_names: list = []
+        self.ti_otx_analysis_metadata: dict = {}
+        self.ti_error: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -206,13 +306,48 @@ class ScanResult:
             "fp_adjusted":        self.fp_adjusted,
             "effective_threshold": self.effective_threshold,
             "fp_reason":          self.fp_reason,
+            "sha256":             self.sha256,
+            "vt_available":       self.vt_available,
+            "vt_malicious_count": self.vt_malicious_count,
+            "vt_suspicious_count": self.vt_suspicious_count,
+            "vt_total_engines":   self.vt_total_engines,
+            "vt_detection_ratio": self.vt_detection_ratio,
+            "vt_permalink":       self.vt_permalink,
+            "vt_from_cache":      self.vt_from_cache,
+            "vt_error":           self.vt_error,
+            "vt_pending":         self.vt_pending,
+            # v3.5: Threat Intelligence
+            "ti_available":              self.ti_available,
+            "ti_mb_available":           self.ti_mb_available,
+            "ti_mb_family":              self.ti_mb_family,
+            "ti_mb_signature":           self.ti_mb_signature,
+            "ti_mb_first_seen":          self.ti_mb_first_seen,
+            "ti_mb_tags":                self.ti_mb_tags,
+            "ti_mb_delivery_method":     self.ti_mb_delivery_method,
+            "ti_tf_available":           self.ti_tf_available,
+            "ti_tf_threat_type":         self.ti_tf_threat_type,
+            "ti_tf_malware_family":      self.ti_tf_malware_family,
+            "ti_tf_confidence":          self.ti_tf_confidence,
+            "ti_tf_tags":                self.ti_tf_tags,
+            "ti_otx_available":          self.ti_otx_available,
+            "ti_otx_pulse_count":        self.ti_otx_pulse_count,
+            "ti_otx_pulse_names":        self.ti_otx_pulse_names,
+            "ti_otx_analysis_metadata":  self.ti_otx_analysis_metadata,
+            "ti_error":                  self.ti_error,
         }
 
 
 class Scanner:
     """Multi-threaded file scanner với ML-based detection và FP reduction."""
 
-    def __init__(self, sensitivity_profile: str = DEFAULT_SENSITIVITY_PROFILE):
+    def __init__(
+        self,
+        sensitivity_profile: str = DEFAULT_SENSITIVITY_PROFILE,
+        vt_enabled: bool = False,
+        vt_auto_check: bool = False,
+        vt_malicious_threshold: int = 5,
+        vt_suspicious_threshold: int = 3,
+    ):
         self._cancel_flag = threading.Event()
         self._lock        = threading.Lock()
         self._results: List[ScanResult] = []
@@ -220,6 +355,16 @@ class Scanner:
         self._total       = 0
         self._is_scanning = False
         self._sensitivity_profile = sensitivity_profile
+        # VirusTotal settings
+        self._vt_enabled  = vt_enabled
+        self._vt_auto_check = vt_auto_check          # query VT for ALL files
+        self._vt_malicious_threshold = vt_malicious_threshold  # min engines to boost to malicious
+        self._vt_suspicious_threshold = vt_suspicious_threshold
+        self._vt_client = None
+        self._vt_check_binaries = True
+        self._vt_fusion_min_engines = 40
+        self._vt_fusion_max_suspicious = 2
+        self._vt_fusion_downgrade = True
 
     @property
     def is_scanning(self) -> bool:
@@ -237,6 +382,119 @@ class Scanner:
         """Set sensitivity profile at runtime."""
         if profile in SENSITIVITY_PROFILES:
             self._sensitivity_profile = profile
+
+    def _init_vt_client(self):
+        """Lazily initialize VirusTotal client from config."""
+        if self._vt_client is not None:
+            return
+        if not self._vt_enabled:
+            return
+        try:
+            from core.virustotal_client import get_vt_client
+            from core.config_manager import config
+            api_key = config.get("virustotal.api_key", "")
+            self._vt_client = get_vt_client(api_key) if api_key else None
+        except Exception:
+            self._vt_client = None
+
+    def _query_virustotal(self, sha256: str) -> tuple:
+        """
+        Query VirusTotal for a file by SHA256.
+
+        Returns (malicious_count, suspicious_count, total_engines, ratio_str,
+                 permalink, from_cache, error_str).
+        Falls back gracefully if VT is disabled, not configured, or rate-limited.
+        """
+        self._init_vt_client()
+        if self._vt_client is None or not self._vt_client.is_configured():
+            return (0, 0, 0, "0/0", "", False, "VT not configured")
+
+        report = self._vt_client.get_file_report(sha256)
+        if report is None:
+            return (0, 0, 0, "0/0", "", False, "Not found in VT")
+
+        from_cache = bool(report.cached_at)
+        return (
+            report.malicious_count,
+            report.suspicious_count,
+            report.total_engines,
+            report.detection_ratio,
+            report.permalink,
+            from_cache,
+            "",
+        )
+
+    def _init_ti_client(self):
+        """Lazily initialize Threat Intelligence client from config."""
+        if getattr(self, "_ti_client", None) is not None:
+            return
+        try:
+            from core.threat_intel_client import get_ti_client
+            self._ti_client = get_ti_client()
+        except Exception:
+            self._ti_client = None
+
+    def _query_threat_intel(self, result: ScanResult):
+        """
+        Tra cuu Threat Intelligence cho mot file da co SHA256.
+
+        Chi goi khi co SHA256 va co nguon TI nao duoc bat trong config.
+        Enriches result voi TI data tu MalwareBazaar, ThreatFox, AlienVault OTX.
+        """
+        if not result.sha256:
+            return
+
+        self._init_ti_client()
+        ti_client = getattr(self, "_ti_client", None)
+        if ti_client is None or not ti_client.is_configured():
+            return
+
+        try:
+            ti_result = ti_client.lookup_sha256(result.sha256)
+
+            # MalwareBazaar
+            result.ti_mb_available        = ti_result.mb_available
+            result.ti_mb_family          = ti_result.mb_family
+            result.ti_mb_signature       = ti_result.mb_signature
+            result.ti_mb_first_seen      = ti_result.mb_first_seen
+            result.ti_mb_tags            = ti_result.mb_tags
+            result.ti_mb_delivery_method = ti_result.mb_delivery_method
+
+            # ThreatFox
+            result.ti_tf_available        = ti_result.tf_available
+            result.ti_tf_threat_type     = ti_result.tf_threat_type
+            result.ti_tf_malware_family   = ti_result.tf_malware_family
+            result.ti_tf_confidence       = ti_result.tf_confidence
+            result.ti_tf_tags             = ti_result.tf_tags
+
+            # AlienVault OTX
+            result.ti_otx_available          = ti_result.otx_available
+            result.ti_otx_pulse_count        = ti_result.otx_pulse_count
+            result.ti_otx_pulse_names         = ti_result.otx_pulse_names
+            result.ti_otx_analysis_metadata   = ti_result.otx_analysis_metadata
+
+            # Merge errors
+            errors = []
+            if ti_result.mb_error:
+                errors.append(f"MB:{ti_result.mb_error}")
+            if ti_result.tf_error:
+                errors.append(f"TF:{ti_result.tf_error}")
+            if ti_result.otx_error:
+                errors.append(f"OTX:{ti_result.otx_error}")
+            result.ti_error = "; ".join(errors)
+
+            result.ti_available = ti_result.has_any_ti()
+
+        except Exception as e:
+            result.ti_error = str(e)[:100]
+
+    def _compute_sha256(self, file_path: str) -> str:
+        """Compute SHA256 of a file."""
+        try:
+            with open(file_path, "rb") as f:
+                return hashlib.sha256(f.read()).hexdigest()
+        except Exception:
+            return ""
 
     def cancel(self):
         """Hủy scan đang chạy."""
@@ -303,6 +561,13 @@ class Scanner:
         """
         result  = ScanResult(file_path)
         t_start = time.perf_counter()
+
+        # Compute SHA256 for VirusTotal lookup
+        try:
+            with open(file_path, "rb") as f:
+                result.sha256 = hashlib.sha256(f.read()).hexdigest()
+        except Exception:
+            result.sha256 = ""
 
         # Sensitivity profile (per-instance)
         profile = SENSITIVITY_PROFILES.get(
@@ -403,6 +668,100 @@ class Scanner:
             if adjusted_proba < base_threshold * 0.8 and not result.yara_boosted:
                 result.risk_level = "SAFE"
 
+            # #region agent debug
+            try:
+                _debug_log_path = os.path.normpath(
+                    os.path.join(os.path.dirname(__file__), "..", "debug-4602d0.log")
+                )
+                _debug_payload = {
+                    "sessionId": "4602d0",
+                    "timestamp": int(time.time() * 1000),
+                    "location": "scanner.py:_scan_one",
+                    "message": "pipeline_trace",
+                    "data": {
+                        "filename": result.filename,
+                        "risk_level": result.risk_level,
+                        "raw_proba": raw_proba,
+                        "adjusted_proba": adjusted_proba,
+                        "eff_threshold": eff_threshold,
+                        "heuristic_hit": heuristic_hit,
+                        "injection_found": injection_found,
+                        "fp_reason": result.fp_reason,
+                        "yara_boosted": result.yara_boosted,
+                        "yara_match_count": len(yara_matches),
+                        "yara_severities": [m.severity for m in yara_matches] if yara_matches else [],
+                        "entropy": features[0],
+                        "entropy_z": entropy_z,
+                        "compression": compression_est,
+                        "struct_consistency": structural_consistency,
+                        "suspicious_ext": suspicious_ext,
+                        "base_threshold": base_threshold,
+                    },
+                    "hypothesisId": "UNIKEY",
+                }
+                with open(_debug_log_path, "a", encoding="utf-8") as _f:
+                    _f.write(json.dumps(_debug_payload, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+            # #endregion
+
+            # ── Bước 7: VirusTotal Lookup (v3.0) ──
+            # Query VT khi: toàn bộ file (auto_check), HIGH/CRITICAL, hoặc nhị phân (.exe…)
+            binary_vt = ext in VT_BINARY_EXTENSIONS and self._vt_check_binaries
+            should_vt = (
+                self._vt_auto_check
+                or result.risk_level in ("HIGH", "CRITICAL")
+                or binary_vt
+            )
+            if self._vt_enabled and should_vt and result.sha256:
+                result.vt_pending = True
+                vt_mal, vt_susp, vt_total, vt_ratio, vt_perma, vt_cache, vt_err = \
+                    self._query_virustotal(result.sha256)
+                result.vt_pending = False
+                result.vt_malicious_count    = vt_mal
+                result.vt_suspicious_count   = vt_susp
+                result.vt_total_engines      = vt_total
+                result.vt_detection_ratio    = vt_ratio
+                result.vt_permalink          = vt_perma
+                result.vt_from_cache         = vt_cache
+                result.vt_error              = vt_err
+                # Chỉ coi là có báo cáo VT hợp lệ khi có engine count (không phải 404)
+                result.vt_available = bool(vt_total > 0 and not vt_err)
+
+                # Override risk level nếu VT rõ ràng là malicious
+                if vt_mal >= self._vt_malicious_threshold:
+                    result.risk_level = "CRITICAL"
+                    result.label      = 1
+                    result.fp_reason += f" | VT({vt_mal}/{vt_total})"
+                elif vt_mal >= 1 and vt_mal < self._vt_malicious_threshold:
+                    # VT có phát hiện nhưng chưa đủ threshold → nâng lên HIGH
+                    if result.risk_level not in ("CRITICAL",):
+                        result.risk_level = "HIGH"
+                        result.label      = 1
+                        result.fp_reason += f" | VT_suspicious({vt_mal}/{vt_total})"
+
+                # Gộp VT + ML: đồng thuận sạch → hạ CRITICAL/HIGH (tránh FP installer)
+                new_risk, fusion_note = apply_vt_risk_fusion(
+                    result.risk_level,
+                    vt_malicious=vt_mal,
+                    vt_suspicious=vt_susp,
+                    vt_total_engines=vt_total,
+                    vt_error=vt_err,
+                    fusion_min_engines=self._vt_fusion_min_engines,
+                    fusion_max_suspicious=self._vt_fusion_max_suspicious,
+                    fusion_downgrade=self._vt_fusion_downgrade,
+                    yara_boosted=result.yara_boosted,
+                    injection_found=injection_found,
+                )
+                if fusion_note:
+                    result.risk_level = new_risk
+                    if new_risk == "MEDIUM":
+                        result.label = 1 if result.probability >= result.effective_threshold else 0
+                    result.fp_reason += fusion_note
+
+            # ── Bước 8: Threat Intelligence Correlation (v3.5) ──
+            self._query_threat_intel(result)
+
         except PermissionError:
             result.error = "Không có quyền đọc file"
         except Exception as e:
@@ -417,10 +776,12 @@ class Scanner:
         directory: str,
         recursive: bool = True,
         on_progress: Optional[Callable[[int, int, "ScanResult"], None]] = None,
-        on_complete: Optional[Callable[[List["ScanResult"]], None]] = None,
+        on_complete: Optional[Callable[[List["ScanResult"],], None]] = None,
         on_error:    Optional[Callable[[str], None]] = None,
         max_threads: int = MAX_THREADS,
         scan_mode: str = "full",
+        vt_enabled: bool = False,
+        vt_auto_check: bool = False,
     ) -> None:
         """
         Bắt đầu quét directory trong background thread.
@@ -437,6 +798,8 @@ class Scanner:
                       - "full":       quét tất cả files
                       - "quick":      non-recursive
                       - "incremental": chỉ quét files mới hoặc đã sửa đổi
+        vt_enabled  : bật tích hợp VirusTotal
+        vt_auto_check: query VT cho TẤT CẢ files (tốn rate limit, dùng khi cần)
         """
         if scan_mode == "full" and not recursive:
             scan_mode = "quick"
@@ -446,6 +809,27 @@ class Scanner:
             self._results.clear()
             self._is_scanning = True
             self._progress    = 0
+            self._vt_enabled    = vt_enabled
+            self._vt_auto_check = vt_auto_check
+            try:
+                from core.config_manager import config
+                self._vt_check_binaries = bool(
+                    config.get("virustotal.check_binaries", True)
+                )
+                self._vt_fusion_min_engines = int(
+                    config.get("virustotal.fusion_min_engines", 40)
+                )
+                self._vt_fusion_max_suspicious = int(
+                    config.get("virustotal.fusion_max_suspicious", 2)
+                )
+                self._vt_fusion_downgrade = bool(
+                    config.get("virustotal.fusion_downgrade", True)
+                )
+            except Exception:
+                self._vt_check_binaries = True
+                self._vt_fusion_min_engines = 40
+                self._vt_fusion_max_suspicious = 2
+                self._vt_fusion_downgrade = True
 
             try:
                 files = self._collect_files(directory, recursive)

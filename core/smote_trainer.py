@@ -23,7 +23,7 @@ Sử dụng:
 
 import numpy as np
 import warnings
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict
 
 warnings.filterwarnings("ignore")
 
@@ -148,7 +148,7 @@ class SMOTETrainer:
             if verbose:
                 print(f"[SMOTE] After:  SAFE={n_safe_after}, ENCRYPTED={n_enc_after} "
                       f"(+{len(y_res)-total} synthetic samples)")
-                print(f"[SMOTE] ✅ Resampling hoàn tất")
+                print("[SMOTE] ✅ Resampling hoàn tất")
 
             return X_res, y_res
 

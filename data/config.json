@@ -171,7 +171,8 @@
   "yara": {
     "auto_update": false,
     "update_interval_hours": 24,
-    "max_rules_per_scan": 100
+    "max_rules_per_scan": 100,
+    "enabled": true
   },
   "network_monitor": {
     "enabled": true,
@@ -195,11 +196,15 @@
     "console_level": "WARNING"
   },
   "virustotal": {
-    "api_key": "945929b661bff107393f67c2685faa2928481758d7f8c7283ec9a0be68c081be",
+    "api_key": "",
     "cache_ttl_hours": 24,
     "rate_limit_rpm": 4,
     "enabled": true,
-    "auto_check": false
+    "auto_check": false,
+    "check_binaries": true,
+    "fusion_min_engines": 40,
+    "fusion_max_suspicious": 2,
+    "fusion_downgrade": true
   },
   "entropy": {
     "enabled": true,
@@ -252,9 +257,33 @@
   },
   "ai": {
     "enabled": true,
-    "api_key": "sk-proj-69981a1c7a6c4bb3ad6f5c34f274cadd",
-    "model": "claude-sonnet-4-6",
+    "api_key": "",
+    "model": "claude-haiku-4-5-20251001",
+    "base_url": "https://taphoaapi.info.vn/",
     "max_tokens": 1024,
-    "temperature": 0.2
+    "temperature": 0.2,
+    "auth_token": ""
+  },
+
+  "threat_intel": {
+    "malwarebazaar": {
+      "api_key": "",
+      "enabled": true,
+      "cache_ttl_hours": 24
+    },
+    "threatfox": {
+      "api_key": "",
+      "enabled": true,
+      "cache_ttl_hours": 24
+    },
+    "alienvault_otx": {
+      "api_key": "",
+      "enabled": true,
+      "cache_ttl_hours": 24
+    }
+  },
+  "proxy": {
+    "http_proxy": "http://proxy:port",
+    "https_proxy": "http://proxy:port"
   }
 }

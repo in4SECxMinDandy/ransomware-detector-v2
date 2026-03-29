@@ -14,7 +14,6 @@ import sys
 import os
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
-from typing import List
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,15 +22,9 @@ from core.process_monitor import (
     ProcessMonitor,
     ProcessInfo,
     FileEvent,
-    BehaviorAlert,
     BehaviorType,
     DynamicSignalAggregator,
     KNOWN_EXTENSIONS,
-    SUSPICIOUS_EXTENSIONS,
-    RENAME_BURST_THRESHOLD,
-    RENAME_BURST_WINDOW,
-    MASS_IO_THRESHOLD_MBPS,
-    MASS_IO_DURATION,
 )
 
 
@@ -140,7 +133,7 @@ class TestFileRenameBurst(unittest.TestCase):
                 event_type="renamed",
                 timestamp=now - timedelta(seconds=8 - i),
                 pid=pid,
-                process_name=f"malware.exe",
+                process_name="malware.exe",
             )
             self.monitor.record_event(event)
 

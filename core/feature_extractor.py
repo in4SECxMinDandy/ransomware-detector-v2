@@ -19,7 +19,6 @@ ROOT CAUSE của False Positive được giải quyết:
 
 import os
 import random
-import struct
 from typing import Tuple, Optional
 import numpy as np
 

@@ -21,7 +21,6 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

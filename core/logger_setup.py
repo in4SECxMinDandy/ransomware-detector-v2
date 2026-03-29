@@ -24,7 +24,6 @@ import sys
 import logging
 import traceback
 from logging.handlers import RotatingFileHandler
-from typing import Optional
 
 
 # ─── Directory ────────────────────────────────────────────────────────────────

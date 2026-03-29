@@ -19,6 +19,11 @@ Alert levels:
   - MEDIUM (>=45%):   cảnh báo trung bình
 
 Debounce: 2 giây cooldown mỗi file để tránh spam khi ransomware ghi liên tục.
+
+Entropy Burst Detection (v2.4):
+  - Tính Shannon entropy sau mỗi sự kiện ON_MODIFIED
+  - Ngưỡng: entropy > 7.5 trên 5 file liên tiếp trong vòng 30 giây
+  - Khi phát hiện → gọi auto_responder + ghi logs/entropy_alerts.log
 """
 
 import os
@@ -35,15 +40,13 @@ logger = logging.getLogger(__name__)
 from watchdog.observers import Observer
 from watchdog.events import (
     FileSystemEventHandler,
-    FileCreatedEvent,
-    FileModifiedEvent,
     FileSystemEvent
 )
 from core.feature_extractor import extract_features
 from core.ml_engine import get_engine
 from core.scanner import SKIP_EXTENSIONS, MIN_FILE_SIZE, MAX_FILE_SIZE, ScanResult
 from core.process_monitor import (
-    get_process_monitor, ProcessInfo, FileEvent, BehaviorAlert, BehaviorType
+    get_process_monitor, FileEvent, BehaviorAlert
 )
 from core.notifications import get_notifier
 
@@ -163,6 +166,17 @@ class RealTimeMonitor:
         self.on_threat:   Optional[Callable[[ThreatEvent], None]] = None
         self.on_analyzed: Optional[Callable[[ScanResult, str], None]] = None
         self.on_behavior: Optional[Callable[[BehaviorAlert], None]] = None
+        self.on_entropy_alert: Optional[Callable[[Dict[str, Any]], None]] = None
+
+        # ─── Entropy Burst Detection (v2.4) ────────────────────────────────
+        self._entropy_history: List[Dict[str, Any]] = []  # [{file, entropy, timestamp}]
+        self._entropy_lock: threading.Lock = threading.Lock()
+        # Thresholds (có thể override qua config)
+        self._entropy_threshold: float = 7.5
+        self._entropy_consecutive: int = 5
+        self._entropy_window_seconds: float = 30.0
+        self._entropy_alert_log_path: str = "logs/entropy_alerts.log"
+        self._entropy_alert_logged: bool = False  # Tránh spam log
 
     @property
     def is_running(self) -> bool:
@@ -287,6 +301,11 @@ class RealTimeMonitor:
                     result.probability = proba
                     result.risk_level = engine.get_risk_level(proba)
                     result.entropy    = float(features[0])
+
+                    # ─── Entropy Burst Detection (v2.4) ───────────────────
+                    self._check_entropy_burst(
+                        file_path, float(features[0]), result
+                    )
 
                     # Record to Process Monitor (v2.2)
                     self._record_process_event(file_path, event_type, features, result.size)
@@ -413,3 +432,170 @@ class RealTimeMonitor:
             "process_monitor": pm_stats,
             "signal_aggregator": sig_stats,
         }
+
+    # ─── Entropy Burst Detection (v2.4) ───────────────────────────────────
+
+    def _compute_shannon_entropy(self, file_path: str) -> float:
+        """
+        Tính Shannon entropy H = -Σ p_i * log2(p_i) của file.
+
+        Đọc tối đa 64KB để tính entropy nhanh.
+        """
+        import math
+        try:
+            byte_counts = [0] * 256
+            total = 0
+            with open(file_path, "rb") as f:
+                chunk = f.read(65536)
+                for byte in chunk:
+                    byte_counts[byte] += 1
+                    total += 1
+            if total == 0:
+                return 0.0
+            entropy = 0.0
+            for count in byte_counts:
+                if count > 0:
+                    p = count / total
+                    entropy -= p * math.log2(p)
+            return entropy
+        except Exception:
+            return 0.0
+
+    def _check_entropy_burst(self, file_path: str, entropy: float, result: ScanResult):
+        """
+        Kiểm tra xem có entropy burst không.
+
+        Logic:
+          - Nếu entropy > threshold → thêm vào history
+          - Dọn history cũ hơn window
+          - Nếu >= consecutive files trong window → ALERT
+        """
+        now = time.time()
+
+        with self._entropy_lock:
+            # Dọn entries cũ hơn window
+            cutoff = now - self._entropy_window_seconds
+            self._entropy_history = [
+                e for e in self._entropy_history
+                if e["timestamp"] > cutoff
+            ]
+
+            if entropy > self._entropy_threshold:
+                self._entropy_history.append({
+                    "file": file_path,
+                    "entropy": entropy,
+                    "timestamp": now,
+                    "filename": os.path.basename(file_path),
+                    "risk_level": result.risk_level,
+                })
+
+            # Kiểm tra ngưỡng
+            if len(self._entropy_history) >= self._entropy_consecutive:
+                if not self._entropy_alert_logged:
+                    self._fire_entropy_alert()
+
+    def _fire_entropy_alert(self):
+        """Kích hoạt entropy alert."""
+        self._entropy_alert_logged = True
+
+        alert_info = {
+            "timestamp": datetime.now().isoformat(),
+            "type": "entropy_burst",
+            "consecutive_files": len(self._entropy_history),
+            "threshold": self._entropy_threshold,
+            "window_seconds": self._entropy_window_seconds,
+            "files": [
+                {
+                    "file": e["file"],
+                    "entropy": round(e["entropy"], 3),
+                    "risk_level": e.get("risk_level", "UNKNOWN"),
+                }
+                for e in self._entropy_history[-self._entropy_consecutive:]
+            ],
+        }
+
+        # Ghi log
+        self._log_entropy_alert(alert_info)
+
+        # Reset flag sau 60s để có thể alert lại nếu có đợt mới
+        threading.Timer(60.0, self._reset_entropy_alert_flag).start()
+
+        # Callback GUI
+        if self.on_entropy_alert:
+            try:
+                self.on_entropy_alert(alert_info)
+            except Exception:
+                pass
+
+        # Gửi notification
+        self._notifier.notify(
+            title="Entropy Burst Detected!",
+            message=f"Ransomware encryption suspected: {len(self._entropy_history)} high-entropy files",
+            severity="CRITICAL"
+        )
+
+        logger.warning(
+            f"ENTROPY BURST: {len(self._entropy_history)} high-entropy files detected "
+            f"in {self._entropy_window_seconds}s window"
+        )
+
+    def _reset_entropy_alert_flag(self):
+        """Reset entropy alert flag sau cooldown."""
+        with self._entropy_lock:
+            self._entropy_alert_logged = False
+
+    def _log_entropy_alert(self, alert_info: Dict[str, Any]):
+        """Ghi entropy alert ra log file."""
+        log_file = self._resolve_path(self._entropy_alert_log_path)
+
+        try:
+            os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                timestamp = alert_info["timestamp"]
+                f.write(f"\n{'='*60}\n")
+                f.write(f"[ENTROPY BURST ALERT] {timestamp}\n")
+                f.write(f"Consecutive files: {alert_info['consecutive_files']}\n")
+                f.write(f"Threshold: {alert_info['threshold']}\n")
+                f.write(f"Window: {alert_info['window_seconds']}s\n")
+                f.write("\nFiles detected:\n")
+                for entry in alert_info["files"]:
+                    f.write(
+                        f"  - {entry['file']} | "
+                        f"Entropy: {entry['entropy']} | "
+                        f"Risk: {entry['risk_level']}\n"
+                    )
+                f.write(f"{'='*60}\n\n")
+        except Exception as e:
+            logger.error(f"Failed to write entropy alert log: {e}")
+
+    def _resolve_path(self, path: str) -> str:
+        """Resolve relative path tu project root."""
+        if os.path.isabs(path):
+            return path
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base, path)
+
+    def get_entropy_stats(self) -> Dict[str, Any]:
+        """Tra ve entropy monitoring stats."""
+        with self._entropy_lock:
+            now = time.time()
+            cutoff = now - self._entropy_window_seconds
+            recent = [e for e in self._entropy_history if e["timestamp"] > cutoff]
+            return {
+                "enabled": True,
+                "threshold": self._entropy_threshold,
+                "consecutive_files": self._entropy_consecutive,
+                "window_seconds": self._entropy_window_seconds,
+                "recent_entries": len(recent),
+                "consecutive_count": len(recent),
+                "is_above_threshold": len(recent) >= self._entropy_consecutive,
+                "alert_triggered": self._entropy_alert_logged,
+            }
+
+    def reset_entropy_state(self):
+        """Reset entropy history (sau khi alert đã được xử lý)."""
+        with self._entropy_lock:
+            self._entropy_history.clear()
+            self._entropy_consecutive = 0
+            self._entropy_alert_logged = False

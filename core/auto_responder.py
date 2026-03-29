@@ -22,7 +22,6 @@ import logging
 import subprocess
 from datetime import datetime
 from typing import Dict, Any, Optional
-from pathlib import Path
 
 try:
     import psutil

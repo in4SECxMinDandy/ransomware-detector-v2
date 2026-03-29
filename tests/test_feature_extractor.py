@@ -21,12 +21,9 @@ from core.feature_extractor import (
     _structural_consistency,
     _byte_distribution_mode,
     _compression_ratio_estimate,
-    _read_file_sampled,
     extract_features,
     FEATURE_NAMES,
     N_FEATURES,
-    EXTENSION_ENTROPY_BASELINE,
-    MAGIC_BYTES_DB,
 )
 
 

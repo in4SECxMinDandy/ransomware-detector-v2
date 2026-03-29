@@ -32,7 +32,6 @@ from core.ml_engine import CalibratedMalwareDetector, MODEL_PATH, META_PATH
 from core.feature_extractor import N_FEATURES, FEATURE_NAMES
 from core.yara_engine import get_yara_engine
 from core.smote_trainer import get_smote_info, SUPPORTED_STRATEGIES
-import json
 import numpy as np
 
 # ─── Parse arguments ───
@@ -59,8 +58,8 @@ print("=" * 65)
 # ── Kiểm tra SMOTE availability ──
 smote_info = get_smote_info()
 if not smote_info["available"] and smote_strategy != "none":
-    print(f"\n  ⚠️  imbalanced-learn không có — bỏ qua SMOTE")
-    print(f"  Cài đặt: pip install imbalanced-learn")
+    print("\n  ⚠️  imbalanced-learn không có — bỏ qua SMOTE")
+    print("  Cài đặt: pip install imbalanced-learn")
     smote_strategy = "none"
 else:
     print(f"\n  SMOTE Strategy : {smote_strategy}")
@@ -85,7 +84,7 @@ print(f"  Class distribution: SAFE={np.sum(y==0)}, ENCRYPTED={np.sum(y==1)}")
 
 if X.shape[1] != N_FEATURES:
     print(f"\n  ❌ FEATURE COUNT MISMATCH: {X.shape[1]} != {N_FEATURES}")
-    print(f"  → Kiểm tra feature_extractor.py và dataset_generator.py")
+    print("  → Kiểm tra feature_extractor.py và dataset_generator.py")
     sys.exit(1)
 
 # ── Step 2: Lưu dataset ──
@@ -103,10 +102,10 @@ print(f"  Saved: {data_path} ({len(df)} rows × {len(fn_list)+1} cols)")
 
 # ── Step 3: Train Model ──
 print("\n[Step 3/4] Train CalibratedMalwareDetector v2.1...")
-print(f"  → n_estimators=300, class_weight={{0:3.0, 1:1.0}}")
+print("  → n_estimators=300, class_weight={0:3.0, 1:1.0}")
 print(f"  → SMOTE strategy='{smote_strategy}'")
-print(f"  → Calibration: isotonic regression")
-print(f"  → Threshold optimizer: Precision ≥ 95%")
+print("  → Calibration: isotonic regression")
+print("  → Threshold optimizer: Precision ≥ 95%")
 
 engine  = CalibratedMalwareDetector()
 metrics = engine.train(X, y, verbose=True, smote_strategy=smote_strategy)
@@ -126,7 +125,7 @@ print(f"    AUC-ROC           : {metrics['auc_roc']*100:.2f}%")
 print(f"    False Pos. Rate   : {metrics.get('false_positive_rate', 0)*100:.2f}%  (mục tiêu < 5%)")
 print(f"    CV F1 5-fold      : {metrics['cv_mean']*100:.2f}% ± {metrics['cv_std']*100:.2f}%")
 print()
-print(f"  ── Threshold ──")
+print("  ── Threshold ──")
 print(f"    Optimal threshold : {metrics.get('optimal_threshold', 0.65):.4f}")
 print()
 

@@ -20,8 +20,6 @@ Usage:
     )
 """
 
-import os
-import sys
 import threading
 import platform
 from typing import Optional, Callable, List, Dict, Any

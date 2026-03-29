@@ -4,7 +4,6 @@ conftest.py — Shared test fixtures
 """
 
 import sys
-import os
 import tempfile
 import shutil
 from pathlib import Path

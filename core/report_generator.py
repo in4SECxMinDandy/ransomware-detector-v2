@@ -12,8 +12,7 @@ Tạo báo cáo từ kết quả quét:
 
 import os
 import csv
-import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from datetime import datetime
 
 import numpy as np
@@ -168,8 +167,8 @@ def export_report_png(
             at.set_fontweight("bold")
 
         legend_patches = [
-            mpatches.Patch(color=RISK_COLORS[l], label=f"{l}: {risk_counts[l]}")
-            for l in labels
+            mpatches.Patch(color=RISK_COLORS[label], label=f"{label}: {risk_counts[label]}")
+            for label in labels
         ]
         ax1.legend(handles=legend_patches, loc="lower center", ncol=3,
                    bbox_to_anchor=(0.5, -0.12), frameon=False,

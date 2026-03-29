@@ -17,10 +17,16 @@ Giải pháp cho False Positive (FP) Problem:
 
 import os
 import json
+import glob
+import re
 import warnings
+import logging
 import numpy as np
 import joblib
-from typing import Tuple, Optional, Dict, List
+from datetime import datetime, timezone
+from typing import Tuple, Optional, Dict, List, Any
+
+logger = logging.getLogger("core.ml_engine")
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.calibration import CalibratedClassifierCV
@@ -230,7 +236,7 @@ class CalibratedMalwareDetector:
         )
 
         if verbose:
-            print(f"\n[MLEngine] ── Threshold Optimization (val set) ──")
+            print("\n[MLEngine] ── Threshold Optimization (val set) ──")
             print(f"  Target: Precision ≥ {MIN_PRECISION:.0%}")
             print(f"  Optimal threshold: {opt_threshold:.3f}")
             print(f"  Precision @ threshold: {threshold_report['precision']:.3f}")
@@ -294,7 +300,7 @@ class CalibratedMalwareDetector:
             print(f"  AUC-ROC      : {auc*100:.2f}%")
             print(f"  False Pos.Rate: {fpr*100:.2f}%  ← Mục tiêu < 5%")
             print(f"  CV F1 5-fold : {cv_scores.mean()*100:.2f}% ± {cv_scores.std()*100:.2f}%")
-            print(f"  Confusion Matrix:")
+            print("  Confusion Matrix:")
             print(f"    TN={tn}  FP={fp}")
             print(f"    FN={fn}  TP={tp}")
             print(f"{'='*60}")
@@ -506,6 +512,305 @@ class CalibratedMalwareDetector:
             "optimal_threshold": self._optimal_threshold,
             "current_threshold": self.threshold,
         }
+
+
+# ─── Feedback Loop Methods (v2.4) ─────────────────────────────────────────────
+
+    def add_feedback_sample(
+        self,
+        file_hash: str,
+        features: np.ndarray,
+        predicted_label: str,
+        feedback_label: str,
+        feedback_type: str,
+        user_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Add a user feedback sample for ML retraining.
+
+        Args:
+            file_hash: SHA256 of the file
+            features: 16-element feature vector (base64 encoded if stored)
+            predicted_label: What the model predicted
+            feedback_label: What the user corrected to
+            feedback_type: "false_positive" or "false_negative"
+            user_id: Optional user identifier
+
+        Returns:
+            True if saved successfully
+        """
+        import base64
+        import csv
+        import uuid
+
+        feedback_csv = os.path.join(
+            os.path.dirname(MODEL_DIR),
+            "data",
+            "feedback_samples.csv"
+        )
+
+        # Encode features as base64 for compact storage
+        features_b64 = base64.b64encode(features.tobytes()).decode("ascii")
+
+        feedback_id = str(uuid.uuid4())[:8]
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        row = {
+            "id": feedback_id,
+            "hash": file_hash,
+            "features_b64": features_b64,
+            "predicted_label": predicted_label,
+            "feedback_label": feedback_label,
+            "feedback_type": feedback_type,
+            "timestamp": timestamp,
+            "user_id": user_id or "unknown",
+        }
+
+        try:
+            os.makedirs(os.path.dirname(feedback_csv), exist_ok=True)
+            file_exists = os.path.isfile(feedback_csv)
+            with open(feedback_csv, "a", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=["id", "hash", "features_b64", "predicted_label",
+                               "feedback_label", "feedback_type", "timestamp", "user_id"]
+                )
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerow(row)
+
+            logger.info(
+                f"Feedback saved: {feedback_type} — {predicted_label}→{feedback_label} "
+                f"[{file_hash[:8]}...]"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to save feedback: {e}")
+            return False
+
+    def get_feedback_stats(self) -> Dict[str, Any]:
+        """Return feedback statistics."""
+        import csv
+
+        feedback_csv = os.path.join(
+            os.path.dirname(MODEL_DIR),
+            "data",
+            "feedback_samples.csv"
+        )
+
+        if not os.path.isfile(feedback_csv):
+            return {
+                "total": 0,
+                "false_positive": 0,
+                "false_negative": 0,
+                "last_feedback": None,
+            }
+
+        try:
+            fp_count = 0
+            fn_count = 0
+            last_ts = None
+
+            with open(feedback_csv, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    ft = row.get("feedback_type", "")
+                    if ft == "false_positive":
+                        fp_count += 1
+                    elif ft == "false_negative":
+                        fn_count += 1
+                    ts = row.get("timestamp", "")
+                    if ts and (last_ts is None or ts > last_ts):
+                        last_ts = ts
+
+            return {
+                "total": fp_count + fn_count,
+                "false_positive": fp_count,
+                "false_negative": fn_count,
+                "last_feedback": last_ts,
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to read feedback stats: {e}")
+            return {"total": 0, "false_positive": 0, "false_negative": 0, "last_feedback": None}
+
+    def retrain_with_feedback(
+        self,
+        model_save_path: Optional[str] = None,
+        feedback_csv: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Retrain model with feedback samples (full retrain with SMOTE).
+
+        Returns:
+            Dict with metrics: success, new_model_version, previous_accuracy, etc.
+        """
+        import time
+        import csv
+        import base64
+
+        start_time = time.time()
+        save_path = model_save_path or MODEL_PATH
+
+        fb_csv = feedback_csv or os.path.join(
+            os.path.dirname(MODEL_DIR),
+            "data",
+            "feedback_samples.csv"
+        )
+
+        # Load existing dataset
+        try:
+            import pandas as pd
+            existing_csv = os.path.join(
+                os.path.dirname(MODEL_DIR),
+                "data",
+                "synthetic_dataset_v2.csv"
+            )
+            if os.path.isfile(existing_csv):
+                existing_df = pd.read_csv(existing_csv)
+            else:
+                existing_df = pd.DataFrame()
+        except Exception:
+            existing_df = pd.DataFrame()
+
+        # Load feedback samples
+        feedback_rows = []
+        if os.path.isfile(fb_csv):
+            try:
+                with open(fb_csv, "r", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        features_b64 = row.get("features_b64", "")
+                        if features_b64:
+                            try:
+                                feat_bytes = base64.b64decode(features_b64)
+                                features = np.frombuffer(feat_bytes, dtype=np.float64)
+                                # Reshape to 16 features
+                                features = features.reshape(-1)[:N_FEATURES]
+                                if len(features) < N_FEATURES:
+                                    features = np.pad(features, (0, N_FEATURES - len(features)))
+                                label = 1 if row.get("feedback_label", "").upper() in ("ENCRYPTED", "MALICIOUS", "MALWARE") else 0
+                                feedback_rows.append(features)
+                            except Exception:
+                                continue
+
+                if not feedback_rows:
+                    return {"success": False, "error": "No valid feedback samples found"}
+
+                feedback_X = np.array(feedback_rows)
+                feedback_y = np.array([1] * len(feedback_rows))  # Mark as positive class
+
+                # Combine with existing data if available
+                if len(existing_df) > 0:
+                    X_existing = existing_df.iloc[:, :N_FEATURES].values
+                    y_existing = existing_df["label"].values
+                    X_combined = np.vstack([X_existing, feedback_X])
+                    y_combined = np.concatenate([y_existing, feedback_y])
+                else:
+                    X_combined = feedback_X
+                    y_combined = feedback_y
+
+                # Train
+                pipeline = self._build_pipeline()
+                pipeline.fit(X_combined, y_combined)
+
+                # Save with timestamp
+                version = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                self.pipeline = pipeline
+                self._loaded = True
+
+                # Save
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                joblib.dump(pipeline, save_path)
+
+                training_time = time.time() - start_time
+
+                return {
+                    "success": True,
+                    "new_model_version": version,
+                    "samples_used": len(feedback_rows),
+                    "total_training_samples": len(X_combined),
+                    "training_time_seconds": round(training_time, 1),
+                    "previous_accuracy": self.metadata.get("accuracy", None),
+                    "new_accuracy": None,  # Would need separate evaluation
+                }
+
+            except Exception as e:
+                logger.error(f"Feedback retrain failed: {e}")
+                return {"success": False, "error": str(e)}
+
+        return {"success": False, "error": "Feedback file not found"}
+
+    def get_model_versions(self) -> List[Dict[str, Any]]:
+        """Return list of available model versions."""
+        versions = []
+        model_dir = os.path.dirname(MODEL_PATH)
+        pattern = os.path.join(model_dir, "rf_ransomware_detector*.joblib")
+
+        for path in glob.glob(pattern):
+            try:
+                mtime = os.path.getmtime(path)
+                dt = datetime.fromtimestamp(mtime)
+                # Check if it's a timestamped backup
+                basename = os.path.basename(path)
+                version_match = re.search(r"rf_ransomware_detector[._]?(\d{8,14})?", basename)
+                version_str = version_match.group(1) if version_match else basename
+
+                is_active = os.path.abspath(path) == os.path.abspath(MODEL_PATH)
+
+                versions.append({
+                    "path": path,
+                    "version": version_str,
+                    "created_at": dt.isoformat(),
+                    "is_active": is_active,
+                    "size_bytes": os.path.getsize(path),
+                })
+            except Exception:
+                continue
+
+        return sorted(versions, key=lambda x: x["created_at"], reverse=True)
+
+    def rollback_model(self, backup_version: str) -> bool:
+        """
+        Rollback to a previous model version.
+
+        Args:
+            backup_version: Version string (from get_model_versions)
+
+        Returns:
+            True if rollback successful
+        """
+        import glob
+
+        model_dir = os.path.dirname(MODEL_PATH)
+        pattern = os.path.join(model_dir, f"*rf_ransomware_detector*{backup_version}*")
+
+        matches = glob.glob(pattern)
+        if not matches:
+            logger.error(f"Rollback failed: version {backup_version} not found")
+            return False
+
+        backup_path = matches[0]
+        try:
+            # Backup current
+            current_backup = MODEL_PATH + ".rollback_backup"
+            if os.path.isfile(MODEL_PATH):
+                import shutil
+                shutil.copy2(MODEL_PATH, current_backup)
+
+            # Restore
+            import shutil as sh
+            sh.copy2(backup_path, MODEL_PATH)
+
+            # Reload
+            self.load_model(MODEL_PATH)
+            logger.info(f"Model rolled back to {backup_version}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Rollback failed: {e}")
+            return False
 
 
 # ─── Backward-compatible alias ───

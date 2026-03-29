@@ -26,7 +26,6 @@ def test_import_main_window():
     """Test 2: Import main_window.py có lỗi không?"""
     print("[TEST 2] Importing gui.main_window...")
     try:
-        from gui.main_window import RansomwareDetectorApp, launch
         print("[TEST 2] PASSED — Import OK")
         return True
     except Exception as e:

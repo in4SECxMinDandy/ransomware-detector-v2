@@ -1,3 +1,1202 @@
 [2026-03-19 20:30:54] [INFO    ] [gui.tray_manager] System tray icon started
 [2026-03-19 20:30:55] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
 [2026-03-19 20:30:55] [WARNING ] [gui.tray_manager] Tray icon already running
+[2026-03-20 23:27:51] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-20 23:28:18] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-20 23:28:18] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-20 23:28:57] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-20 23:28:57] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-20 23:30:15] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-20 23:35:30] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-20 23:35:30] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-20 23:38:13] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-20 23:38:13] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-20 23:38:13] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-20 23:40:37] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-20 23:51:44] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-20 23:51:44] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-20 23:57:31] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 00:15:06] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 00:15:06] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:19:28] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 00:19:28] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:21:25] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:21:25] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:21:42] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:21:42] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:22:00] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:22:00] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:22:00] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:22:38] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:22:38] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:22:39] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:25:04] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:25:04] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:25:04] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:25:05] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:25:30] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:25:30] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:25:30] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:28:32] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:28:32] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:28:32] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:28:34] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:28:34] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:28:34] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:30:11] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:03] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:05] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:06] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:06] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:14] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:17] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:18] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:19] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:19] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:19] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:31:20] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:49] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:50] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:50] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:50] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:51] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:51] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:52] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:52] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:52] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:53] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:53] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:32:53] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'pe_info'
+[2026-03-21 00:33:22] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:33:22] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:33:22] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 00:33:22] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:33:39] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 00:33:39] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 00:44:19] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:44:19] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:44:19] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:45:02] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:45:02] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:46:00] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 00:46:00] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 00:46:00] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 00:46:30] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 00:46:31] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 00:48:16] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 00:48:16] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 00:48:16] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:04:28] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 01:04:28] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 01:04:42] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:04:42] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:04:42] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:04:57] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:04:57] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:04:57] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:05:06] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:05:06] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:05:07] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 01:06:32] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 01:06:32] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 01:11:06] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 01:11:06] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:16:09] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:16:14] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:16:14] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:16:14] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:17:06] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:17:06] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 12:18:36] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:18:36] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:18:36] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:18:36] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:18:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:19:21] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:19:21] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:19:21] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:19:21] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:19:21] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:19:45] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:19:46] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:19:46] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:19:46] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:19:46] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:23:35] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:23:36] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:23:36] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:23:36] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:23:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:26:38] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 12:28:11] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 12:28:11] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:28:11] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:30:28] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 12:35:37] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 12:35:37] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:35:37] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:51:55] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:52:02] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:52:02] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:52:02] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:52:02] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:54:10] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 12:54:10] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:54:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:55:19] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:55:20] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:55:20] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:55:20] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:55:20] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 12:55:49] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 12:55:50] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 12:55:50] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 12:55:50] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 12:55:50] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:25] [INFO    ] [httpx] HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+[2026-03-21 16:50:25] [INFO    ] [httpx] HTTP Request: GET http://testserver/ping "HTTP/1.1 200 OK"
+[2026-03-21 16:50:25] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:50:25] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:50:25] [ERROR   ] [api.main] Unhandled exception: module 'api.routers.status' has no attribute 'HTTP_401_UNAUTHORIZED'
+Traceback (most recent call last):
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\middleware\exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\routing.py", line 72, in app
+    response = await func(request)
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\fastapi\routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+  File "C:\Users\haqua\AppData\Local\Programs\Python\Python310\lib\site-packages\fastapi\routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\api\main.py", line 137, in login_for_access_token
+    status_code=status.HTTP_401_UNAUTHORIZED,
+AttributeError: module 'api.routers.status' has no attribute 'HTTP_401_UNAUTHORIZED'
+[2026-03-21 16:50:27] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:50:27] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/auth/me "HTTP/1.1 200 OK"
+[2026-03-21 16:50:27] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:50:27] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/honeypots "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:50:27] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/reports/generate "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:50:28] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:50:28] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 422 Unprocessable Entity"
+[2026-03-21 16:50:33] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-21 16:50:38] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Honeypot accessed: passwords.xlsx by PID=1234 (test.exe) - modified
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp3kavdabi\Desktop\tax_returns_2024.pdf
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp3kavdabi\Desktop\company_secrets.txt
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp3kavdabi\Documents\banking_info.xlsx
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp3kavdabi\financial_report_2025.pdf
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Deployed 4 honeypot files
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\Desktop\banking_info.xlsx
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\Desktop\financial_report_2025.pdf
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\backup.docx
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\private_keys.pem
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Deployed 4 honeypot files
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\Desktop\banking_info.xlsx
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\Desktop\financial_report_2025.pdf
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\backup.docx
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpylthzre5\private_keys.pem
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Removed 4 honeypot files
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpb4_dvx7m\Desktop\backup.docx
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpb4_dvx7m\recovery_codes.txt
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpxvl5k_7p\Desktop\financial_report_2025.pdf
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpxvl5k_7p\wallet_keys.txt
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp3ib2deee\Desktop\recovery_codes.txt
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp3ib2deee\company_secrets.txt
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Honeypot accessed: recovery_codes.txt by PID=9999 (test.exe) - accessed
+[2026-03-21 16:50:39] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:50:39] [INFO    ] [core.ml_engine] Feedback saved: false_positive — ENCRYPTED→SAFE [test_has...]
+[2026-03-21 16:50:39] [ERROR   ] [core.ml_engine] Rollback failed: version nonexistent_version_xyz not found
+[2026-03-21 16:50:40] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:50:40] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:50:40] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:50:40] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:50:40] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:50:40] [ERROR   ] [core.virustotal_client] VT API error: 401
+[2026-03-21 16:55:14] [INFO    ] [httpx] HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+[2026-03-21 16:55:14] [INFO    ] [httpx] HTTP Request: GET http://testserver/ping "HTTP/1.1 200 OK"
+[2026-03-21 16:55:14] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:55:14] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:55:14] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/auth/me "HTTP/1.1 200 OK"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/honeypots "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/reports/generate "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:55:15] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 422 Unprocessable Entity"
+[2026-03-21 16:55:21] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-21 16:55:27] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Honeypot accessed: passwords.xlsx by PID=1234 (test.exe) - modified
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp10oh4ea6\Desktop\backup.docx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp10oh4ea6\Desktop\private_keys.pem
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp10oh4ea6\Documents\company_secrets.txt
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp10oh4ea6\Documents\tax_returns_2024.pdf
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp10oh4ea6\wallet_keys.txt
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Deployed 5 honeypot files
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\Desktop\wallet_keys.txt
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\Desktop\credentials.xlsx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\passwords.xlsx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\tax_returns_2024.pdf
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Deployed 4 honeypot files
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\Desktop\wallet_keys.txt
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\Desktop\credentials.xlsx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\passwords.xlsx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpbjv4m65c\tax_returns_2024.pdf
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Removed 4 honeypot files
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpwi65ucia\Desktop\banking_info.xlsx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Deployed 1 honeypot files
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp70pjlzv0\Desktop\passwords.xlsx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp70pjlzv0\backup.docx
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpy_10i9mc\Desktop\wallet_keys.txt
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpy_10i9mc\tax_returns_2024.pdf
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Honeypot accessed: wallet_keys.txt by PID=9999 (test.exe) - accessed
+[2026-03-21 16:55:27] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:55:27] [INFO    ] [core.ml_engine] Feedback saved: false_positive — ENCRYPTED→SAFE [test_has...]
+[2026-03-21 16:55:27] [ERROR   ] [core.ml_engine] Rollback failed: version nonexistent_version_xyz not found
+[2026-03-21 16:55:29] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:55:29] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:55:29] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:55:29] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:55:29] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:55:29] [ERROR   ] [core.virustotal_client] VT API error: 401
+[2026-03-21 16:56:58] [INFO    ] [httpx] HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+[2026-03-21 16:56:58] [INFO    ] [httpx] HTTP Request: GET http://testserver/ping "HTTP/1.1 200 OK"
+[2026-03-21 16:56:58] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:56:58] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:56:58] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:56:58] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:56:59] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:56:59] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/auth/me "HTTP/1.1 200 OK"
+[2026-03-21 16:56:59] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:56:59] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/honeypots "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:56:59] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/reports/generate "HTTP/1.1 401 Unauthorized"
+[2026-03-21 16:56:59] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-21 16:56:59] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 422 Unprocessable Entity"
+[2026-03-21 16:57:04] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-21 16:57:09] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Honeypot accessed: passwords.xlsx by PID=1234 (test.exe) - modified
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmppoi1du5o\Desktop\backup.docx
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmppoi1du5o\Desktop\tax_returns_2024.pdf
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmppoi1du5o\Documents\private_keys.pem
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmppoi1du5o\Documents\financial_report_2025.pdf
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmppoi1du5o\recovery_codes.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmppoi1du5o\passwords.xlsx
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Deployed 6 honeypot files
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\Desktop\tax_returns_2024.pdf
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\Desktop\wallet_keys.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\recovery_codes.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\company_secrets.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Deployed 4 honeypot files
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\Desktop\tax_returns_2024.pdf
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\Desktop\wallet_keys.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\recovery_codes.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpx0pwp9eg\company_secrets.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Removed 4 honeypot files
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpk6cuxkuy\Desktop\backup.docx
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpk6cuxkuy\passwords.xlsx
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0_c7i4jw\Desktop\tax_returns_2024.pdf
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0_c7i4jw\backup.docx
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmptm3eedsq\Desktop\recovery_codes.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmptm3eedsq\wallet_keys.txt
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Honeypot accessed: recovery_codes.txt by PID=9999 (test.exe) - accessed
+[2026-03-21 16:57:10] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:57:10] [INFO    ] [core.ml_engine] Feedback saved: false_positive — ENCRYPTED→SAFE [test_has...]
+[2026-03-21 16:57:10] [ERROR   ] [core.ml_engine] Rollback failed: version nonexistent_version_xyz not found
+[2026-03-21 16:57:11] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:57:11] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:57:11] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:57:11] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:57:11] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 16:57:11] [ERROR   ] [core.virustotal_client] VT API error: 401
+[2026-03-21 16:58:26] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-21 16:58:26] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 200 OK"
+[2026-03-21 17:19:24] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 17:19:24] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 17:22:04] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 17:22:04] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 17:22:04] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 17:22:04] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 17:23:10] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-21 17:23:10] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-21 17:23:10] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-21 17:23:10] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 17:24:33] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 17:24:33] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 17:24:33] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 17:25:11] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 17:25:11] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 17:54:51] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 17:54:51] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 17:55:15] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 17:55:21] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 17:55:22] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 17:55:22] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 17:55:22] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 17:55:23] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 17:55:30] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 17:55:30] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 17:55:31] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 18:08:42] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 18:08:42] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 18:08:42] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 19:06:33] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:36] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:37] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:38] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:39] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:39] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:39] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:40] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:40] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:40] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:41] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:41] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:41] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:06:41] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:07:08] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:10] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:11] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:11] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:11] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:11] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:11] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:14] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:07:17] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:07:17] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:07:17] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:07:17] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:07:18] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:07:18] [ERROR   ] [scanner] Scan error: 'ScanResult' object has no attribute 'sha256'
+[2026-03-21 19:13:46] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 19:13:46] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 19:13:46] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 19:13:57] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:13:57] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:13:58] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:14:19] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:14:19] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:14:19] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:53:28] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 19:53:28] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 19:53:28] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 19:57:55] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 19:57:55] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 19:57:55] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 19:58:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:58:12] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:58:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:58:13] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:58:14] [WARNING ] [passlib.handlers.bcrypt] (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+[2026-03-21 19:59:17] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:17] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:18] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:30] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:30] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:30] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-21 19:59:31] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:50] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:50] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 19:59:50] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 20:00:52] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 20:00:52] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 20:00:52] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 20:01:38] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 20:01:38] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 20:01:39] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-21 22:27:44] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-21 22:27:44] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-21 22:27:44] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-22 11:50:53] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-22 11:50:53] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-22 11:50:53] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-22 11:52:10] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-22 11:52:10] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-22 11:52:10] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-22 11:52:10] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-22 11:55:34] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-22 11:55:34] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-22 11:55:34] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-22 11:56:34] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-22 11:56:34] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-22 11:56:34] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-22 11:56:59] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-22 11:56:59] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-22 11:56:59] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-22 11:56:59] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-22 11:57:07] [ERROR   ] [core.ai_analyzer] DeepSeek AI Analysis failed: 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-03-24 14:19:56] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-24 14:19:56] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-24 14:19:56] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-24 14:20:37] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-24 14:20:37] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-24 14:20:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-24 14:20:37] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-24 14:20:55] [INFO    ] [scanner] Incremental: skipped 9 unchanged files
+[2026-03-24 14:20:58] [INFO    ] [scanner] Incremental: skipped 9 unchanged files
+[2026-03-24 14:20:59] [INFO    ] [scanner] Incremental: skipped 9 unchanged files
+[2026-03-24 14:21:00] [INFO    ] [scanner] Incremental: skipped 9 unchanged files
+[2026-03-24 14:21:03] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\bd6c1844db5e44310542a69aa4ba433430d25a2622c98cf819247330b8826c64.dll
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-24 14:21:03] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\notepad++.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-24 14:21:04] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/notepad-plus-plus/PowerEditor/bin64\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-28 23:24:26] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-28 23:24:28] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: GET http://testserver/ping "HTTP/1.1 200 OK"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/auth/me "HTTP/1.1 200 OK"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/honeypots "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:26:57] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/reports/generate "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:26:58] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:26:58] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 422 Unprocessable Entity"
+[2026-03-28 23:27:03] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-28 23:27:08] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-28 23:27:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+[2026-03-28 23:27:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/ping "HTTP/1.1 200 OK"
+[2026-03-28 23:27:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:27:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:27:24] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:27:24] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:27:25] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:27:25] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/auth/me "HTTP/1.1 200 OK"
+[2026-03-28 23:27:25] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:27:25] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/honeypots "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:27:25] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/reports/generate "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:27:25] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:27:25] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 422 Unprocessable Entity"
+[2026-03-28 23:27:30] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-28 23:27:36] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Honeypot accessed: passwords.xlsx by PID=1234 (test.exe) - modified
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp1y1gqspc\Desktop\recovery_codes.txt
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp1y1gqspc\Desktop\company_secrets.txt
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp1y1gqspc\Documents\tax_returns_2024.pdf
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp1y1gqspc\Documents\passwords.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp1y1gqspc\financial_report_2025.pdf
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Deployed 5 honeypot files
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpnklyavcp\Desktop\backup.docx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpnklyavcp\Desktop\credentials.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpnklyavcp\banking_info.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Deployed 3 honeypot files
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpnklyavcp\Desktop\backup.docx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpnklyavcp\Desktop\credentials.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmpnklyavcp\banking_info.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Removed 3 honeypot files
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmptb9iy8sc\Desktop\passwords.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmptb9iy8sc\financial_report_2025.pdf
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp6ydld5yl\Desktop\banking_info.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp6ydld5yl\credentials.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpl3hignpe\Desktop\backup.docx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpl3hignpe\credentials.xlsx
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Honeypot accessed: backup.docx by PID=9999 (test.exe) - accessed
+[2026-03-28 23:27:36] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:27:36] [INFO    ] [core.ml_engine] Feedback saved: false_positive — ENCRYPTED→SAFE [test_has...]
+[2026-03-28 23:27:36] [ERROR   ] [core.ml_engine] Rollback failed: version nonexistent_version_xyz not found
+[2026-03-28 23:27:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:27:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:27:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:27:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:27:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:27:39] [ERROR   ] [core.virustotal_client] VT API error: 401
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/ping "HTTP/1.1 200 OK"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/status "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/health "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/auth/me "HTTP/1.1 200 OK"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: GET http://testserver/api/v1/honeypots "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:33:24] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/reports/generate "HTTP/1.1 401 Unauthorized"
+[2026-03-28 23:33:25] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/auth/token "HTTP/1.1 200 OK"
+[2026-03-28 23:33:25] [INFO    ] [httpx] HTTP Request: POST http://testserver/api/v1/scan/hash "HTTP/1.1 422 Unprocessable Entity"
+[2026-03-28 23:33:30] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-28 23:33:35] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Honeypot accessed: passwords.xlsx by PID=1234 (test.exe) - modified
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpwf5uzb4y\Desktop\wallet_keys.txt
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpwf5uzb4y\Desktop\credentials.xlsx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpwf5uzb4y\Documents\passwords.xlsx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpwf5uzb4y\recovery_codes.txt
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpwf5uzb4y\financial_report_2025.pdf
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Deployed 5 honeypot files
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\Desktop\passwords.xlsx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\Desktop\backup.docx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\banking_info.xlsx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\tax_returns_2024.pdf
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Deployed 4 honeypot files
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\Desktop\passwords.xlsx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\Desktop\backup.docx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\banking_info.xlsx
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Removed honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0phdl83x\tax_returns_2024.pdf
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Removed 4 honeypot files
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp6olhm6iw\Desktop\financial_report_2025.pdf
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp6olhm6iw\wallet_keys.txt
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmpfxg1wsdd\Desktop\wallet_keys.txt
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Deployed 1 honeypot files
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0tcamnmg\Desktop\financial_report_2025.pdf
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Created honeypot: C:\Users\haqua\AppData\Local\Temp\tmp0tcamnmg\private_keys.pem
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Deployed 2 honeypot files
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Honeypot accessed: financial_report_2025.pdf by PID=9999 (test.exe) - accessed
+[2026-03-28 23:33:35] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-03-28 23:33:35] [INFO    ] [core.ml_engine] Feedback saved: false_positive — ENCRYPTED→SAFE [test_has...]
+[2026-03-28 23:33:35] [ERROR   ] [core.ml_engine] Rollback failed: version nonexistent_version_xyz not found
+[2026-03-28 23:33:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:33:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:33:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:33:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:33:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-28 23:33:37] [ERROR   ] [core.virustotal_client] VT API error: 401
+[2026-03-29 13:04:14] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-29 13:04:14] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-29 13:04:14] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-29 13:04:15] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 13:04:15] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 13:05:17] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 13:05:17] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 13:05:17] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 13:33:29] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 13:33:29] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 13:33:29] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 13:46:22] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-29 13:46:22] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\370d36a89f8ffa291fd22c40dda78fd6154078b2e2b4b100d5c2429135e4aa72.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-29 13:46:22] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 13:46:41] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\370d36a89f8ffa291fd22c40dda78fd6154078b2e2b4b100d5c2429135e4aa72.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-29 13:46:41] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-29 13:47:02] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-03-29 13:47:02] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-03-29 13:47:02] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-03-29 13:47:02] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 13:47:03] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-29 13:47:20] [INFO    ] [scanner] Incremental: skipped 6 unchanged files
+[2026-03-29 13:47:25] [INFO    ] [scanner] Incremental: skipped 6 unchanged files
+[2026-03-29 13:47:26] [INFO    ] [scanner] Incremental: skipped 6 unchanged files
+[2026-03-29 13:47:26] [INFO    ] [scanner] Incremental: skipped 6 unchanged files
+[2026-03-29 13:47:26] [INFO    ] [scanner] Incremental: skipped 6 unchanged files
+[2026-03-29 13:47:29] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\370d36a89f8ffa291fd22c40dda78fd6154078b2e2b4b100d5c2429135e4aa72.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-29 13:47:29] [ERROR   ] [core.pe_analyzer] Error analyzing PE: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\UniKeyNT.exe
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in analyze_pe
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\pe_analyzer.py", line 327, in <genexpr>
+    if not any(bs.lower().startswith(clean_name) or clean_name.startswith(bs.lower().rstrip(b'\x00'.decode()).lstrip('.'))
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+[2026-03-29 13:47:29] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-29 13:47:29] [INFO    ] [core.virustotal_client] Loaded 1 cached VT entries
+[2026-03-29 13:52:58] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 13:52:58] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 13:52:58] [INFO    ] [core.virustotal_client] Loaded 3 cached VT entries
+[2026-03-29 13:56:59] [INFO    ] [core.virustotal_client] Loaded 3 cached VT entries
+[2026-03-29 13:59:19] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 13:59:19] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 13:59:19] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 13:59:54] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 15:18:56] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 15:18:56] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 15:18:56] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 15:19:09] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 15:30:21] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 15:30:21] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 15:30:21] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 15:32:11] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 15:32:23] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 403 Forbidden"
+[2026-03-29 15:32:23] [ERROR   ] [core.ai_analyzer] Claude API error (403): Error code: 403 - {'error': 'Invalid or inactive API key'}
+[2026-03-29 16:21:14] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 16:21:14] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 16:21:14] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 16:22:01] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 16:28:27] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"
+[2026-03-29 16:54:52] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 16:54:52] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 16:54:52] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 16:55:57] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:02:26] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 17:02:26] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 17:02:26] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:02:36] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:07:00] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 17:07:01] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 17:07:01] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:07:09] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:07:47] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"
+[2026-03-29 17:46:55] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 17:46:55] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 17:46:55] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:47:04] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:51:13] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 17:51:13] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 17:51:13] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:51:32] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:51:41] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 17:51:41] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 17:51:41] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:51:54] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:56:35] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-29 17:56:40] [WARNING ] [core.watchdog_monitor] ENTROPY BURST: 5 high-entropy files detected in 30.0s window
+[2026-03-29 17:58:16] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 17:58:17] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 17:58:17] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 17:58:28] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-29 18:03:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:03:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:03:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:03:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:03:37] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:03:38] [ERROR   ] [core.virustotal_client] VT API error: 401
+[2026-03-29 18:05:43] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 18:05:43] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 18:05:43] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:07:16] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 18:07:16] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 18:07:16] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:07:38] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-03-29 18:23:07] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"

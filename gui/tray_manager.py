@@ -16,12 +16,10 @@ Requirements:
   - Pillow>=10.0.0
 """
 
-import os
-import sys
 import logging
 import threading
 import time
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Optional, Callable
 
 try:
     from PIL import Image, ImageDraw
@@ -180,7 +178,7 @@ class TrayManager:
                     self._app_window.deiconify()
                     self._app_window.lift()
                     self._app_window.focus()
-                except:
+                except Exception:
                     pass
 
     def _on_toggle_protection(self, icon=None, item=None):
@@ -198,7 +196,7 @@ class TrayManager:
             try:
                 self._app_window.deiconify()
                 self._app_window.lift()
-            except:
+            except Exception:
                 pass
 
     def _on_view_alerts(self, icon=None, item=None):
@@ -209,7 +207,7 @@ class TrayManager:
             try:
                 self._app_window.deiconify()
                 self._app_window.lift()
-            except:
+            except Exception:
                 pass
 
     def _on_settings(self, icon=None, item=None):
@@ -218,7 +216,7 @@ class TrayManager:
             try:
                 self._app_window.deiconify()
                 self._app_window.lift()
-            except:
+            except Exception:
                 pass
 
     def _on_about(self, icon=None, item=None):
@@ -338,7 +336,7 @@ class TrayManager:
         if self._app_window:
             try:
                 self._app_window.withdraw()
-            except:
+            except Exception:
                 pass
 
     def restore_from_tray(self):
@@ -348,7 +346,7 @@ class TrayManager:
                 self._app_window.deiconify()
                 self._app_window.lift()
                 self._app_window.focus()
-            except:
+            except Exception:
                 pass
 
 

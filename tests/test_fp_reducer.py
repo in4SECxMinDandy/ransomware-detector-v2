@@ -17,9 +17,7 @@ from core.fp_reducer import (
     apply_fp_reduction,
     get_fp_stats,
     ALWAYS_SAFE_EXTENSIONS,
-    ALWAYS_SAFE_PATH_KEYWORDS,
     EXTENSION_THRESHOLDS,
-    DEFAULT_EXTENSION_THRESHOLD,
     MAGIC_BYTES_DISCOUNT_FACTOR,
 )
 

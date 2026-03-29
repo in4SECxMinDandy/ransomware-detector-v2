@@ -20,31 +20,29 @@ Architecture:
 from __future__ import annotations
 
 import os
-import sys
 import time
 import threading
 import webbrowser
 from datetime import datetime
-from typing import Optional, List, Any, Dict, Callable
+from typing import Optional, List, Dict, Callable
 
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
 # ─── Core imports ────────────────────────────────────────────────────────────
-from core.config_manager import config, ConfigManager
-from core.scanner import Scanner, ScanResult, SENSITIVITY_PROFILES
+from core.config_manager import config
+from core.scanner import Scanner, ScanResult
 from core.watchdog_monitor import RealTimeMonitor, ThreatEvent
 from core.process_monitor import BehaviorAlert, BehaviorType, ProcessInfo
-from core.ml_engine import get_engine, CalibratedMalwareDetector
+from core.ml_engine import get_engine
 from core.auto_responder import get_auto_responder
-from core.notifications import get_notifier, NotificationManager, Notification
+from core.notifications import get_notifier
 from core.report_generator import export_csv, export_report_png
 from core.forensic_exporter import export_forensic_bundle
 from core.network_monitor import NetworkAnalyzer
 from core.logger_setup import get_logger, setup_logging
 
 # ─── GUI module imports ────────────────────────────────────────────────────
-from gui.tray_manager import TrayManager
 from gui.whitelist_editor import WhitelistEditorWindow
 from gui.tab_office_scanner import OfficeScannerTab
 from gui.tab_entropy_watch import EntropyWatchTab
@@ -54,12 +52,33 @@ from gui.tab_ml_training import MLTrainingTab
 setup_logging()
 logger = get_logger("gui.main_window")
 
+# #region agent log
+def _agent_debug_log(location: str, message: str, data: dict, hypothesis_id: str = "") -> None:
+    import json as _json
+
+    try:
+        _p = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "debug-4602d0.log"))
+        _payload = {
+            "sessionId": "4602d0",
+            "timestamp": int(time.time() * 1000),
+            "location": location,
+            "message": message,
+            "data": data,
+            "hypothesisId": hypothesis_id,
+        }
+        with open(_p, "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps(_payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+# #endregion
+
 # ─── Matplotlib ────────────────────────────────────────────────────────────
 import numpy as np
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
@@ -1047,8 +1066,8 @@ class MainWindow(ctk.CTk):
         header = ctk.CTkFrame(self._results_tree, fg_color=C["bg_panel"], height=28)
         header.pack(fill="x", padx=0, pady=(0, 1))
         header.pack_propagate(False)
-        col_widths = [300, 80, 80, 80, 90]
-        col_labels = ["Filename", "Size (KB)", "Entropy", "Prob %", "Risk"]
+        col_widths = [250, 70, 70, 70, 70, 90]
+        col_labels = ["Filename", "Size (KB)", "Entropy", "Prob %", "VT Ratio", "Risk"]
         for i, (w, lbl) in enumerate(zip(col_widths, col_labels)):
             f = ctk.CTkFrame(header, width=w, fg_color="transparent")
             f.pack(side="left", padx=2, fill="y", expand=True)
@@ -1390,9 +1409,48 @@ class MainWindow(ctk.CTk):
         else:
             self._ai_toggle.deselect()
 
-        # Refresh status on open
         if config.get("ai.api_key", ""):
             self._ai_status_lbl.configure(text="API key saved ✓", text_color=C["green"])
+
+        # ── Global Proxy ───────────────────────────────────────────────────────
+        proxy_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
+        proxy_card.pack(fill="x", padx=8, pady=4)
+
+        ctk.CTkLabel(proxy_card, text="🌐  Global Proxy Settings",
+                     font=("Consolas", 11, "bold"), text_color=C["purple"]
+                     ).pack(anchor="w", padx=12, pady=(10, 4))
+
+        proxy_row = ctk.CTkFrame(proxy_card, fg_color="transparent")
+        proxy_row.pack(fill="x", padx=12, pady=(0, 10))
+
+        ctk.CTkLabel(proxy_row, text="HTTP:", font=("Consolas", 9),
+                     text_color=C["text_dim"]).pack(side="left", padx=(0, 8))
+        self._http_proxy_var = ctk.StringVar(value=config.get("proxy.http_proxy", ""))
+        self._http_proxy_entry = ctk.CTkEntry(
+            proxy_row, textvariable=self._http_proxy_var,
+            font=("Consolas", 9), fg_color=C["bg_dark"],
+            border_color=C["border"], text_color=C["text"],
+            placeholder_text="http://proxy:port", width=180
+        )
+        self._http_proxy_entry.pack(side="left", padx=(0, 16))
+
+        ctk.CTkLabel(proxy_row, text="HTTPS:", font=("Consolas", 9),
+                     text_color=C["text_dim"]).pack(side="left", padx=(0, 8))
+        self._https_proxy_var = ctk.StringVar(value=config.get("proxy.https_proxy", ""))
+        self._https_proxy_entry = ctk.CTkEntry(
+            proxy_row, textvariable=self._https_proxy_var,
+            font=("Consolas", 9), fg_color=C["bg_dark"],
+            border_color=C["border"], text_color=C["text"],
+            placeholder_text="http://proxy:port", width=180
+        )
+        self._https_proxy_entry.pack(side="left", padx=(0, 16))
+
+        ctk.CTkButton(
+            proxy_row, text="Save & Apply", height=28,
+            font=("Consolas", 9), fg_color=C["accent"],
+            hover_color=C["accent_h"], text_color="#FFF",
+            command=self._on_proxy_save
+        ).pack(side="right")
 
         # ── API Server ─────────────────────────────────────────────────────────
         api_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
@@ -1786,11 +1844,34 @@ class MainWindow(ctk.CTk):
         risk_color = RISK_COLORS.get(result.risk_level, C["text_dim"])
         size_kb = result.size / 1024 if result.size else 0
 
+        # VT ratio: show only when queried
+        if result.vt_available:
+            vt_ratio_text = result.vt_detection_ratio
+            # Color: green if 0 malicious, orange/yellow if few, red if many
+            vt_ratio_parts = vt_ratio_text.split("/")
+            if len(vt_ratio_parts) == 2:
+                vt_mal = int(vt_ratio_parts[0])
+                vt_total = int(vt_ratio_parts[1])
+                if vt_mal == 0:
+                    vt_ratio_color = C.get("green", "#22C55E")
+                elif vt_mal < vt_total * 0.1:
+                    vt_ratio_color = "#F59E0B"
+                elif vt_mal < vt_total * 0.5:
+                    vt_ratio_color = "#F97316"
+                else:
+                    vt_ratio_color = "#EF4444"
+            else:
+                vt_ratio_color = C["text_dim"]
+        else:
+            vt_ratio_text = "-"
+            vt_ratio_color = C["text_dim"]
+
         vals = [
-            (result.filename[:45], 300, C["text"]),
-            (f"{size_kb:.1f}", 80, C["text_dim"]),
-            (f"{result.entropy:.3f}", 80, risk_color),
-            (f"{result.probability * 100:.1f}", 80, risk_color),
+            (result.filename[:45], 250, C["text"]),
+            (f"{size_kb:.1f}", 70, C["text_dim"]),
+            (f"{result.entropy:.3f}", 70, risk_color),
+            (f"{result.probability * 100:.1f}", 70, risk_color),
+            (vt_ratio_text, 70, vt_ratio_color),
             (result.risk_level, 90, risk_color),
         ]
 
@@ -2065,51 +2146,175 @@ class MainWindow(ctk.CTk):
 
     def _ai_analyze_alert(self, alert: BehaviorAlert):
         def _run_ai():
-            from core.ai_analyzer import get_ai_analyzer
-            analyzer = get_ai_analyzer()
-            self._log("info", f"Sending alert for AI analysis: {alert.behavior_type.value}...")
-            self._set_status("Analyzing threat with AI...", C["cyan"])
-            
-            threat_context = {
-                "behavior_type": alert.behavior_type.value,
-                "process_name": alert.process.name,
-                "pid": alert.process.pid,
-                "severity": alert.severity,
-                "description": alert.description,
-            }
-            
-            result = analyzer.analyze_threat(threat_context)
-            
-            self.after(0, lambda: self._show_ai_result_popup(alert.process.name, result))
-            
+            # #region agent log
+            _agent_debug_log(
+                "main_window.py:_ai_analyze_alert._run_ai",
+                "thread_start",
+                {"behavior": alert.behavior_type.value},
+                "H2",
+            )
+            # #endregion
+            try:
+                from core.ai_analyzer import get_ai_analyzer
+                analyzer = get_ai_analyzer()
+                self._log("info", f"Sending alert for AI analysis: {alert.behavior_type.value}...")
+                self._set_status("Analyzing threat with AI...", C["cyan"])
+
+                threat_context = {
+                    "filename": alert.process.name,
+                    "file_path": alert.process.path,
+                    "extension": "",
+                    "entropy": 0.0,
+                    "entropy_z_score": 0.0,
+                    "ext_baseline_mean": 0.0,
+                    "ext_baseline_std": 0.0,
+                    "raw_probability": 0.0,
+                    "adjusted_probability": 0.0,
+                    "ml_risk_level": alert.severity.upper(),
+                    "fp_adjusted": False,
+                    "fp_reason": "",
+                    "sha256": "",
+                    "pe_info": None,
+                    "yara_matches": [],
+                    "yara_boosted": False,
+                    "vt_available": False,
+                    "vt_detection_ratio": "0/0",
+                    "vt_malicious_count": 0,
+                    "vt_suspicious_count": 0,
+                    "vt_total_engines": 0,
+                    "vt_permalink": "",
+                    "magic_bytes_mismatch": False,
+                    "known_benign_format": False,
+                    "struct_consistency": 0.0,
+                    "compression_ratio": 0.0,
+                    # BehaviorAlert-specific fields
+                    "behavior_type": alert.behavior_type.value,
+                    "process_pid": alert.process.pid,
+                    "process_path": alert.process.path,
+                    "affected_files": alert.files,
+                    "file_count": len(alert.files),
+                    "alert_description": alert.description,
+                    "alert_timestamp": alert.timestamp.isoformat() if hasattr(alert, "timestamp") else "",
+                    "alert_metadata": alert.metadata,
+                }
+
+                result = analyzer.analyze_threat(threat_context)
+                # #region agent log
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_alert._run_ai",
+                    "after_analyze",
+                    {"result_len": len(result or ""), "configured": analyzer.is_configured()},
+                    "H5",
+                )
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_alert._run_ai",
+                    "before_after",
+                    {},
+                    "H1",
+                )
+                # #endregion
+                self.after(0, lambda: self._show_ai_result_popup(alert.process.name, result))
+                # #region agent log
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_alert._run_ai",
+                    "after_scheduled",
+                    {},
+                    "H1",
+                )
+                # #endregion
+            except Exception as _ex:
+                # #region agent log
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_alert._run_ai",
+                    "exception",
+                    {"type": type(_ex).__name__, "msg": str(_ex)},
+                    "H2",
+                )
+                # #endregion
+                self.after(0, lambda err=str(_ex): (
+                    self._set_status(f"AI Analysis failed: {err}", C["red"]),
+                    self._log("danger", f"AI Analysis error: {err}"),
+                ))
+
         import threading
         threading.Thread(target=_run_ai, daemon=True).start()
 
     def _ai_analyze_threat_event(self, event: ThreatEvent):
+        # #region agent log
+        _agent_debug_log(
+            "main_window.py:_ai_analyze_threat_event",
+            "entry_main_thread",
+            {"filename": getattr(event.result, "filename", None)},
+            "H4",
+        )
+        # #endregion
+
         def _run_ai():
-            from core.ai_analyzer import get_ai_analyzer
-            analyzer = get_ai_analyzer()
-            self._log("info", f"Sending file threat for AI analysis: {event.result.filename}...")
-            self._set_status("Analyzing file threat with AI...", C["cyan"])
-            
-            threat_context = {
-                "filename": event.result.filename,
-                "file_size": event.result.size,
-                "entropy": event.result.entropy,
-                "ml_probability": event.result.probability,
-                "risk_level": event.result.risk_level,
-                "event_type": event.event_type,
-            }
-            
-            result = analyzer.analyze_threat(threat_context)
-            filename_short = event.result.filename.split("/")[-1].split("\\")[-1]
-            
-            self.after(0, lambda: self._show_ai_result_popup(filename_short, result))
-            
+            # #region agent log
+            _agent_debug_log(
+                "main_window.py:_ai_analyze_threat_event._run_ai",
+                "thread_start",
+                {},
+                "H2",
+            )
+            # #endregion
+            try:
+                from core.ai_analyzer import get_ai_analyzer
+                analyzer = get_ai_analyzer()
+                self._log("info", f"Sending file threat for AI analysis: {event.result.filename}...")
+                self._set_status("Analyzing file threat with AI...", C["cyan"])
+
+                result = analyzer.analyze_scan_result(event.result)
+                filename_short = event.result.filename.split("/")[-1].split("\\")[-1]
+                # #region agent log
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_threat_event._run_ai",
+                    "after_analyze",
+                    {"result_len": len(result or ""), "configured": analyzer.is_configured()},
+                    "H5",
+                )
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_threat_event._run_ai",
+                    "before_after",
+                    {"popup_title": filename_short},
+                    "H1",
+                )
+                # #endregion
+                self.after(0, lambda: self._show_ai_result_popup(filename_short, result))
+                # #region agent log
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_threat_event._run_ai",
+                    "after_scheduled",
+                    {},
+                    "H1",
+                )
+                # #endregion
+            except Exception as _ex:
+                # #region agent log
+                _agent_debug_log(
+                    "main_window.py:_ai_analyze_threat_event._run_ai",
+                    "exception",
+                    {"type": type(_ex).__name__, "msg": str(_ex)},
+                    "H2",
+                )
+                # #endregion
+                self.after(0, lambda err=str(_ex): (
+                    self._set_status(f"AI Analysis failed: {err}", C["red"]),
+                    self._log("danger", f"AI Analysis error: {err}"),
+                ))
+
         import threading
         threading.Thread(target=_run_ai, daemon=True).start()
 
     def _show_ai_result_popup(self, process_name: str, result: str):
+        # #region agent log
+        _agent_debug_log(
+            "main_window.py:_show_ai_result_popup",
+            "entry",
+            {"process_name": process_name, "result_len": len(result or "")},
+            "H3",
+        )
+        # #endregion
         self._set_status("AI Analysis complete", C["green"])
         self._log("success", f"AI Analysis finished for {process_name}")
         win = ctk.CTkToplevel(self)
@@ -2124,10 +2329,22 @@ class MainWindow(ctk.CTk):
 
     # ─── DeepSeek AI Settings handlers ──────────────────────────────────────
 
+    def _on_proxy_save(self):
+        http = self._http_proxy_var.get().strip()
+        https = self._https_proxy_var.get().strip()
+        config.set("proxy.http_proxy", http)
+        config.set("proxy.https_proxy", https)
+        import os
+        if http: os.environ["HTTP_PROXY"] = http
+        if https: os.environ["HTTPS_PROXY"] = https
+        self._log("success", f"Proxy updated: HTTP={http or 'none'}, HTTPS={https or 'none'}")
+        self._set_status("Proxy settings saved and applied", C["green"])
+
     def _on_ai_save(self):
         """Save Claude API key to config and reinitialize analyzer."""
         api_key = self._ai_api_key_var.get().strip()
         config.set("ai.api_key", api_key)
+        config.set("ai.auth_token", api_key)
         # Force re-create singleton so new key takes effect
         import core.ai_analyzer as _ai_mod
         _ai_mod._ai_analyzer_instance = None
@@ -2298,7 +2515,6 @@ class MainWindow(ctk.CTk):
 
         def run_server():
             try:
-                import asyncio
                 config.set("api.host", host)
                 config.set("api.port", port)
                 uvicorn.run(app, host=host, port=port, log_level="info")
@@ -2396,7 +2612,7 @@ class MainWindow(ctk.CTk):
         self._refresh_quarantine()
 
     def _delete_quarantined(self, item: Dict):
-        if messagebox.askyesno("Delete", f"Permanently delete this quarantined file?"):
+        if messagebox.askyesno("Delete", "Permanently delete this quarantined file?"):
             self._log("warning", f"Quarantined file deleted: {item['original_path']}")
             self._refresh_quarantine()
 

@@ -16,7 +16,6 @@ Usage:
 
 import os
 import json
-import csv
 import uuid
 import socket
 import hashlib
@@ -266,7 +265,7 @@ Top IOCs   : {', '.join(top_iocs) if top_iocs else 'None'}
                 "id": f"indicator--{uuid.uuid4()}",
                 "pattern": f"[file:hashes.SHA256 = '{ioc['sha256']}']",
                 "labels": ["malicious-activity"],
-                "name": f"Ransomware IOC",
+                "name": "Ransomware IOC",
                 "description": f"Detected threat score: {ioc['threat_score']:.2f}",
             }
             bundle["objects"].append(indicator)

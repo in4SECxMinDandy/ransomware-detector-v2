@@ -29,8 +29,6 @@ Cài đặt yara-python (tùy chọn, hiệu năng tốt hơn):
 """
 
 import os
-import re
-import struct
 from typing import List, Dict, Optional, Tuple
 import numpy as np
 
