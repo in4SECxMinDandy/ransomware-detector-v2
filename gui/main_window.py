@@ -44,7 +44,6 @@ from core.logger_setup import get_logger, setup_logging
 
 # ─── GUI module imports ────────────────────────────────────────────────────
 from gui.whitelist_editor import WhitelistEditorWindow
-from gui.tab_office_scanner import OfficeScannerTab
 from gui.tab_entropy_watch import EntropyWatchTab
 from gui.tab_honeypot import HoneypotTab
 from gui.tab_ml_training import MLTrainingTab
@@ -431,9 +430,10 @@ class MainWindow(ctk.CTk):
         try:
             from core.honeypot_manager import HoneypotManager
             self._honeypot_manager = HoneypotManager(
-                watchdog_callback=None, config={}
+                watchdog_callback=None
             )
-        except Exception:
+        except Exception as e:
+            print(f"Honeypot manager load error: {e}")
             self._honeypot_manager = None
 
         try:
@@ -717,7 +717,6 @@ class MainWindow(ctk.CTk):
             ("◻",  "Quarantine",     self._show_quarantine),
             ("⎙",  "Reports",        self._show_reports),
             ("☰",  "Logs",           self._show_logs),
-            ("📄", "Office Scanner",  self._show_office_scanner),
             ("📊", "Entropy Watch",   self._show_entropy_watch),
             ("🎣", "Honeypot",       self._show_honeypot),
             ("🤖", "ML Training",    self._show_ml_training),
@@ -794,7 +793,6 @@ class MainWindow(ctk.CTk):
         self._build_quarantine_page()
         self._build_reports_page()
         self._build_logs_page()
-        self._build_office_scanner_page()
         self._build_entropy_watch_page()
         self._build_honeypot_page()
         self._build_ml_training_page()
@@ -971,9 +969,16 @@ class MainWindow(ctk.CTk):
         self._scan_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
         ctk.CTkButton(
-            path_row, text="Browse", height=36,
+            path_row, text="Browse Dir", height=36,
             font=("Consolas", 10), fg_color=C["accent"], hover_color=C["accent_h"],
             text_color="#FFF", command=self._browse_scan_path
+        ).pack(side="left", padx=(0, 4))
+
+        ctk.CTkButton(
+            path_row, text="Browse File", height=36,
+            font=("Consolas", 10), fg_color=C["bg_card"], hover_color=C["border"],
+            border_width=1, border_color=C["border"],
+            text_color=C["text"], command=self._browse_scan_file
         ).pack(side="left")
 
         # Sensitivity selector
@@ -1716,10 +1721,15 @@ class MainWindow(ctk.CTk):
         if path:
             self._scan_path_var.set(path)
 
+    def _browse_scan_file(self):
+        path = filedialog.askopenfilename(title="Select file to scan")
+        if path:
+            self._scan_path_var.set(path)
+
     def _start_scan(self):
         path = self._scan_path_var.get().strip()
-        if not path or not os.path.isdir(path):
-            messagebox.showwarning("Invalid Path", "Please select a valid directory.")
+        if not path or not os.path.exists(path):
+            messagebox.showwarning("Invalid Path", "Please select a valid directory or file.")
             return
 
         self._scan_type = self._scan_type_var.get()
@@ -1787,6 +1797,13 @@ class MainWindow(ctk.CTk):
             threat = ThreatEvent(result, "scan")
             self._threat_events.append(threat)
             self.after(0, lambda t=threat: self._add_threat_widget(t))
+
+            # --- Auto Quarantine for SCAN ---
+            if self._protection_on and self._responder.should_auto_respond(result.risk_level):
+                q_res = self._responder.quarantine_file(result.path, reason=f"Scan: {result.risk_level} Threat")
+                if q_res.get("success"):
+                    self.after(0, lambda f=result.filename: self._log("warning", f"Auto-quarantined from scan: {f}"))
+                    self.after(0, self._refresh_quarantine)
 
     def _on_scan_complete(self, results: List[ScanResult]):
         elapsed = time.time() - self._scan_start_time
@@ -1879,10 +1896,46 @@ class MainWindow(ctk.CTk):
             f = ctk.CTkFrame(row, width=w, fg_color="transparent")
             f.pack(side="left", padx=2, fill="y", expand=True)
             f.pack_propagate(False)
-            ctk.CTkLabel(f, text=text, font=("Consolas", 8), text_color=color,
-                         anchor="w").pack(pady=2, padx=4)
+            lbl = ctk.CTkLabel(f, text=text, font=("Consolas", 8), text_color=color, anchor="w")
+            lbl.pack(pady=2, padx=4)
+            # Bind right click
+            lbl.bind("<Button-3>", lambda e, r=result: self._show_feedback_menu(e, r))
+            f.bind("<Button-3>", lambda e, r=result: self._show_feedback_menu(e, r))
 
+        row.bind("<Button-3>", lambda e, r=result: self._show_feedback_menu(e, r))
         self._results_rows.append(row)
+
+    def _show_feedback_menu(self, event, result: ScanResult):
+        import tkinter as tk
+        menu = tk.Menu(self, tearoff=0, bg=C["bg_dark"], fg=C["text"], activebackground=C["accent"])
+        if result.label == 1:
+            menu.add_command(label="Report False Positive (Mark as SAFE)",
+                             command=lambda: self._report_feedback(result, "SAFE"))
+        else:
+            menu.add_command(label="Report False Negative (Mark as RANSOMWARE)",
+                             command=lambda: self._report_feedback(result, "MALICIOUS"))
+        menu.add_separator()
+        menu.add_command(label="Cancel")
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def _report_feedback(self, result: ScanResult, correct_label: str):
+        if not hasattr(self, "_ml_training_tab"):
+            messagebox.showwarning("Error", "ML Training module not loaded.")
+            return
+
+        from core.feature_extractor import extract_features
+        features = extract_features(result.path)
+        if features is None:
+            messagebox.showerror("Error", f"Failed to extract features for {result.filename}")
+            return
+
+        pred = "RANSOMWARE" if result.label == 1 else "SAFE"
+        fb_type = "FP" if pred == "RANSOMWARE" else "FN"
+
+        self._ml_training_tab.add_feedback(
+            result.sha256, features, pred, correct_label, fb_type
+        )
+        messagebox.showinfo("Feedback Received", f"File '{result.filename}' marked as {correct_label}.\nFeedback sent to ML Training tab.")
 
     def _update_scatter_chart(self):
         if not self._scan_entropy_data:
@@ -1975,12 +2028,25 @@ class MainWindow(ctk.CTk):
         self._threat_events.append(event)
         self.after(0, lambda: self._add_threat_widget(event))
 
+        # --- Auto Quarantine for Monitor ---
+        if self._protection_on and self._responder.should_auto_respond(event.result.risk_level):
+            q_res = self._responder.quarantine_file(event.result.path, reason=f"Monitor: {event.result.risk_level} Threat")
+            if q_res.get("success"):
+                self.after(0, lambda f=event.result.filename: self._log("warning", f"Auto-quarantined real-time threat: {f}"))
+                self.after(0, self._refresh_quarantine)
+
     def _on_file_analyzed(self, result: ScanResult, event_type: str):
         # Called for every file analyzed during monitoring
         if not hasattr(self, "_threats_lbl"):
             return
         current = int(self._threats_lbl.cget("text"))
         self.after(0, lambda: self._threats_lbl.configure(text=str(current)))
+        
+        # --- Update Entropy Watch Live ---
+        if hasattr(self, "_entropy_watch_tab") and self._entropy_watch_tab:
+            ts = datetime.now().strftime("%H:%M:%S")
+            self.after(0, lambda fp=result.path, e=result.entropy, t=ts:
+                       self._entropy_watch_tab.add_entropy_entry(fp, e, t))
 
     def _on_behavior_alert(self, alert: BehaviorAlert):
         self._behavior_alerts.append(alert)
@@ -2032,7 +2098,31 @@ class MainWindow(ctk.CTk):
             command=lambda e=event: self._ai_analyze_threat_event(e)
         ).pack(side="left")
 
+        ctk.CTkButton(
+            action_row, text="Quarantine", height=24,
+            font=("Consolas", 8), text_color=C["orange"],
+            fg_color="transparent", hover_color=C["bg_card"],
+            command=lambda e=event: self._manual_quarantine_action(e)
+        ).pack(side="left", padx=(4, 0))
+
         self._threat_event_widgets.append(card)
+
+    def _manual_quarantine_action(self, event: ThreatEvent):
+        if not os.path.exists(event.result.path):
+            messagebox.showinfo("Not Found", "File already removed or quarantined.")
+            return
+        if messagebox.askyesno("Quarantine File", f"Move '{event.result.filename}' to quarantine?"):
+            q_res = self._responder.quarantine_file(
+                event.result.path, 
+                reason=f"User manual quarantine ({event.result.risk_level})"
+            )
+            if q_res.get("success"):
+                self._log("success", f"Manually quarantined: {event.result.filename}")
+                self._set_status(f"Quarantined {event.result.filename}", C["green"])
+                self._refresh_quarantine()
+            else:
+                self._log("danger", f"Failed to quarantine: {q_res.get('error', 'Unknown error')}")
+                messagebox.showerror("Error", f"Could not quarantine file: {q_res.get('error', 'Unknown error')}")
         if len(self._threat_event_widgets) > 50:
             oldest = self._threat_event_widgets.pop(0)
             oldest.destroy()
@@ -2613,7 +2703,11 @@ class MainWindow(ctk.CTk):
 
     def _delete_quarantined(self, item: Dict):
         if messagebox.askyesno("Delete", "Permanently delete this quarantined file?"):
-            self._log("warning", f"Quarantined file deleted: {item['original_path']}")
+            success = getattr(self._responder, 'delete_quarantined_file', lambda x: False)(item["id"])
+            if success:
+                self._log("warning", f"Quarantined file permanently deleted: {item['original_path']}")
+            else:
+                self._log("danger", f"Failed to delete quarantined file: {item['original_path']}")
             self._refresh_quarantine()
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -2702,27 +2796,15 @@ class MainWindow(ctk.CTk):
             self._log_text.configure(state="disabled")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # NEW TABS — Office Scanner, Entropy Watch, Honeypot, ML Training
+    # NEW TABS — Entropy Watch, Honeypot, ML Training
     # ═══════════════════════════════════════════════════════════════════════
-
-    def _build_office_scanner_page(self):
-        page = OfficeScannerTab(self._page_container)
-        page.grid(row=0, column=0, sticky="nsew")
-        self._pages.append(page)
-        self._office_scanner_tab = page
 
     def _build_entropy_watch_page(self):
         page = EntropyWatchTab(self._page_container)
         page.grid(row=0, column=0, sticky="nsew")
         self._pages.append(page)
         self._entropy_watch_tab = page
-        # Wire entropy events from monitor to tab
-        if hasattr(self, "_monitor") and self._monitor:
-            def _on_entropy_entry(file_path, entropy):
-                ts = datetime.now().strftime("%H:%M:%S")
-                self.after(0, lambda fp=file_path, e=entropy, t=ts:
-                          self._entropy_watch_tab.add_entropy_entry(fp, e, t))
-            self._monitor.on_entropy_alert = _on_entropy_entry
+        # Note: entropy real-time updates are driven by _on_file_analyzed
 
     def _build_honeypot_page(self):
         page = HoneypotTab(self._page_container)
@@ -2742,17 +2824,14 @@ class MainWindow(ctk.CTk):
         if hasattr(self, "_engine") and self._engine:
             page.set_ml_engine(self._engine)
 
-    def _show_office_scanner(self):
+    def _show_entropy_watch(self):
         self._show_page(7)
 
-    def _show_entropy_watch(self):
+    def _show_honeypot(self):
         self._show_page(8)
 
-    def _show_honeypot(self):
-        self._show_page(9)
-
     def _show_ml_training(self):
-        self._show_page(10)
+        self._show_page(9)
 
     # ─── Wire new tabs after init ──────────────────────────────────────────
 

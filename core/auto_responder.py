@@ -174,6 +174,32 @@ class AutoResponder:
             logger.error(f"Failed to restore file: {e}")
             return False
 
+    def delete_quarantined_file(self, quarantine_id: str) -> bool:
+        """Permanently delete a quarantined file and remove it from manifest."""
+        manifest = self._load_manifest()
+        entry = manifest.get(quarantine_id)
+
+        if not entry:
+            logger.error(f"Quarantine ID not found for deletion: {quarantine_id}")
+            return False
+
+        quarantined_path = entry["quarantined_path"]
+
+        try:
+            if os.path.exists(quarantined_path):
+                os.remove(quarantined_path)
+
+            del manifest[quarantine_id]
+            self._save_manifest(manifest)
+
+            self._log_action("DELETE_QUARANTINE", file=entry["original_path"], quarantine_id=quarantine_id)
+            logger.info(f"Quarantined file permanently deleted: {quarantined_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to delete quarantined file: {e}")
+            return False
+
     def kill_process(self, pid: int, process_name: str = "") -> bool:
         """
         Kill a malicious process.

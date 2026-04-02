@@ -1,0 +1,11 @@
+{
+  "Q_20260402_104016": {
+    "id": "Q_20260402_104016",
+    "original_path": "C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\\UniKeyNT.exe",
+    "quarantined_path": "quarantine/20260402_104016\\UniKeyNT.exe.quarantined",
+    "hash": "b732b1c198e7b0ebfcb0ef2f5d99f1888b5900460c1fa36ea27d47e8386684b1",
+    "timestamp": "2026-04-02T10:40:16.367106",
+    "reason": "Scan: CRITICAL Threat",
+    "size": 2532280
+  }
+}

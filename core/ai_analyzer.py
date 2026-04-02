@@ -423,6 +423,16 @@ Report:"""
             logger.error(f"Claude API HTTP error ({e.response.status_code}): {e.response.text}")
             return f"API error ({e.response.status_code}): {e.response.text}"
         except Exception as e:
+            # [DEBUG] Instrument InvalidPort root cause
+            import os as _os
+            import traceback as _tb
+            logger.error(
+                f"[DEBUG AI] Exception type={type(e).__name__}  "
+                f"HTTP_PROXY={_os.environ.get('HTTP_PROXY', '')!r}  "
+                f"HTTPS_PROXY={_os.environ.get('HTTPS_PROXY', '')!r}  "
+                f"base_url={self.base_url!r}  "
+                f"trace={_tb.format_exc()}"
+            )
             logger.error(f"Claude AI Analysis failed: {e}")
             return f"Error analyzing threat with AI: {str(e)}"
 

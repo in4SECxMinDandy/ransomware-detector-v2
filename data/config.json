@@ -200,7 +200,7 @@
     "cache_ttl_hours": 24,
     "rate_limit_rpm": 4,
     "enabled": true,
-    "auto_check": false,
+    "auto_check": true,
     "check_binaries": true,
     "fusion_min_engines": 40,
     "fusion_max_suspicious": 2,
@@ -215,7 +215,7 @@
   },
   "honeypot": {
     "enabled": false,
-    "auto_deploy": false,
+    "auto_deploy": true,
     "names": [
       "passwords.xlsx",
       "backup.docx",
@@ -248,7 +248,7 @@
   "ml_feedback": {
     "auto_retrain_threshold": 50,
     "retrain_interval_hours": 168,
-    "auto_retrain_enabled": true
+    "auto_retrain_enabled": false
   },
   "office_scanner": {
     "enabled": true,
@@ -257,14 +257,13 @@
   },
   "ai": {
     "enabled": true,
-    "api_key": "",
+    "api_key": "sk-proj-9deb14dd3fc349fc980f50fb0dc4e356",
     "model": "claude-haiku-4-5-20251001",
     "base_url": "https://taphoaapi.info.vn/",
     "max_tokens": 1024,
     "temperature": 0.2,
-    "auth_token": ""
+    "auth_token": "sk-proj-9deb14dd3fc349fc980f50fb0dc4e356"
   },
-
   "threat_intel": {
     "malwarebazaar": {
       "api_key": "",
@@ -283,7 +282,7 @@
     }
   },
   "proxy": {
-    "http_proxy": "http://proxy:port",
-    "https_proxy": "http://proxy:port"
+    "http_proxy": "",
+    "https_proxy": ""
   }
 }

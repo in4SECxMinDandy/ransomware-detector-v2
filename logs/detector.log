@@ -1200,3 +1200,256 @@ TypeError: startswith first arg must be bytes or a tuple of bytes, not str
 [2026-03-29 18:07:16] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
 [2026-03-29 18:07:38] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
 [2026-03-29 18:23:07] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"
+[2026-03-29 21:34:45] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 21:34:45] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 21:34:45] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 21:34:56] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 21:39:04] [ERROR   ] [core.ai_analyzer] Claude AI Analysis failed: Invalid port: 'port'
+[2026-03-29 21:44:22] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 21:44:22] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 21:44:22] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 21:44:33] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:33] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:33] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:33] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 21:44:33] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:33] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:34] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:34] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:34] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:34] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:34] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:44:34] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:45:14] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env='http://proxy:port'  HTTPS_PROXY env='http://proxy:port'
+[2026-03-29 21:45:14] [ERROR   ] [core.ai_analyzer] [DEBUG AI] Exception type=InvalidURL  HTTP_PROXY='http://proxy:port'  HTTPS_PROXY='http://proxy:port'  base_url='https://taphoaapi.info.vn'  trace=Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_urlparse.py", line 409, in normalize_port
+    port_as_int = int(port)
+ValueError: invalid literal for int() with base 10: 'port'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\ai_analyzer.py", line 400, in analyze_threat
+    with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\core\config_manager.py", line 330, in _patched_init
+    return _orig_init(self, *args, **kwargs)
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_client.py", line 686, in __init__
+    proxy_map = self._get_proxy_map(proxy, allow_env_proxies)
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_client.py", line 244, in _get_proxy_map
+    return {
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_client.py", line 245, in <dictcomp>
+    key: None if url is None else Proxy(url=url)
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_config.py", line 210, in __init__
+    url = URL(url)
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_urls.py", line 117, in __init__
+    self._uri_reference = urlparse(url, **kwargs)
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_urlparse.py", line 321, in urlparse
+    parsed_port: int | None = normalize_port(port, scheme)
+  File "C:\Users\haqua\Documents\GitHub\ransomware-detector-v2\venv\lib\site-packages\httpx\_urlparse.py", line 411, in normalize_port
+    raise InvalidURL(f"Invalid port: {port!r}")
+httpx.InvalidURL: Invalid port: 'port'
+
+[2026-03-29 21:45:14] [ERROR   ] [core.ai_analyzer] Claude AI Analysis failed: Invalid port: 'port'
+[2026-03-29 21:55:33] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 21:55:34] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 21:55:34] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 21:57:07] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 21:57:07] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 21:57:07] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 21:57:07] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 21:57:07] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 21:57:07] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 21:57:07] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 21:57:07] [INFO    ] [core.threat_intel_client] Loaded 1 cached TI entries
+[2026-03-29 21:57:07] [INFO    ] [core.threat_intel_client] Loaded 1 cached TI entries
+[2026-03-29 21:57:07] [INFO    ] [core.threat_intel_client] Loaded 1 cached TI entries
+[2026-03-29 21:57:07] [INFO    ] [core.threat_intel_client] Loaded 1 cached TI entries
+[2026-03-29 21:57:07] [INFO    ] [core.threat_intel_client] Loaded 1 cached TI entries
+[2026-03-29 21:57:07] [INFO    ] [core.threat_intel_client] Loaded 1 cached TI entries
+[2026-03-29 21:57:08] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:08] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:08] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:08] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:09] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:10] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/0c0c8e2543c9fb27f66a1d932ced4ed8b6b3ead8541e0fcde6926aac72b9ab65 "HTTP/1.1 200 OK"
+[2026-03-29 21:57:10] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/45cbd882eefeb419dc44826c90acb8cda6ce49d5a341b68fd7e647bfb65a664f "HTTP/1.1 200 OK"
+[2026-03-29 21:57:10] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/52cd340d8e2573e406682320a23700dc8207e7b6ae693dbf1fb81907d38ec25a "HTTP/1.1 200 OK"
+[2026-03-29 21:57:10] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:10] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/370d36a89f8ffa291fd22c40dda78fd6154078b2e2b4b100d5c2429135e4aa72 "HTTP/1.1 200 OK"
+[2026-03-29 21:57:10] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/61e54382712849ae798daaa2cc2efff90b3ed84e15961d3644b762ed415968f8 "HTTP/1.1 200 OK"
+[2026-03-29 21:57:10] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:11] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:11] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/9b1ffb28d6e934bf7683b09b01e1843e9b4baab89c119a81de59b851bd01bf73 "HTTP/1.1 200 OK"
+[2026-03-29 21:57:12] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:13] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:15] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:16] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/1fbe3c3a97b4eaa85c5acbfe36d744b1880cd4d7da6247eb6309b5ae3429cb26 "HTTP/1.1 200 OK"
+[2026-03-29 21:57:21] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:22] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/a6058d7c4c16bfa5bcd6fde051a92de8c68535fd7ebade55fc0ab1c41be3c8d5 "HTTP/1.1 200 OK"
+[2026-03-29 21:57:27] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:28] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/ae4bf6bed952e221e9b6acc4886a0fbbe159fa1d7a03c3107bcb8f63384ce3ec "HTTP/1.1 200 OK"
+[2026-03-29 21:57:33] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:34] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/b732b1c198e7b0ebfcb0ef2f5d99f1888b5900460c1fa36ea27d47e8386684b1 "HTTP/1.1 200 OK"
+[2026-03-29 21:57:39] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 21:57:40] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/b46d4f783059781c2ca4dda4c38951208263d22281826b217d7bf498d348d6eb "HTTP/1.1 200 OK"
+[2026-03-29 21:57:46] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 21:58:12] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"
+[2026-03-29 22:04:07] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 22:04:37] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 22:04:37] [ERROR   ] [core.ai_analyzer] Claude API timeout: The read operation timed out
+[2026-03-29 22:04:43] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 22:05:04] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"
+[2026-03-29 22:05:11] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"
+[2026-03-29 22:41:04] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:05] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:05] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:06] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:06] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/e0036d495010940ed1d98504a468d1011fa488965257a2f84fdd74280c991542 "HTTP/1.1 200 OK"
+[2026-03-29 22:41:07] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:08] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:09] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:11] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:11] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/61e54382712849ae798daaa2cc2efff90b3ed84e15961d3644b762ed415968f8 "HTTP/1.1 200 OK"
+[2026-03-29 22:41:17] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:17] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/45cbd882eefeb419dc44826c90acb8cda6ce49d5a341b68fd7e647bfb65a664f "HTTP/1.1 200 OK"
+[2026-03-29 22:41:23] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:23] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/0c0c8e2543c9fb27f66a1d932ced4ed8b6b3ead8541e0fcde6926aac72b9ab65 "HTTP/1.1 200 OK"
+[2026-03-29 22:41:29] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:30] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/52cd340d8e2573e406682320a23700dc8207e7b6ae693dbf1fb81907d38ec25a "HTTP/1.1 200 OK"
+[2026-03-29 22:41:35] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-03-29 22:41:35] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/9b1ffb28d6e934bf7683b09b01e1843e9b4baab89c119a81de59b851bd01bf73 "HTTP/1.1 200 OK"
+[2026-03-29 23:16:51] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 23:16:52] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 23:16:52] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 23:33:34] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 23:33:34] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 23:33:34] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 23:39:59] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-29 23:39:59] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-29 23:39:59] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 23:42:07] [INFO    ] [core.virustotal_client] Loaded 5 cached VT entries
+[2026-03-29 23:42:09] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 23:42:09] [INFO    ] [core.threat_intel_client] Loaded 13 cached TI entries
+[2026-03-29 23:59:14] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-29 23:59:35] [INFO    ] [httpx] HTTP Request: POST https://taphoaapi.info.vn/v1/messages "HTTP/1.1 200 OK"
+[2026-03-30 00:08:17] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-03-30 00:08:17] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-03-30 00:08:17] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-30 00:18:25] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-03-30 00:18:25] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-03-30 00:18:25] [INFO    ] [core.threat_intel_client] Loaded 13 cached TI entries
+[2026-03-30 00:20:18] [INFO    ] [core.ml_engine] Feedback saved: FP — RANSOMWARE→SAFE [e0036d49...]
+[2026-04-02 10:28:22] [INFO    ] [gui.tray_manager] System tray icon started
+[2026-04-02 10:28:22] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-04-02 10:28:22] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-04-02 10:31:43] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-04-02 10:31:43] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-04-02 10:31:43] [INFO    ] [core.virustotal_client] Loaded 0 cached VT entries
+[2026-04-02 10:31:44] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 45cbd882eefeb419...
+[2026-04-02 10:31:44] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-04-02 10:31:44] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 52cd340d8e2573e4...
+[2026-04-02 10:31:44] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-04-02 10:31:44] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-04-02 10:31:44] [INFO    ] [core.threat_intel_client] Loaded 0 cached TI entries
+[2026-04-02 10:31:44] [INFO    ] [core.threat_intel_client] Loaded 0 cached TI entries
+[2026-04-02 10:31:44] [INFO    ] [core.threat_intel_client] Loaded 0 cached TI entries
+[2026-04-02 10:31:46] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:31:46] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:31:46] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:31:46] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:31:47] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:31:47] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:31:48] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/45cbd882eefeb419dc44826c90acb8cda6ce49d5a341b68fd7e647bfb65a664f "HTTP/1.1 200 OK"
+[2026-04-02 10:31:48] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/e0036d495010940ed1d98504a468d1011fa488965257a2f84fdd74280c991542 "HTTP/1.1 200 OK"
+[2026-04-02 10:31:48] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/52cd340d8e2573e406682320a23700dc8207e7b6ae693dbf1fb81907d38ec25a "HTTP/1.1 200 OK"
+[2026-04-02 10:31:58] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 61e54382712849ae...
+[2026-04-02 10:31:59] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:01] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:02] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/61e54382712849ae798daaa2cc2efff90b3ed84e15961d3644b762ed415968f8 "HTTP/1.1 200 OK"
+[2026-04-02 10:32:13] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 0c0c8e2543c9fb27...
+[2026-04-02 10:32:15] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:16] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:17] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/0c0c8e2543c9fb27f66a1d932ced4ed8b6b3ead8541e0fcde6926aac72b9ab65 "HTTP/1.1 200 OK"
+[2026-04-02 10:32:29] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:30] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:31] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/370d36a89f8ffa291fd22c40dda78fd6154078b2e2b4b100d5c2429135e4aa72 "HTTP/1.1 200 OK"
+[2026-04-02 10:32:45] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:46] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:32:47] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/9b1ffb28d6e934bf7683b09b01e1843e9b4baab89c119a81de59b851bd01bf73 "HTTP/1.1 200 OK"
+[2026-04-02 10:33:00] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:33:01] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:33:02] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/a6058d7c4c16bfa5bcd6fde051a92de8c68535fd7ebade55fc0ab1c41be3c8d5 "HTTP/1.1 200 OK"
+[2026-04-02 10:33:14] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 45cbd882eefeb419...
+[2026-04-02 10:33:15] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:33:16] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:33:16] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/45cbd882eefeb419dc44826c90acb8cda6ce49d5a341b68fd7e647bfb65a664f "HTTP/1.1 200 OK"
+[2026-04-02 10:33:28] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 61e54382712849ae...
+[2026-04-02 10:33:44] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 52cd340d8e2573e4...
+[2026-04-02 10:33:45] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:33:46] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:33:47] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/52cd340d8e2573e406682320a23700dc8207e7b6ae693dbf1fb81907d38ec25a "HTTP/1.1 200 OK"
+[2026-04-02 10:34:28] [INFO    ] [core.virustotal_client] File not found on VirusTotal: ae4bf6bed952e221...
+[2026-04-02 10:34:30] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:34:31] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:34:33] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/ae4bf6bed952e221e9b6acc4886a0fbbe159fa1d7a03c3107bcb8f63384ce3ec "HTTP/1.1 200 OK"
+[2026-04-02 10:34:44] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 0c0c8e2543c9fb27...
+[2026-04-02 10:35:00] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:35:01] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:35:02] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/1fbe3c3a97b4eaa85c5acbfe36d744b1880cd4d7da6247eb6309b5ae3429cb26 "HTTP/1.1 200 OK"
+[2026-04-02 10:35:14] [INFO    ] [core.virustotal_client] File not found on VirusTotal: b46d4f783059781c...
+[2026-04-02 10:35:15] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:35:16] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:35:17] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/b46d4f783059781c2ca4dda4c38951208263d22281826b217d7bf498d348d6eb "HTTP/1.1 200 OK"
+[2026-04-02 10:36:00] [INFO    ] [httpx] HTTP Request: POST https://bazaar.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:36:01] [INFO    ] [httpx] HTTP Request: POST https://threatfox.abuse.ch/api/ "HTTP/1.1 200 OK"
+[2026-04-02 10:36:02] [INFO    ] [httpx] HTTP Request: GET https://otx.alienvault.com/api/v3/indicators/file/sha256/b732b1c198e7b0ebfcb0ef2f5d99f1888b5900460c1fa36ea27d47e8386684b1 "HTTP/1.1 200 OK"
+[2026-04-02 10:36:29] [INFO    ] [core.virustotal_client] File not found on VirusTotal: ae4bf6bed952e221...
+[2026-04-02 10:36:44] [INFO    ] [core.virustotal_client] File not found on VirusTotal: b46d4f783059781c...
+[2026-04-02 10:39:30] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-04-02 10:39:30] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-04-02 10:39:30] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-04-02 10:39:30] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-04-02 10:39:30] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-04-02 10:40:14] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-04-02 10:40:14] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-04-02 10:40:14] [INFO    ] [core.threat_intel_client] Loaded 12 cached TI entries
+[2026-04-02 10:40:14] [INFO    ] [core.auto_responder] File quarantined: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\e0036d495010940ed1d98504a468d1011fa488965257a2f84fdd74280c991542.xlsx -> quarantine/20260402_104014\e0036d495010940ed1d98504a468d1011fa488965257a2f84fdd74280c991542.xlsx.quarantined
+[2026-04-02 10:40:15] [INFO    ] [core.auto_responder] File quarantined: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\370d36a89f8ffa291fd22c40dda78fd6154078b2e2b4b100d5c2429135e4aa72.exe -> quarantine/20260402_104015\370d36a89f8ffa291fd22c40dda78fd6154078b2e2b4b100d5c2429135e4aa72.exe.quarantined
+[2026-04-02 10:40:16] [INFO    ] [core.auto_responder] File quarantined: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\git-setup.exe -> quarantine/20260402_104015\git-setup.exe.quarantined
+[2026-04-02 10:40:16] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 61e54382712849ae...
+[2026-04-02 10:40:16] [INFO    ] [core.auto_responder] File quarantined: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\ngrok.exe -> quarantine/20260402_104016\ngrok.exe.quarantined
+[2026-04-02 10:40:16] [INFO    ] [core.auto_responder] File quarantined: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\UniKeyNT.exe -> quarantine/20260402_104016\UniKeyNT.exe.quarantined
+[2026-04-02 10:40:29] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 45cbd882eefeb419...
+[2026-04-02 10:40:44] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 52cd340d8e2573e4...
+[2026-04-02 10:40:59] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 0c0c8e2543c9fb27...
+[2026-04-02 10:41:14] [INFO    ] [core.virustotal_client] File not found on VirusTotal: ae4bf6bed952e221...
+[2026-04-02 10:41:29] [INFO    ] [core.virustotal_client] File not found on VirusTotal: b46d4f783059781c...
+[2026-04-02 11:10:57] [WARNING ] [root] stix2 not available - using manual JSON format for IOC report
+[2026-04-02 11:10:57] [WARNING ] [root] pystray not available - system tray will be disabled
+[2026-04-02 11:10:57] [WARNING ] [gui.tray_manager] pystray not available - tray disabled
+[2026-04-02 11:10:57] [INFO    ] [core.network_monitor] Loaded 0 threat intel IPs
+[2026-04-02 11:10:57] [INFO    ] [core.honeypot_manager] Loaded 0 honeypots from registry
+[2026-04-02 11:10:57] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-04-02 11:11:18] [INFO    ] [core.virustotal_client] Loaded 6 cached VT entries
+[2026-04-02 11:11:18] [INFO    ] [core.config_manager] [DEBUG PROXY] HTTP_PROXY env=''  HTTPS_PROXY env=''
+[2026-04-02 11:11:18] [INFO    ] [core.threat_intel_client] Loaded 12 cached TI entries
+[2026-04-02 11:11:19] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 61e54382712849ae...
+[2026-04-02 11:11:33] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 52cd340d8e2573e4...
+[2026-04-02 11:11:49] [INFO    ] [core.virustotal_client] File not found on VirusTotal: ae4bf6bed952e221...
+[2026-04-02 11:12:03] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 45cbd882eefeb419...
+[2026-04-02 11:12:18] [INFO    ] [core.virustotal_client] File not found on VirusTotal: b46d4f783059781c...
+[2026-04-02 11:12:33] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 0c0c8e2543c9fb27...
+[2026-04-02 11:15:02] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 45cbd882eefeb419...
+[2026-04-02 11:15:17] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 52cd340d8e2573e4...
+[2026-04-02 11:15:32] [INFO    ] [core.virustotal_client] File not found on VirusTotal: ae4bf6bed952e221...
+[2026-04-02 11:15:47] [INFO    ] [core.virustotal_client] File not found on VirusTotal: b46d4f783059781c...
+[2026-04-02 11:16:02] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 61e54382712849ae...
+[2026-04-02 11:16:17] [INFO    ] [core.virustotal_client] File not found on VirusTotal: 0c0c8e2543c9fb27...
+[2026-04-02 11:20:26] [INFO    ] [core.auto_responder] File restored: C:/Users/haqua/Documents/GitHub/ransomware-detector-v2/Malware\e0036d495010940ed1d98504a468d1011fa488965257a2f84fdd74280c991542.xlsx

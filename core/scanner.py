@@ -502,6 +502,15 @@ class Scanner:
 
     def _collect_files(self, directory: str, recursive: bool) -> List[str]:
         """Thu thập danh sách files cần quét."""
+        if os.path.isfile(directory):
+            try:
+                size = os.path.getsize(directory)
+                if MIN_FILE_SIZE <= size <= MAX_FILE_SIZE:
+                    return [directory]
+            except OSError:
+                pass
+            return []
+
         files = []
         try:
             if recursive:

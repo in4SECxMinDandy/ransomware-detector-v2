@@ -318,6 +318,19 @@ class ConfigManager:
         if http or https:
             logger.info(f"Proxy configured: HTTP={http}, HTTPS={https}")
 
+        # [DEBUG] Instrument proxy propagation for ai_analyzer InvalidPort issue
+        import httpx
+        _orig_init = httpx._client.Client.__init__
+
+        def _patched_init(self, *args, **kwargs):
+            import os as _os
+            http_e = _os.environ.get("HTTP_PROXY", "")
+            https_e = _os.environ.get("HTTPS_PROXY", "")
+            logger.info(f"[DEBUG PROXY] HTTP_PROXY env={http_e!r}  HTTPS_PROXY env={https_e!r}")
+            return _orig_init(self, *args, **kwargs)
+
+        httpx._client.Client.__init__ = _patched_init
+
     # ─── Persistence ─────────────────────────────────────────────────────────
 
     def _load(self):
