@@ -24,6 +24,8 @@ import time
 import hashlib
 import threading
 import json
+import base64
+import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List, Dict, Optional, Any
 
@@ -43,6 +45,9 @@ logger = get_logger("scanner")
 
 _INCREMENTAL_CACHE_FILE = "data/scan_cache.json"
 _INCREMENTAL_CACHE: dict[str, float] = {}
+_SCAN_DEBUG_TRACE = os.environ.get("RANSOMWARE_DEBUG_TRACE", "").strip().lower() in {
+    "1", "true", "yes", "on",
+}
 
 
 def _load_incremental_cache() -> dict[str, float]:
@@ -89,13 +94,19 @@ def is_modified_since_last_scan(file_path: str) -> bool:
     return mtime > cache.get(file_path, 0)
 
 
-def mark_scanned(file_path: str):
+def mark_scanned(file_path: str, persist: bool = True):
     """Record file's current modification time."""
     try:
         _INCREMENTAL_CACHE[file_path] = os.path.getmtime(file_path)
-        _save_incremental_cache()
+        if persist:
+            _save_incremental_cache()
     except OSError:
         pass
+
+
+def flush_incremental_cache():
+    """Persist all pending incremental-scan updates in one write."""
+    _save_incremental_cache()
 
 # Extensions luôn bỏ qua (hệ thống, không cần phân tích)
 SKIP_EXTENSIONS = {
@@ -237,6 +248,7 @@ class ScanResult:
         "ti_otx_pulse_names",
         "ti_otx_analysis_metadata",
         "ti_error",
+        "features_b64",
     ]
 
     def __init__(self, path: str):
@@ -289,6 +301,7 @@ class ScanResult:
         self.ti_otx_pulse_names: list = []
         self.ti_otx_analysis_metadata: dict = {}
         self.ti_error: str = ""
+        self.features_b64: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -334,6 +347,12 @@ class ScanResult:
             "ti_otx_pulse_names":        self.ti_otx_pulse_names,
             "ti_otx_analysis_metadata":  self.ti_otx_analysis_metadata,
             "ti_error":                  self.ti_error,
+            "pe_info":                   self.pe_info,
+            "yara_boosted":              self.yara_boosted,
+            "yara_match_count":          len(self.yara_matches),
+            "yara_rule_names":           [m.rule_name for m in self.yara_matches],
+            "yara_severities":           [m.severity for m in self.yara_matches],
+            "features_b64":              self.features_b64,
         }
 
 
@@ -603,6 +622,9 @@ class Scanner:
                 result.risk_level = "UNKNOWN"
                 result.scan_time_ms = (time.perf_counter() - t_start) * 1000
                 return result
+            result.features_b64 = base64.b64encode(
+                np.asarray(features, dtype=np.float32).tobytes()
+            ).decode("ascii")
 
             # ── Bước 3: ML Predict ──
             engine = get_engine()
@@ -678,40 +700,41 @@ class Scanner:
                 result.risk_level = "SAFE"
 
             # #region agent debug
-            try:
-                _debug_log_path = os.path.normpath(
-                    os.path.join(os.path.dirname(__file__), "..", "debug-4602d0.log")
-                )
-                _debug_payload = {
-                    "sessionId": "4602d0",
-                    "timestamp": int(time.time() * 1000),
-                    "location": "scanner.py:_scan_one",
-                    "message": "pipeline_trace",
-                    "data": {
-                        "filename": result.filename,
-                        "risk_level": result.risk_level,
-                        "raw_proba": raw_proba,
-                        "adjusted_proba": adjusted_proba,
-                        "eff_threshold": eff_threshold,
-                        "heuristic_hit": heuristic_hit,
-                        "injection_found": injection_found,
-                        "fp_reason": result.fp_reason,
-                        "yara_boosted": result.yara_boosted,
-                        "yara_match_count": len(yara_matches),
-                        "yara_severities": [m.severity for m in yara_matches] if yara_matches else [],
-                        "entropy": features[0],
-                        "entropy_z": entropy_z,
-                        "compression": compression_est,
-                        "struct_consistency": structural_consistency,
-                        "suspicious_ext": suspicious_ext,
-                        "base_threshold": base_threshold,
-                    },
-                    "hypothesisId": "UNIKEY",
-                }
-                with open(_debug_log_path, "a", encoding="utf-8") as _f:
-                    _f.write(json.dumps(_debug_payload, ensure_ascii=False) + "\n")
-            except Exception:
-                pass
+            if _SCAN_DEBUG_TRACE:
+                try:
+                    _debug_log_path = os.path.normpath(
+                        os.path.join(os.path.dirname(__file__), "..", "debug-4602d0.log")
+                    )
+                    _debug_payload = {
+                        "sessionId": "4602d0",
+                        "timestamp": int(time.time() * 1000),
+                        "location": "scanner.py:_scan_one",
+                        "message": "pipeline_trace",
+                        "data": {
+                            "filename": result.filename,
+                            "risk_level": result.risk_level,
+                            "raw_proba": raw_proba,
+                            "adjusted_proba": adjusted_proba,
+                            "eff_threshold": eff_threshold,
+                            "heuristic_hit": heuristic_hit,
+                            "injection_found": injection_found,
+                            "fp_reason": result.fp_reason,
+                            "yara_boosted": result.yara_boosted,
+                            "yara_match_count": len(yara_matches),
+                            "yara_severities": [m.severity for m in yara_matches] if yara_matches else [],
+                            "entropy": features[0],
+                            "entropy_z": entropy_z,
+                            "compression": compression_est,
+                            "struct_consistency": structural_consistency,
+                            "suspicious_ext": suspicious_ext,
+                            "base_threshold": base_threshold,
+                        },
+                        "hypothesisId": "UNIKEY",
+                    }
+                    with open(_debug_log_path, "a", encoding="utf-8") as _f:
+                        _f.write(json.dumps(_debug_payload, ensure_ascii=False) + "\n")
+                except Exception:
+                    pass
             # #endregion
 
             # ── Bước 7: VirusTotal Lookup (v3.0) ──
@@ -798,7 +821,7 @@ class Scanner:
         Parameters
         ----------
         directory   : thư mục cần quét
-        recursive   : True = Full Scan (đệ quy), False = Quick Scan
+        recursive   : True = quét đệ quy, False = chỉ quét cấp hiện tại
         on_progress : callback(scanned_count, total_count, latest_result)
         on_complete : callback(all_results) khi hoàn thành
         on_error    : callback(error_message)
@@ -852,6 +875,7 @@ class Scanner:
                         logger.info("Incremental: skipped %d unchanged files", skipped)
 
                 self._total = len(files)
+                incremental_scan = scan_mode == "incremental"
 
                 if self._total == 0:
                     if on_complete:
@@ -860,10 +884,7 @@ class Scanner:
 
                 with ThreadPoolExecutor(max_workers=max_threads) as executor:
                     def scan_file_wrapper(fp: str) -> ScanResult:
-                        result = self._scan_single_file(fp)
-                        if scan_mode == "incremental":
-                            mark_scanned(fp)
-                        return result
+                        return self._scan_single_file(fp)
                     future_to_path = {
                         executor.submit(scan_file_wrapper, fp): fp  # type: ignore[arg-type]
                         for fp in files
@@ -875,6 +896,8 @@ class Scanner:
                             break
 
                         result = future.result()
+                        if incremental_scan:
+                            mark_scanned(future_to_path[future], persist=False)
                         with self._lock:
                             self._results.append(result)
                             self._progress += 1
@@ -883,7 +906,11 @@ class Scanner:
                         if on_progress:
                             on_progress(current_progress, self._total, result)
 
+                if incremental_scan and files:
+                    flush_incremental_cache()
+
                 if on_complete:
+                    self._persist_scan_history(files, scan_mode)
                     on_complete(self._results.copy())
 
             except Exception as e:
@@ -895,6 +922,19 @@ class Scanner:
 
         t = threading.Thread(target=_run, daemon=True)
         t.start()
+
+    def _persist_scan_history(self, files: List[str], scan_mode: str):
+        """Persist scan results for later auto-label dataset building."""
+        try:
+            from core.training_dataset_builder import record_scan_history
+
+            record_scan_history(
+                self._results,
+                scan_mode=scan_mode,
+                target_count=len(files),
+            )
+        except Exception as e:
+            logger.warning("Failed to persist scan history: %s", e)
 
     def get_summary(self) -> Dict[str, Any]:
         """Tóm tắt kết quả quét — v2 thêm FP stats."""

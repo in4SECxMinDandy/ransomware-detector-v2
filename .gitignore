@@ -23,3 +23,26 @@ logs/
 debug_err.txt
 debug_out.txt
 *.log
+
+# Data and Models
+data/*.csv
+data/*.jsonl
+data/config.json
+data/honeypot_registry.json
+data/ti_cache.json
+data/vt_cache.json
+data/_prep_out/
+data/_prep_src/
+data/_tmp_encrypted/
+data/_tmp_safe/
+models/*.joblib
+models/model_metadata*.json
+!models/rf_ransomware_detector.joblib
+
+# Malware/Decoy files
+Malware/
+
+# Tooling
+.windsurf/
+datasets/
+external_pe/

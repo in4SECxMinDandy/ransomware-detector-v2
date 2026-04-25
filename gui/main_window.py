@@ -195,13 +195,13 @@ class PlotFrame(ctk.CTkFrame):
                          color=C["orange"], linestyle="--", linewidth=0.8, alpha=0.7)
         self._ax.axvline(x=7.2, color=C["yellow"], linestyle="--", linewidth=0.8, alpha=0.7)
         self._ax.set_xlabel("Entropy (b/B)", color=C["text_dim"], fontsize=7)
-        self._ax.set_ylabel("Risk Prob", color=C["text_dim"], fontsize=7)
+        self._ax.set_ylabel("Xác suất rủi ro", color=C["text_dim"], fontsize=7)
         self._ax.tick_params(axis="both", labelsize=7, colors=C["text_dim"])
         for spine in self._ax.spines.values():
             spine.set_edgecolor(C["border"])
         self.canvas.draw_idle()
 
-    def signal_gauge(self, score, label="Threat Score"):
+    def signal_gauge(self, score, label="Điểm đe dọa"):
         self._ax.clear()
         self._ax.set_facecolor(C["bg_card"])
         self._ax.set_xlim(0, 1)
@@ -311,7 +311,7 @@ class AnimatedToggle(ctk.CTkFrame):
 class StatusBadge(ctk.CTkFrame):
     """Pill-shaped status badge."""
 
-    def __init__(self, parent, text="SAFE", color=C["green"], **kwargs):
+    def __init__(self, parent, text="AN TOÀN", color=C["green"], **kwargs):
         super().__init__(parent, **kwargs)
         self._label = ctk.CTkLabel(
             self, text=text,
@@ -369,7 +369,7 @@ class ScanProgressBar(ctk.CTkFrame):
             rate = current / elapsed
             remaining = total - current
             eta = remaining / rate if rate > 0 else 0
-            self._eta_var.set(f"ETA: {eta:.0f}s")
+            self._eta_var.set(f"Còn lại: {eta:.0f}s")
         else:
             self._eta_var.set("")
 
@@ -390,7 +390,7 @@ class MainWindow(ctk.CTk):
 
     Sections:
       0 | Dashboard   — real-time stats, charts, quick actions
-      1 | Scan        — full/quick/incremental scan engine
+      1 | Scan        — full/incremental scan engine
       2 | Alerts      — threat events & behavior alerts
       3 | Settings    — threshold, sensitivity, whitelist, auto-response
       4 | Quarantine  — quarantined files management
@@ -413,7 +413,7 @@ class MainWindow(ctk.CTk):
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
-        self.title("Ransomware Detector v2 — Premium")
+        self.title("Ransomware Detector v2 - Bản Premium")
         self.geometry("1280x760")
         self.minsize(1000, 640)
         self.configure(fg_color=C["bg_dark"])
@@ -490,7 +490,7 @@ class MainWindow(ctk.CTk):
             dpi = user32.GetDpiForSystem()
             scale = dpi / 96.0
             if scale != 1.0:
-                ctk.CTkLabel(self, text=f"  DPI Scale: {scale:.2f}x  ",
+                ctk.CTkLabel(self, text=f"  Tỉ lệ DPI: {scale:.2f}x  ",
                               text_color=C["text_dim"]).place(relx=0.99, rely=0.01, anchor="ne")
         except Exception:
             pass
@@ -520,14 +520,14 @@ class MainWindow(ctk.CTk):
         if loaded:
             info = self._engine.get_model_info()
             thresh = info.get("current_threshold", 0.65)
-            self._set_status(f"ML Engine loaded — threshold={thresh:.2f}", C["green"])
-            self._log("success", f"Model ready (acc={info.get('accuracy', 0)*100:.1f}%)")
+            self._set_status(f"Đã tải ML Engine - threshold={thresh:.2f}", C["green"])
+            self._log("success", f"Model sẵn sàng (acc={info.get('accuracy', 0)*100:.1f}%)")
             # Update threshold slider
             if hasattr(self, "_thresh_slider"):
                 self._thresh_slider.set(thresh)
         else:
-            self._set_status("ML Engine not loaded — train model first", C["orange"])
-            self._log("warning", "No trained model found — run in terminal: python -m core.ml_engine")
+            self._set_status("Chưa tải ML Engine - hãy train model trước", C["orange"])
+            self._log("warning", "Không tìm thấy model đã train - chạy trong terminal: python -m core.ml_engine")
 
     # ─── Polling ───────────────────────────────────────────────────────────
 
@@ -590,8 +590,8 @@ class MainWindow(ctk.CTk):
             self._live_plot._configure_axes()
             self._live_plot._ax.plot(x, self._entropy_history, color=color, linewidth=2)
             self._live_plot._ax.set_ylim(0, 1)
-            self._live_plot._ax.set_ylabel("Threat Score", color=C["text_dim"], fontsize=7)
-            self._live_plot._ax.set_xlabel("Time (s)", color=C["text_dim"], fontsize=7)
+            self._live_plot._ax.set_ylabel("Điểm đe dọa", color=C["text_dim"], fontsize=7)
+            self._live_plot._ax.set_xlabel("Thời gian (s)", color=C["text_dim"], fontsize=7)
             self._live_plot.canvas.draw_idle()
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -630,7 +630,7 @@ class MainWindow(ctk.CTk):
         title.pack(side="left", padx=(12, 4), pady=8)
 
         subtitle = ctk.CTkLabel(
-            hdr, text="ML-Powered Real-Time Protection",
+            hdr, text="Bảo vệ thời gian thực bằng ML",
             font=("Consolas", 8),
             text_color=C["text_dim"]
         )
@@ -652,7 +652,7 @@ class MainWindow(ctk.CTk):
         sep2.pack(side="left", fill="y", padx=8, pady=8)
 
         # Files / Threats
-        ctk.CTkLabel(hdr, text="Files:",
+        ctk.CTkLabel(hdr, text="Tệp:",
                      font=("Consolas", 8), text_color=C["text_dim"]
                      ).pack(side="left", padx=(0, 2), pady=8)
         self._files_analyzed_lbl = ctk.CTkLabel(
@@ -661,7 +661,7 @@ class MainWindow(ctk.CTk):
         )
         self._files_analyzed_lbl.pack(side="left", padx=(0, 8), pady=8)
 
-        ctk.CTkLabel(hdr, text="Threats:",
+        ctk.CTkLabel(hdr, text="Đe dọa:",
                      font=("Consolas", 8), text_color=C["text_dim"]
                      ).pack(side="left", padx=(0, 2), pady=8)
         self._threats_lbl = ctk.CTkLabel(
@@ -671,11 +671,11 @@ class MainWindow(ctk.CTk):
         self._threats_lbl.pack(side="left", padx=(0, 8), pady=8)
 
         # Status badge
-        self._status_badge = StatusBadge(hdr, text="READY", color=C["green"])
+        self._status_badge = StatusBadge(hdr, text="SẴN SÀNG", color=C["green"])
         self._status_badge.pack(side="left", padx=8, pady=8)
 
         # Status var
-        self._status_var = ctk.StringVar(value="Ready")
+        self._status_var = ctk.StringVar(value="Sẵn sàng")
         self._status_lbl = ctk.CTkLabel(
             hdr, textvariable=self._status_var,
             font=("Consolas", 8), text_color=C["text_dim"]
@@ -686,7 +686,7 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(hdr, text="").pack(side="left", expand=True)
 
         # Protection toggle
-        ctk.CTkLabel(hdr, text="Protection:",
+        ctk.CTkLabel(hdr, text="Bảo vệ:",
                      font=("Consolas", 9), text_color=C["text_dim"]
                      ).pack(side="right", padx=(0, 4), pady=8)
         self._protection_toggle = AnimatedToggle(
@@ -710,16 +710,16 @@ class MainWindow(ctk.CTk):
         sidebar.pack_propagate(False)
 
         nav_items = [
-            ("⛨",  "Dashboard",      self._show_dashboard),
-            ("◈",  "Scan",           self._show_scan),
-            ("⚠",  "Alerts",         self._show_alerts),
-            ("⚙",  "Settings",       self._show_settings),
-            ("◻",  "Quarantine",     self._show_quarantine),
-            ("⎙",  "Reports",        self._show_reports),
-            ("☰",  "Logs",           self._show_logs),
-            ("📊", "Entropy Watch",   self._show_entropy_watch),
+            ("⛨",  "Tổng quan",      self._show_dashboard),
+            ("◈",  "Quét",           self._show_scan),
+            ("⚠",  "Cảnh báo",       self._show_alerts),
+            ("⚙",  "Cài đặt",        self._show_settings),
+            ("◻",  "Cách ly",        self._show_quarantine),
+            ("⎙",  "Báo cáo",        self._show_reports),
+            ("☰",  "Nhật ký",        self._show_logs),
+            ("📊", "Theo dõi Entropy", self._show_entropy_watch),
             ("🎣", "Honeypot",       self._show_honeypot),
-            ("🤖", "ML Training",    self._show_ml_training),
+            ("🤖", "Huấn luyện ML",  self._show_ml_training),
         ]
 
         self._nav_buttons: List[ctk.CTkButton] = []
@@ -742,7 +742,7 @@ class MainWindow(ctk.CTk):
 
         # Monitor control
         self._monitor_btn = ctk.CTkButton(
-            sidebar, text="  ▶  Start Monitor",
+            sidebar, text="  ▶  Bắt đầu giám sát",
             font=("Consolas", 10, "bold"),
             fg_color=C["green"], hover_color="#1EA34A",
             text_color=C["bg_dark"], anchor="center", height=40,
@@ -753,7 +753,7 @@ class MainWindow(ctk.CTk):
         # Monitor path
         default_path = os.path.expanduser("~")
         ctk.CTkLabel(
-            sidebar, text="Monitor path:",
+            sidebar, text="Đường dẫn giám sát:",
             font=("Consolas", 7), text_color=C["text_dim"]
         ).pack(anchor="w", padx=12, pady=(8, 0))
         self._monitor_path_var = ctk.StringVar(value=default_path)
@@ -766,7 +766,7 @@ class MainWindow(ctk.CTk):
         self._monitor_path_entry.pack(fill="x", padx=8, pady=(2, 0))
 
         ctk.CTkButton(
-            sidebar, text="Browse...", height=24,
+            sidebar, text="Chọn...", height=24,
             font=("Consolas", 8),
             fg_color=C["bg_card"], hover_color=C["border"],
             text_color=C["text_dim"],
@@ -813,11 +813,11 @@ class MainWindow(ctk.CTk):
         card_row.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         cards = [
-            ("⛨", "Status", "PROTECTED", C["green"]),
-            ("◈", "Files Scanned", "0", C["blue"]),
-            ("⚠", "Threats Detected", "0", C["red"]),
-            ("⏱", "Uptime", "00:00:00", C["accent"]),
-            ("📊", "Threat Score", "0%", C["text_dim"]),
+            ("⛨", "Trạng thái", "ĐANG BẢO VỆ", C["green"]),
+            ("◈", "Tệp đã quét", "0", C["blue"]),
+            ("⚠", "Đe dọa phát hiện", "0", C["red"]),
+            ("⏱", "Thời gian chạy", "00:00:00", C["accent"]),
+            ("📊", "Điểm đe dọa", "0%", C["text_dim"]),
         ]
 
         self._card_labels: List[ctk.CTkLabel] = []
@@ -843,20 +843,20 @@ class MainWindow(ctk.CTk):
         # Left: threat score gauge
         left_card = ctk.CTkFrame(chart_row, fg_color=C["bg_card"], corner_radius=8)
         left_card.grid(row=0, column=0, padx=(0, 4), pady=0, sticky="nsew")
-        ctk.CTkLabel(left_card, text="THREAT SCORE", font=("Consolas", 10, "bold"),
+        ctk.CTkLabel(left_card, text="ĐIỂM ĐE DỌA", font=("Consolas", 10, "bold"),
                      text_color=C["accent"]).pack(pady=(10, 4))
         self._gauge_plot = PlotFrame(left_card, figsize=(4.5, 2.8))
-        self._gauge_plot.signal_gauge(0.0, "System Threat Level")
+        self._gauge_plot.signal_gauge(0.0, "Mức đe dọa hệ thống")
         self._gauge_plot.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         # Right: live chart
         right_card = ctk.CTkFrame(chart_row, fg_color=C["bg_card"], corner_radius=8)
         right_card.grid(row=0, column=1, padx=(4, 0), pady=0, sticky="nsew")
-        ctk.CTkLabel(right_card, text="LIVE THREAT MONITOR", font=("Consolas", 10, "bold"),
+        ctk.CTkLabel(right_card, text="GIÁM SÁT ĐE DỌA TRỰC TIẾP", font=("Consolas", 10, "bold"),
                      text_color=C["accent"]).pack(pady=(10, 4))
         self._live_plot = PlotFrame(right_card, figsize=(4.5, 2.8))
         self._live_plot.clear()
-        self._live_plot._ax.text(0.5, 0.5, "Start monitor to see live data",
+        self._live_plot._ax.text(0.5, 0.5, "Bắt đầu giám sát để xem dữ liệu trực tiếp",
                                   ha="center", va="center",
                                   color=C["text_dim"], fontsize=9,
                                   transform=self._live_plot._ax.transAxes)
@@ -868,11 +868,11 @@ class MainWindow(ctk.CTk):
         action_row.pack(fill="x", padx=4, pady=4)
 
         quick_actions = [
-            ("Quick Scan",  "▶",  self._quick_scan),
-            ("Full Scan",  "◈",  self._full_scan),
-            ("Stop Scan",  "■",  self._cancel_scan),
-            ("View Alerts","⚠",  self._show_alerts),
-            ("Export",     "⎙",  self._show_reports),
+            ("Quét toàn bộ",     "◈",  self._full_scan),
+            ("Quét incremental", "↻",  self._incremental_scan),
+            ("Dừng quét",        "■",  self._cancel_scan),
+            ("Xem cảnh báo",     "⚠",  self._show_alerts),
+            ("Xuất báo cáo",     "⎙",  self._show_reports),
         ]
 
         for label, icon, cmd in quick_actions:
@@ -889,7 +889,7 @@ class MainWindow(ctk.CTk):
         pm_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         pm_card.pack(fill="x", padx=4, pady=4)
 
-        ctk.CTkLabel(pm_card, text="PROCESS BEHAVIOR MONITOR",
+        ctk.CTkLabel(pm_card, text="GIÁM SÁT HÀNH VI TIẾN TRÌNH",
                      font=("Consolas", 10, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -899,12 +899,12 @@ class MainWindow(ctk.CTk):
 
         self._pm_labels: Dict[str, ctk.CTkLabel] = {}
         pm_items = [
-            ("Total Events", "0", C["text_dim"]),
-            ("Encryption Bursts", "0", C["orange"]),
-            ("IO Anomalies", "0", C["red"]),
-            ("Signal Score", "0%", C["blue"]),
+            ("total_events", "Tổng sự kiện", "0", C["text_dim"]),
+            ("encryption_bursts", "Burst mã hóa", "0", C["orange"]),
+            ("io_anomalies", "Bất thường I/O", "0", C["red"]),
+            ("signal_score", "Điểm tín hiệu", "0%", C["blue"]),
         ]
-        for col, (title, val, color) in enumerate(pm_items):
+        for col, (key, title, val, color) in enumerate(pm_items):
             item = ctk.CTkFrame(pm_sub, fg_color=C["bg_dark"], corner_radius=6)
             item.grid(row=0, column=col, padx=4, pady=4)
             ctk.CTkLabel(item, text=title, font=("Consolas", 7),
@@ -912,14 +912,13 @@ class MainWindow(ctk.CTk):
             lbl = ctk.CTkLabel(item, text=val, font=("Consolas", 14, "bold"),
                                text_color=color)
             lbl.pack(pady=(0, 6))
-            key = title.lower().replace(" ", "_")
             self._pm_labels[key] = lbl
 
         # ── Row 5: Recent Alerts Preview ───────────────────────────────
         alert_preview = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         alert_preview.pack(fill="x", padx=4, pady=4)
 
-        ctk.CTkLabel(alert_preview, text="RECENT ALERTS",
+        ctk.CTkLabel(alert_preview, text="CẢNH BÁO GẦN ĐÂY",
                      font=("Consolas", 10, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -928,12 +927,12 @@ class MainWindow(ctk.CTk):
             scrollbar_button_color=C["border"]
         )
         self._recent_alerts_list.pack(fill="x", padx=8, pady=(0, 8))
-        ctk.CTkLabel(self._recent_alerts_list, text="No recent alerts",
+        ctk.CTkLabel(self._recent_alerts_list, text="Chưa có cảnh báo gần đây",
                      font=("Consolas", 9), text_color=C["text_dim"]
                      ).pack(pady=20)
 
         ctk.CTkButton(
-            alert_preview, text="View All Alerts →",
+            alert_preview, text="Xem tất cả cảnh báo →",
             font=("Consolas", 9), text_color=C["accent"],
             fg_color="transparent", hover_color=C["bg_card"],
             height=28, command=self._show_alerts
@@ -953,7 +952,7 @@ class MainWindow(ctk.CTk):
         dir_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         dir_card.pack(fill="x", padx=8, pady=(8, 4))
 
-        ctk.CTkLabel(dir_card, text="◈  SCAN DIRECTORY",
+        ctk.CTkLabel(dir_card, text="◈  QUÉT THƯ MỤC / TỆP",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -969,13 +968,13 @@ class MainWindow(ctk.CTk):
         self._scan_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
         ctk.CTkButton(
-            path_row, text="Browse Dir", height=36,
+            path_row, text="Chọn thư mục", height=36,
             font=("Consolas", 10), fg_color=C["accent"], hover_color=C["accent_h"],
             text_color="#FFF", command=self._browse_scan_path
         ).pack(side="left", padx=(0, 4))
 
         ctk.CTkButton(
-            path_row, text="Browse File", height=36,
+            path_row, text="Chọn tệp", height=36,
             font=("Consolas", 10), fg_color=C["bg_card"], hover_color=C["border"],
             border_width=1, border_color=C["border"],
             text_color=C["text"], command=self._browse_scan_file
@@ -985,14 +984,14 @@ class MainWindow(ctk.CTk):
         sens_row = ctk.CTkFrame(dir_card, fg_color="transparent")
         sens_row.pack(fill="x", padx=12, pady=(0, 10))
 
-        ctk.CTkLabel(sens_row, text="Sensitivity:",
+        ctk.CTkLabel(sens_row, text="Độ nhạy:",
                      font=("Consolas", 9), text_color=C["text_dim"]
                      ).pack(side="left", padx=(0, 8))
 
         self._sens_var = ctk.StringVar(value="balanced")
         for i, (key, label) in enumerate([
-            ("balanced", "Balanced"),
-            ("high_sensitivity", "High Sensitivity"),
+            ("balanced", "Cân bằng"),
+            ("high_sensitivity", "Độ nhạy cao"),
             ("paranoid", "Paranoid"),
         ]):
             rb = ctk.CTkRadioButton(
@@ -1008,8 +1007,7 @@ class MainWindow(ctk.CTk):
 
         self._scan_type_var = ctk.StringVar(value="full")
         scan_types = [
-            ("full", "Full Scan", C["accent"]),
-            ("quick", "Quick Scan", C["orange"]),
+            ("full", "Quét toàn bộ", C["accent"]),
             ("incremental", "Incremental", C["purple"]),
         ]
         for key, label, color in scan_types:
@@ -1021,7 +1019,7 @@ class MainWindow(ctk.CTk):
             rb.pack(side="left", padx=(0, 12))
 
         self._start_scan_btn = ctk.CTkButton(
-            btn_row, text="▶  START SCAN",
+            btn_row, text="▶  BẮT ĐẦU QUÉT",
             font=("Consolas", 11, "bold"), height=40,
             fg_color=C["green"], hover_color="#1EA34A",
             text_color=C["bg_dark"], command=self._start_scan
@@ -1029,7 +1027,7 @@ class MainWindow(ctk.CTk):
         self._start_scan_btn.pack(side="right")
 
         self._cancel_scan_btn = ctk.CTkButton(
-            btn_row, text="■  CANCEL",
+            btn_row, text="■  HUY",
             font=("Consolas", 11), height=40,
             fg_color=C["danger"], hover_color="#9B1C1C",
             text_color="#FFF", state="disabled", command=self._cancel_scan
@@ -1051,7 +1049,7 @@ class MainWindow(ctk.CTk):
         results_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         results_card.pack(fill="both", expand=True, padx=8, pady=(4, 8))
 
-        ctk.CTkLabel(results_card, text="SCAN RESULTS",
+        ctk.CTkLabel(results_card, text="KẾT QUẢ QUÉT",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1072,7 +1070,7 @@ class MainWindow(ctk.CTk):
         header.pack(fill="x", padx=0, pady=(0, 1))
         header.pack_propagate(False)
         col_widths = [250, 70, 70, 70, 70, 90]
-        col_labels = ["Filename", "Size (KB)", "Entropy", "Prob %", "VT Ratio", "Risk"]
+        col_labels = ["Tên tệp", "Kích thước (KB)", "Entropy", "Xác suất %", "Tỷ lệ VT", "Rủi ro"]
         for i, (w, lbl) in enumerate(zip(col_widths, col_labels)):
             f = ctk.CTkFrame(header, width=w, fg_color="transparent")
             f.pack(side="left", padx=2, fill="y", expand=True)
@@ -1098,7 +1096,7 @@ class MainWindow(ctk.CTk):
         filter_row.pack(fill="x", padx=8, pady=(8, 4))
 
         self._alert_filter_var = ctk.StringVar(value="all")
-        for key, label in [("all", "All"), ("critical", "Critical"),
+        for key, label in [("all", "Tất cả"), ("critical", "Critical"),
                             ("high", "High"), ("medium", "Medium")]:
             rb = ctk.CTkRadioButton(
                 filter_row, text=label, variable=self._alert_filter_var, value=key,
@@ -1108,7 +1106,7 @@ class MainWindow(ctk.CTk):
             rb.pack(side="left", padx=(0, 12))
 
         ctk.CTkButton(
-            filter_row, text="Clear All", height=28,
+            filter_row, text="Xóa tất cả", height=28,
             font=("Consolas", 9), text_color=C["red"],
             fg_color="transparent", hover_color=C["bg_card"],
             command=self._clear_alerts
@@ -1118,7 +1116,7 @@ class MainWindow(ctk.CTk):
         threat_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         threat_card.pack(fill="both", expand=True, padx=8, pady=(4, 4))
 
-        ctk.CTkLabel(threat_card, text="⚠  THREAT EVENTS",
+        ctk.CTkLabel(threat_card, text="⚠  SỰ KIỆN ĐE DỌA",
                      font=("Consolas", 11, "bold"), text_color=C["red"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1134,7 +1132,7 @@ class MainWindow(ctk.CTk):
         behavior_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         behavior_card.pack(fill="both", expand=True, padx=8, pady=(4, 8))
 
-        ctk.CTkLabel(behavior_card, text="🔍  BEHAVIOR ALERTS",
+        ctk.CTkLabel(behavior_card, text="🔍  CẢNH BÁO HÀNH VI",
                      font=("Consolas", 11, "bold"), text_color=C["orange"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1166,13 +1164,13 @@ class MainWindow(ctk.CTk):
         thresh_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         thresh_card.pack(fill="x", padx=8, pady=(8, 4))
 
-        ctk.CTkLabel(thresh_card, text="⛨  DETECTION THRESHOLD",
+        ctk.CTkLabel(thresh_card, text="⛨  NGƯỠNG PHÁT HIỆN",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
         ctk.CTkLabel(
             thresh_card,
-            text="Higher = fewer false positives, Lower = more sensitive",
+            text="Cao hơn = ít false positive hơn, thấp hơn = nhạy hơn",
             font=("Consolas", 8), text_color=C["text_dim"]
         ).pack(anchor="w", padx=12, pady=(0, 8))
 
@@ -1198,15 +1196,15 @@ class MainWindow(ctk.CTk):
         auto_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         auto_card.pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(auto_card, text="⚡  AUTO-RESPONSE POLICY",
+        ctk.CTkLabel(auto_card, text="⚡  CHÍNH SÁCH PHẢN ỨNG TỰ ĐỘNG",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
         for severity, action in [
-            ("CRITICAL", "Auto Quarantine"),
-            ("HIGH",     "Ask User"),
-            ("MEDIUM",   "Notify Only"),
-            ("LOW",      "Log Only"),
+            ("CRITICAL", "Tự động cách ly"),
+            ("HIGH",     "Hỏi người dùng"),
+            ("MEDIUM",   "Chỉ thông báo"),
+            ("LOW",      "Chỉ ghi log"),
         ]:
             row = ctk.CTkFrame(auto_card, fg_color="transparent")
             row.pack(fill="x", padx=12, pady=2)
@@ -1217,7 +1215,7 @@ class MainWindow(ctk.CTk):
                          text_color=C["text_dim"]).pack(side="left")
 
         ctk.CTkButton(
-            auto_card, text="Save Policy", height=32,
+            auto_card, text="Lưu chính sách", height=32,
             font=("Consolas", 10), fg_color=C["accent"], hover_color=C["accent_h"],
             text_color="#FFF", command=self._save_auto_response_policy,
         ).pack(anchor="e", padx=12, pady=(8, 10))
@@ -1234,14 +1232,14 @@ class MainWindow(ctk.CTk):
         wl_btns.pack(fill="x", padx=12, pady=(0, 10))
 
         ctk.CTkButton(
-            wl_btns, text="Open Whitelist Editor",
+            wl_btns, text="Mở Whitelist Editor",
             height=36, font=("Consolas", 10),
             fg_color=C["accent"], hover_color=C["accent_h"],
             text_color="#FFF", command=self._open_whitelist_editor
         ).pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(
-            wl_btns, text="Apply Whitelist",
+            wl_btns, text="Áp dụng Whitelist",
             height=36, font=("Consolas", 10),
             fg_color=C["bg_card"], hover_color=C["border"],
             text_color=C["text"], command=self._apply_whitelist
@@ -1251,7 +1249,7 @@ class MainWindow(ctk.CTk):
         notif_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         notif_card.pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(notif_card, text="🔔  NOTIFICATIONS",
+        ctk.CTkLabel(notif_card, text="🔔  THÔNG BÁO",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1259,14 +1257,14 @@ class MainWindow(ctk.CTk):
         notif_row.pack(fill="x", padx=12, pady=(0, 10))
 
         self._notif_toggle = AnimatedToggle(
-            notif_row, text="Enable Notifications",
+            notif_row, text="Bật thông báo",
             command=self._on_notif_toggle
         )
         self._notif_toggle.on = config.get("notifications.enabled", True)
         self._notif_toggle.pack(side="left")
 
         self._sound_toggle = AnimatedToggle(
-            notif_row, text="Sound Alerts",
+            notif_row, text="Bật cảnh báo âm thanh",
             command=self._on_sound_toggle
         )
         self._sound_toggle.on = config.get("notifications.sound_enabled", True)
@@ -1276,7 +1274,7 @@ class MainWindow(ctk.CTk):
         vt_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         vt_card.pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(vt_card, text="VirusTotal Integration",
+        ctk.CTkLabel(vt_card, text="Tích hợp VirusTotal",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1297,7 +1295,7 @@ class MainWindow(ctk.CTk):
         self._vt_api_key_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
         self._btn_vt_save = ctk.CTkButton(
-            vt_row, text="Save", height=28,
+            vt_row, text="Lưu", height=28,
             font=("Consolas", 9), fg_color=C["accent"],
             hover_color=C["accent_h"], text_color="#FFF",
             command=self._on_vt_save
@@ -1308,13 +1306,13 @@ class MainWindow(ctk.CTk):
         vt_status_row.pack(fill="x", padx=12, pady=(0, 10))
 
         self._vt_status_lbl = ctk.CTkLabel(
-            vt_status_row, text="Not configured",
+            vt_status_row, text="Chưa cấu hình",
             font=("Consolas", 9), text_color=C["text_dim"]
         )
         self._vt_status_lbl.pack(side="left")
 
         self._vt_toggle = ctk.CTkSwitch(
-            vt_status_row, text="Enable VT Checks",
+            vt_status_row, text="Bật kiểm tra VT",
             font=("Consolas", 9), text_color=C["text_dim"],
             progress_color=C["accent"], fg_color=C["border"],
             command=self._on_vt_toggle
@@ -1322,106 +1320,11 @@ class MainWindow(ctk.CTk):
         self._vt_toggle.pack(side="right")
         self._vt_toggle.select() if config.get("virustotal.enabled", True) else self._vt_toggle.deselect()
 
-        # ── DeepSeek AI Analysis ──────────────────────────────────────────────
-        ai_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
-        ai_card.pack(fill="x", padx=8, pady=4)
-
-        ai_title_row = ctk.CTkFrame(ai_card, fg_color="transparent")
-        ai_title_row.pack(fill="x", padx=12, pady=(10, 4))
-        ctk.CTkLabel(ai_title_row, text="🤖  Claude AI Analysis",
-                     font=("Consolas", 11, "bold"), text_color=C["cyan"]
-                     ).pack(side="left")
-        ctk.CTkLabel(ai_title_row,
-                     text="Get AI-powered threat analysis. Proxy: taphoaapi.info.vn",
-                     font=("Consolas", 8), text_color=C["text_dim"]
-                     ).pack(side="left", padx=(12, 0))
-
-        ai_key_row = ctk.CTkFrame(ai_card, fg_color="transparent")
-        ai_key_row.pack(fill="x", padx=12, pady=(0, 6))
-
-        ctk.CTkLabel(ai_key_row, text="API Key:", font=("Consolas", 9),
-                     text_color=C["text_dim"]).pack(side="left", padx=(0, 8))
-        self._ai_api_key_var = ctk.StringVar(
-            value=config.get("ai.api_key", "")
-        )
-        self._ai_api_key_entry = ctk.CTkEntry(
-            ai_key_row, textvariable=self._ai_api_key_var,
-            font=("Consolas", 9), fg_color=C["bg_dark"],
-            border_color=C["border"], text_color=C["text"],
-            width=340, show="*"
-        )
-        self._ai_api_key_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
-
-        self._btn_ai_save = ctk.CTkButton(
-            ai_key_row, text="Save", height=28,
-            font=("Consolas", 9), fg_color=C["accent"],
-            hover_color=C["accent_h"], text_color="#FFF",
-            command=self._on_ai_save
-        )
-        self._btn_ai_save.pack(side="left")
-
-        ai_model_row = ctk.CTkFrame(ai_card, fg_color="transparent")
-        ai_model_row.pack(fill="x", padx=12, pady=(0, 4))
-
-        ctk.CTkLabel(ai_model_row, text="Model:", font=("Consolas", 9),
-                     text_color=C["text_dim"]).pack(side="left", padx=(0, 8))
-        self._ai_model_var = ctk.StringVar(
-            value=config.get("ai.model", "claude-sonnet-4-6")
-        )
-        ai_model_menu = ctk.CTkOptionMenu(
-            ai_model_row,
-            values=["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5-20251001"],
-            variable=self._ai_model_var,
-            font=("Consolas", 9), fg_color=C["bg_dark"],
-            button_color=C["accent"], button_hover_color=C["accent_h"],
-            dropdown_fg_color=C["bg_card"],
-            text_color=C["text"], width=220,
-            command=self._on_ai_model_change
-        )
-        ai_model_menu.pack(side="left", padx=(0, 12))
-        ctk.CTkLabel(ai_model_row,
-                     text="sonnet = balanced  |  opus = most capable  |  haiku = fastest",
-                     font=("Consolas", 7), text_color=C["text_dim"]
-                     ).pack(side="left")
-
-        ai_status_row = ctk.CTkFrame(ai_card, fg_color="transparent")
-        ai_status_row.pack(fill="x", padx=12, pady=(0, 10))
-
-        self._ai_status_lbl = ctk.CTkLabel(
-            ai_status_row,
-            text="Not configured — enter API key above",
-            font=("Consolas", 9), text_color=C["text_dim"]
-        )
-        self._ai_status_lbl.pack(side="left")
-
-        self._btn_ai_test = ctk.CTkButton(
-            ai_status_row, text="Test Connection", height=26,
-            font=("Consolas", 8), fg_color=C["bg_dark"],
-            hover_color=C["border"], text_color=C["cyan"],
-            command=self._on_ai_test
-        )
-        self._btn_ai_test.pack(side="left", padx=(12, 0))
-
-        self._ai_toggle = ctk.CTkSwitch(
-            ai_status_row, text="Enable AI Analysis",
-            font=("Consolas", 9), text_color=C["text_dim"],
-            progress_color=C["cyan"], fg_color=C["border"],
-            command=self._on_ai_toggle
-        )
-        self._ai_toggle.pack(side="right")
-        if config.get("ai.enabled", True):
-            self._ai_toggle.select()
-        else:
-            self._ai_toggle.deselect()
-
-        if config.get("ai.api_key", ""):
-            self._ai_status_lbl.configure(text="API key saved ✓", text_color=C["green"])
-
         # ── Global Proxy ───────────────────────────────────────────────────────
         proxy_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         proxy_card.pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(proxy_card, text="🌐  Global Proxy Settings",
+        ctk.CTkLabel(proxy_card, text="🌐  CAI DAT PROXY TOAN CUC",
                      font=("Consolas", 11, "bold"), text_color=C["purple"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1451,7 +1354,7 @@ class MainWindow(ctk.CTk):
         self._https_proxy_entry.pack(side="left", padx=(0, 16))
 
         ctk.CTkButton(
-            proxy_row, text="Save & Apply", height=28,
+            proxy_row, text="Lưu và áp dụng", height=28,
             font=("Consolas", 9), fg_color=C["accent"],
             hover_color=C["accent_h"], text_color="#FFF",
             command=self._on_proxy_save
@@ -1461,7 +1364,7 @@ class MainWindow(ctk.CTk):
         api_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         api_card.pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(api_card, text="REST API Server (FastAPI)",
+        ctk.CTkLabel(api_card, text="Máy chủ REST API (FastAPI)",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1485,7 +1388,7 @@ class MainWindow(ctk.CTk):
                      width=80).pack(side="left", padx=(0, 8))
 
         self._btn_api_toggle = ctk.CTkButton(
-            api_row, text="Start Server", height=32,
+            api_row, text="Khởi động server", height=32,
             font=("Consolas", 10, "bold"), fg_color=C["green"],
             hover_color="#1EA34A", text_color=C["bg_dark"],
             command=self._on_api_toggle
@@ -1496,7 +1399,7 @@ class MainWindow(ctk.CTk):
         api_status_row.pack(fill="x", padx=12, pady=(0, 10))
 
         self._api_status_lbl = ctk.CTkLabel(
-            api_status_row, text="API server is not running",
+            api_status_row, text="API server chưa chạy",
             font=("Consolas", 9), text_color=C["text_dim"]
         )
         self._api_status_lbl.pack(side="left")
@@ -1517,12 +1420,12 @@ class MainWindow(ctk.CTk):
         about_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         about_card.pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(about_card, text="ℹ  MODEL INFORMATION",
+        ctk.CTkLabel(about_card, text="ℹ  THÔNG TIN MODEL",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
         self._model_info_lbl = ctk.CTkLabel(
-            about_card, text="Loading model info...",
+            about_card, text="Đang tải thông tin Model...",
             font=("Consolas", 9), text_color=C["text_dim"], justify="left"
         )
         self._model_info_lbl.pack(anchor="w", padx=12, pady=(0, 10))
@@ -1540,7 +1443,7 @@ class MainWindow(ctk.CTk):
         info_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         info_card.pack(fill="x", padx=8, pady=(8, 4))
 
-        ctk.CTkLabel(info_card, text="◻  QUARANTINE MANAGEMENT",
+        ctk.CTkLabel(info_card, text="◻  QUẢN LÝ CÁCH LY",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
@@ -1551,7 +1454,7 @@ class MainWindow(ctk.CTk):
         self._quarantine_list.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         ctk.CTkLabel(
-            self._quarantine_list, text="No quarantined files",
+            self._quarantine_list, text="Không có tệp bị cách ly",
             font=("Consolas", 9), text_color=C["text_dim"]
         ).pack(pady=20)
 
@@ -1559,7 +1462,7 @@ class MainWindow(ctk.CTk):
         btn_row.pack(fill="x", padx=8, pady=4)
 
         ctk.CTkButton(
-            btn_row, text="Refresh List", height=36,
+            btn_row, text="Tải lại danh sách", height=36,
             font=("Consolas", 10),
             fg_color=C["bg_card"], hover_color=C["border"],
             text_color=C["text"], command=self._refresh_quarantine
@@ -1578,14 +1481,14 @@ class MainWindow(ctk.CTk):
         export_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         export_card.pack(fill="x", padx=8, pady=(8, 4))
 
-        ctk.CTkLabel(export_card, text="⎙  EXPORT REPORTS",
+        ctk.CTkLabel(export_card, text="⎙  XUẤT BÁO CÁO",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
         # Scan first prompt
         self._export_prompt_lbl = ctk.CTkLabel(
             export_card,
-            text="⚠ Run a scan first to generate reports",
+            text="⚠ Hãy quét trước để tạo báo cáo",
             font=("Consolas", 9), text_color=C["orange"]
         )
         self._export_prompt_lbl.pack(anchor="w", padx=12, pady=(0, 8))
@@ -1594,9 +1497,9 @@ class MainWindow(ctk.CTk):
         export_btn_row.pack(fill="x", padx=12, pady=(0, 10))
 
         export_btns = [
-            ("Export CSV", C["blue"], self._export_csv),
-            ("Export PNG Chart", C["purple"], self._export_png),
-            ("Forensic Bundle", C["orange"], self._export_forensic),
+            ("Xuất CSV", C["blue"], self._export_csv),
+            ("Xuất biểu đồ PNG", C["purple"], self._export_png),
+            ("Gói Forensic", C["orange"], self._export_forensic),
         ]
         for label, color, cmd in export_btns:
             ctk.CTkButton(
@@ -1610,13 +1513,13 @@ class MainWindow(ctk.CTk):
         stats_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         stats_card.pack(fill="both", expand=True, padx=8, pady=4)
 
-        ctk.CTkLabel(stats_card, text="📊  SCAN STATISTICS",
+        ctk.CTkLabel(stats_card, text="📊  THỐNG KÊ QUÉT",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
                      ).pack(anchor="w", padx=12, pady=(10, 4))
 
         # Chart: entropy scatter
         self._scatter_plot = PlotFrame(stats_card, figsize=(8, 3.5))
-        self._scatter_plot._ax.text(0.5, 0.5, "Run a scan to see entropy distribution",
+        self._scatter_plot._ax.text(0.5, 0.5, "Hãy quét để xem phân bố Entropy",
                                     ha="center", va="center",
                                     color=C["text_dim"], fontsize=9,
                                     transform=self._scatter_plot._ax.transAxes)
@@ -1624,7 +1527,7 @@ class MainWindow(ctk.CTk):
         self._scatter_plot.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         self._scan_summary_lbl = ctk.CTkLabel(
-            stats_card, text="No scan data yet",
+            stats_card, text="Chưa có dữ liệu quét",
             font=("Consolas", 9), text_color=C["text_dim"]
         )
         self._scan_summary_lbl.pack(anchor="w", padx=12, pady=(0, 8))
@@ -1641,12 +1544,12 @@ class MainWindow(ctk.CTk):
         log_header.pack_propagate(False)
 
         ctk.CTkLabel(
-            log_header, text="☰  APPLICATION LOGS",
+            log_header, text="☰  NHẬT KÝ ỨNG DỤNG",
             font=("Consolas", 11, "bold"), text_color=C["accent"]
         ).pack(side="left", padx=12, pady=6)
 
         ctk.CTkButton(
-            log_header, text="Clear", height=28,
+            log_header, text="Xóa", height=28,
             font=("Consolas", 8), text_color=C["text_dim"],
             fg_color="transparent", hover_color=C["bg_card"],
             command=self._clear_logs
@@ -1712,24 +1615,50 @@ class MainWindow(ctk.CTk):
     def _show_logs(self):
         self._show_page(6)
 
+    def _scan_type_label(self, scan_type: str) -> str:
+        return {
+            "full": "Toàn bộ",
+            "incremental": "Incremental",
+        }.get(scan_type, scan_type.title())
+
+    def _event_type_label(self, event_type: str) -> str:
+        return {
+            "scan": "Quét",
+            "monitor": "Giám sát",
+            "realtime": "Thời gian thực",
+        }.get(event_type.lower(), event_type.title())
+
+    def _behavior_type_label(self, behavior_type: BehaviorType | str) -> str:
+        raw = behavior_type.value if hasattr(behavior_type, "value") else str(behavior_type)
+        labels = {
+            "ENCRYPTION_BURST": "Burst mã hóa",
+            "MASS_IO_ANOMALY": "Bất thường I/O diện rộng",
+            "FILE_RENAME_BURST": "Burst đổi tên tệp",
+            "RAPID_OPS": "Thao tác dồn dập",
+            "HIGH_ENTROPY_WRITE": "Ghi entropy cao",
+            "SUSPICIOUS_PROCESS": "Process đáng ngờ",
+            "EXTENSION_CHANGE": "Thay đổi extension",
+        }
+        return labels.get(raw.upper(), raw.replace("_", " ").title())
+
     # ═══════════════════════════════════════════════════════════════════════
     # SCAN ENGINE
     # ═══════════════════════════════════════════════════════════════════════
 
     def _browse_scan_path(self):
-        path = filedialog.askdirectory(title="Select directory to scan")
+        path = filedialog.askdirectory(title="Chọn thư mục để quét")
         if path:
             self._scan_path_var.set(path)
 
     def _browse_scan_file(self):
-        path = filedialog.askopenfilename(title="Select file to scan")
+        path = filedialog.askopenfilename(title="Chọn tệp để quét")
         if path:
             self._scan_path_var.set(path)
 
     def _start_scan(self):
         path = self._scan_path_var.get().strip()
         if not path or not os.path.exists(path):
-            messagebox.showwarning("Invalid Path", "Please select a valid directory or file.")
+            messagebox.showwarning("Đường dẫn không hợp lệ", "Vui lòng chọn một thư mục hoặc tệp hợp lệ.")
             return
 
         self._scan_type = self._scan_type_var.get()
@@ -1741,11 +1670,11 @@ class MainWindow(ctk.CTk):
         self._scan_prob_data.clear()
         self._scan_risk_data.clear()
 
-        self._start_scan_btn.configure(state="disabled", text="SCANNING...")
+        self._start_scan_btn.configure(state="disabled", text="ĐANG QUÉT...")
         self._cancel_scan_btn.configure(state="normal")
 
-        self._log("info", f"Starting {self._scan_type} scan: {path}")
-        self._set_status(f"Scanning: {path}", C["blue"])
+        self._log("info", f"Bắt đầu quét {self._scan_type_label(self._scan_type)}: {path}")
+        self._set_status(f"Đang quét: {path}", C["blue"])
 
         def _run():
             # VirusTotal: dùng cùng cài đặt Settings (virustotal.enabled / auto_check)
@@ -1753,7 +1682,7 @@ class MainWindow(ctk.CTk):
             vt_all = bool(config.get("virustotal.auto_check", False))
             self._scanner.scan(
                 directory=path,
-                recursive=(self._scan_type == "full"),
+                recursive=(self._scan_type in ("full", "incremental")),
                 on_progress=self._on_scan_progress,
                 on_complete=self._on_scan_complete,
                 on_error=self._on_scan_error,
@@ -1764,20 +1693,20 @@ class MainWindow(ctk.CTk):
 
         threading.Thread(target=_run, daemon=True).start()
 
-    def _quick_scan(self):
-        self._scan_type_var.set("quick")
-        self._start_scan()
-
     def _full_scan(self):
         self._scan_type_var.set("full")
         self._start_scan()
 
+    def _incremental_scan(self):
+        self._scan_type_var.set("incremental")
+        self._start_scan()
+
     def _cancel_scan(self):
         self._scanner.cancel()
-        self._log("warning", "Scan cancelled by user")
-        self._start_scan_btn.configure(state="normal", text="▶  START SCAN")
+        self._log("warning", "Người dùng đã hủy quét")
+        self._start_scan_btn.configure(state="normal", text="▶  BẮT ĐẦU QUÉT")
         self._cancel_scan_btn.configure(state="disabled")
-        self._set_status("Scan cancelled", C["orange"])
+        self._set_status("Đã hủy quét", C["orange"])
 
     def _on_scan_progress(self, current: int, total: int, result: ScanResult):
         elapsed = time.time() - self._scan_start_time
@@ -1800,9 +1729,9 @@ class MainWindow(ctk.CTk):
 
             # --- Auto Quarantine for SCAN ---
             if self._protection_on and self._responder.should_auto_respond(result.risk_level):
-                q_res = self._responder.quarantine_file(result.path, reason=f"Scan: {result.risk_level} Threat")
+                q_res = self._responder.quarantine_file(result.path, reason=f"Quét: Threat {result.risk_level}")
                 if q_res.get("success"):
-                    self.after(0, lambda f=result.filename: self._log("warning", f"Auto-quarantined from scan: {f}"))
+                    self.after(0, lambda f=result.filename: self._log("warning", f"Tự động cách ly từ lượt quét: {f}"))
                     self.after(0, self._refresh_quarantine)
 
     def _on_scan_complete(self, results: List[ScanResult]):
@@ -1813,7 +1742,7 @@ class MainWindow(ctk.CTk):
             len(results), len(results), elapsed
         ))
         self.after(0, lambda: self._start_scan_btn.configure(
-            state="normal", text="▶  START SCAN"
+            state="normal", text="▶  BẮT ĐẦU QUÉT"
         ))
         self.after(0, lambda: self._cancel_scan_btn.configure(state="disabled"))
 
@@ -1822,7 +1751,7 @@ class MainWindow(ctk.CTk):
         high = summary.get("high", 0)
         total_s = summary.get("total", 0)
 
-        msg = f"Scan complete — {total_s} files in {elapsed:.1f}s | SAFE: {safe} | CRITICAL: {crit} | HIGH: {high}"
+        msg = f"Quét xong - {total_s} tệp trong {elapsed:.1f}s | SAFE: {safe} | CRITICAL: {crit} | HIGH: {high}"
         color = C["red"] if crit > 0 else C["green"]
         self.after(0, lambda: self._set_status(msg, color))
         self.after(0, lambda: self._log("success", msg))
@@ -1833,11 +1762,11 @@ class MainWindow(ctk.CTk):
 
     def _on_scan_error(self, error: str):
         self.after(0, lambda: self._start_scan_btn.configure(
-            state="normal", text="▶  START SCAN"
+            state="normal", text="▶  BẮT ĐẦU QUÉT"
         ))
         self.after(0, lambda: self._cancel_scan_btn.configure(state="disabled"))
-        self.after(0, lambda: self._set_status(f"Scan error: {error}", C["red"]))
-        self.after(0, lambda: self._log("danger", f"Scan error: {error}"))
+        self.after(0, lambda: self._set_status(f"Lỗi quét: {error}", C["red"]))
+        self.after(0, lambda: self._log("danger", f"Lỗi quét: {error}"))
 
     def _update_scan_stats(self):
         results = self._scan_results
@@ -1847,8 +1776,8 @@ class MainWindow(ctk.CTk):
         encrypted = sum(1 for r in results if r.label == 1)
         avg_ent = sum(r.entropy for r in results) / total
         self._scan_stats_lbl.configure(
-            text=f"Total: {total} | Encrypted: {encrypted} | Avg Entropy: {avg_ent:.3f} | "
-                 f"Scan Type: {self._scan_type.title()}"
+            text=f"Tổng: {total} | Đã mã hóa: {encrypted} | Entropy TB: {avg_ent:.3f} | "
+                 f"Loại quét: {self._scan_type_label(self._scan_type)}"
         )
 
     def _add_result_row(self, result: ScanResult):
@@ -1909,33 +1838,41 @@ class MainWindow(ctk.CTk):
         import tkinter as tk
         menu = tk.Menu(self, tearoff=0, bg=C["bg_dark"], fg=C["text"], activebackground=C["accent"])
         if result.label == 1:
-            menu.add_command(label="Report False Positive (Mark as SAFE)",
+            menu.add_command(label="Báo False Positive (đánh dấu SAFE)",
                              command=lambda: self._report_feedback(result, "SAFE"))
         else:
-            menu.add_command(label="Report False Negative (Mark as RANSOMWARE)",
-                             command=lambda: self._report_feedback(result, "MALICIOUS"))
+            menu.add_command(label="Báo False Negative (đánh dấu ENCRYPTED)",
+                             command=lambda: self._report_feedback(result, "ENCRYPTED"))
         menu.add_separator()
-        menu.add_command(label="Cancel")
+        menu.add_command(label="Hủy")
         menu.tk_popup(event.x_root, event.y_root)
 
     def _report_feedback(self, result: ScanResult, correct_label: str):
         if not hasattr(self, "_ml_training_tab"):
-            messagebox.showwarning("Error", "ML Training module not loaded.")
+            messagebox.showwarning("Lỗi", "Module ML Training chưa được tải.")
             return
 
-        from core.feature_extractor import extract_features
-        features = extract_features(result.path)
+        features = None
+        if result.features_b64:
+            try:
+                features = get_engine().decode_serialized_features(result.features_b64)
+            except Exception:
+                features = None
+
         if features is None:
-            messagebox.showerror("Error", f"Failed to extract features for {result.filename}")
+            from core.feature_extractor import extract_features
+            features = extract_features(result.path)
+        if features is None:
+            messagebox.showerror("Lỗi", f"Không thể trích xuất features cho {result.filename}")
             return
 
-        pred = "RANSOMWARE" if result.label == 1 else "SAFE"
-        fb_type = "FP" if pred == "RANSOMWARE" else "FN"
+        pred = "ENCRYPTED" if result.label == 1 else "SAFE"
+        fb_type = "false_positive" if pred == "ENCRYPTED" else "false_negative"
 
         self._ml_training_tab.add_feedback(
             result.sha256, features, pred, correct_label, fb_type
         )
-        messagebox.showinfo("Feedback Received", f"File '{result.filename}' marked as {correct_label}.\nFeedback sent to ML Training tab.")
+        messagebox.showinfo("Đã nhận feedback", f"Tệp '{result.filename}' đã được đánh dấu là {correct_label}.\nFeedback đã được gửi sang tab ML Training.")
 
     def _update_scatter_chart(self):
         if not self._scan_entropy_data:
@@ -1950,10 +1887,10 @@ class MainWindow(ctk.CTk):
             total = len(self._scan_results)
             threats = sum(1 for r in self._scan_results if r.label == 1)
             self._scan_summary_lbl.configure(
-                text=f"Total: {total} files | Threats: {threats} ({threats / max(total, 1) * 100:.1f}%) | "
-                     f"Last scan: {datetime.now().strftime('%H:%M:%S')}"
+                text=f"Tổng: {total} tệp | Đe dọa: {threats} ({threats / max(total, 1) * 100:.1f}%) | "
+                     f"Lần quét cuối: {datetime.now().strftime('%H:%M:%S')}"
             )
-            self._export_prompt_lbl.configure(text="✓ Scan results ready — export available")
+            self._export_prompt_lbl.configure(text="✓ Kết quả quét đã sẵn sàng - có thể xuất báo cáo")
         except Exception:
             pass
 
@@ -1962,7 +1899,7 @@ class MainWindow(ctk.CTk):
     # ═══════════════════════════════════════════════════════════════════════
 
     def _browse_monitor_path(self):
-        path = filedialog.askdirectory(title="Select directory to monitor")
+        path = filedialog.askdirectory(title="Chọn thư mục để giám sát")
         if path:
             self._monitor_path_var.set(path)
 
@@ -1975,11 +1912,11 @@ class MainWindow(ctk.CTk):
     def _start_monitor(self):
         path = self._monitor_path_var.get().strip()
         if not os.path.isdir(path):
-            messagebox.showwarning("Invalid Path", "Please select a valid directory to monitor.")
+            messagebox.showwarning("Đường dẫn không hợp lệ", "Vui lòng chọn một thư mục hợp lệ để giám sát.")
             return
 
         # Chạy start() trong thread nền để không chặn GUI (schedule recursive có thể rất lâu)
-        self._set_status("Starting monitor…", C["text_dim"])
+        self._set_status("Đang khởi động giám sát…", C["text_dim"])
         self._monitor_btn.configure(state="disabled")
 
         def _do_start():
@@ -1993,32 +1930,32 @@ class MainWindow(ctk.CTk):
         if success:
             self._monitor_start_time = time.time()
             self._monitor_btn.configure(
-                text="  ■  Stop Monitor",
+                text="  ■  Dừng giám sát",
                 fg_color=C["red"], hover_color=C["danger"],
                 text_color="#FFF"
             )
-            self._set_status(f"Monitoring: {path}", C["green"])
-            self._log("success", f"Real-time monitor started: {path}")
+            self._set_status(f"Đang giám sát: {path}", C["green"])
+            self._log("success", f"Đã khởi động giám sát thời gian thực: {path}")
         else:
-            self._set_status("Monitor failed to start", C["red"])
-            self._log("danger", "Failed to start monitor — ensure ML model is loaded")
+            self._set_status("Không thể khởi động giám sát", C["red"])
+            self._log("danger", "Không thể khởi động giám sát - hãy bảo đảm model ML đã được tải")
 
     def _stop_monitor(self):
         self._monitor.stop()
         self._monitor_btn.configure(
-            text="  ▶  Start Monitor",
+            text="  ▶  Bắt đầu giám sát",
             fg_color=C["green"], hover_color="#1EA34A",
             text_color=C["bg_dark"]
         )
-        self._set_status("Monitor stopped", C["text_dim"])
-        self._log("info", "Real-time monitor stopped")
+        self._set_status("Đã dừng giám sát", C["text_dim"])
+        self._log("info", "Đã dừng giám sát thời gian thực")
 
     def _on_protection_toggle(self, on: bool):
         self._protection_on = on
         if on:
-            self._set_status("Protection enabled", C["green"])
+            self._set_status("Đã bật bảo vệ", C["green"])
         else:
-            self._set_status("⚠ Protection disabled", C["red"])
+            self._set_status("⚠ Đã tắt bảo vệ", C["red"])
 
     # ═══════════════════════════════════════════════════════════════════════
     # ALERT / BEHAVIOR CALLBACKS
@@ -2030,9 +1967,12 @@ class MainWindow(ctk.CTk):
 
         # --- Auto Quarantine for Monitor ---
         if self._protection_on and self._responder.should_auto_respond(event.result.risk_level):
-            q_res = self._responder.quarantine_file(event.result.path, reason=f"Monitor: {event.result.risk_level} Threat")
+            q_res = self._responder.quarantine_file(
+                event.result.path,
+                reason=f"Giám sát: Threat {event.result.risk_level}",
+            )
             if q_res.get("success"):
-                self.after(0, lambda f=event.result.filename: self._log("warning", f"Auto-quarantined real-time threat: {f}"))
+                self.after(0, lambda f=event.result.filename: self._log("warning", f"Tự động cách ly mối đe dọa thời gian thực: {f}"))
                 self.after(0, self._refresh_quarantine)
 
     def _on_file_analyzed(self, result: ScanResult, event_type: str):
@@ -2055,7 +1995,7 @@ class MainWindow(ctk.CTk):
             self._add_behavior_widget(a),
             self._update_behavior_summary(a),
             self._update_gauge_from_alert(a),
-            self._log("warning", f"Behavior: {a.behavior_type.value} | {a.process.name} | {a.description}")
+            self._log("warning", f"Hành vi: {self._behavior_type_label(a.behavior_type)} | {a.process.name} | {a.description}")
         ))
 
     def _add_threat_widget(self, event: ThreatEvent):
@@ -2063,7 +2003,7 @@ class MainWindow(ctk.CTk):
             return
         # Clear "no alerts" placeholder
         for child in self._threat_events_frame.winfo_children():
-            if isinstance(child, ctk.CTkLabel) and "No recent" in child.cget("text"):
+            if isinstance(child, ctk.CTkLabel) and "Chưa có" in child.cget("text"):
                 child.destroy()
                 break
 
@@ -2080,7 +2020,7 @@ class MainWindow(ctk.CTk):
                      text_color=C["text_dim"]).pack(side="left")
         ctk.CTkLabel(top_row, text=event.result.risk_level, font=("Consolas", 8, "bold"),
                      text_color=risk_color).pack(side="left", padx=8)
-        ctk.CTkLabel(top_row, text=event.event_type.capitalize(),
+        ctk.CTkLabel(top_row, text=self._event_type_label(event.event_type),
                      font=("Consolas", 8), text_color=C["text_dim"]).pack(side="right")
 
         ctk.CTkLabel(card, text=event.result.filename,
@@ -2092,14 +2032,7 @@ class MainWindow(ctk.CTk):
         action_row.pack(fill="x", padx=8, pady=(0, 6))
         
         ctk.CTkButton(
-            action_row, text="Analyze with AI", height=24,
-            font=("Consolas", 8), text_color=C["cyan"],
-            fg_color="transparent", hover_color=C["bg_card"],
-            command=lambda e=event: self._ai_analyze_threat_event(e)
-        ).pack(side="left")
-
-        ctk.CTkButton(
-            action_row, text="Quarantine", height=24,
+            action_row, text="Cách ly", height=24,
             font=("Consolas", 8), text_color=C["orange"],
             fg_color="transparent", hover_color=C["bg_card"],
             command=lambda e=event: self._manual_quarantine_action(e)
@@ -2109,20 +2042,20 @@ class MainWindow(ctk.CTk):
 
     def _manual_quarantine_action(self, event: ThreatEvent):
         if not os.path.exists(event.result.path):
-            messagebox.showinfo("Not Found", "File already removed or quarantined.")
+            messagebox.showinfo("Không tìm thấy", "Tệp đã bị xóa hoặc đã được cách ly.")
             return
-        if messagebox.askyesno("Quarantine File", f"Move '{event.result.filename}' to quarantine?"):
+        if messagebox.askyesno("Cách ly tệp", f"Chuyển '{event.result.filename}' vào vùng cách ly?"):
             q_res = self._responder.quarantine_file(
                 event.result.path, 
-                reason=f"User manual quarantine ({event.result.risk_level})"
+                reason=f"Người dùng cách ly thủ công ({event.result.risk_level})"
             )
             if q_res.get("success"):
-                self._log("success", f"Manually quarantined: {event.result.filename}")
-                self._set_status(f"Quarantined {event.result.filename}", C["green"])
+                self._log("success", f"Đã cách ly thủ công: {event.result.filename}")
+                self._set_status(f"Đã cách ly {event.result.filename}", C["green"])
                 self._refresh_quarantine()
             else:
-                self._log("danger", f"Failed to quarantine: {q_res.get('error', 'Unknown error')}")
-                messagebox.showerror("Error", f"Could not quarantine file: {q_res.get('error', 'Unknown error')}")
+                self._log("danger", f"Không thể cách ly: {q_res.get('error', 'Lỗi không xác định')}")
+                messagebox.showerror("Lỗi", f"Không thể cách ly tệp: {q_res.get('error', 'Lỗi không xác định')}")
         if len(self._threat_event_widgets) > 50:
             oldest = self._threat_event_widgets.pop(0)
             oldest.destroy()
@@ -2131,7 +2064,7 @@ class MainWindow(ctk.CTk):
         if not hasattr(self, "_behavior_frame"):
             return
         for child in self._behavior_frame.winfo_children():
-            if isinstance(child, ctk.CTkLabel) and "No" in child.cget("text"):
+            if isinstance(child, ctk.CTkLabel) and "Chưa" in child.cget("text"):
                 child.destroy()
                 break
 
@@ -2146,7 +2079,7 @@ class MainWindow(ctk.CTk):
 
         ctk.CTkLabel(top_row, text=f"[{ts}]", font=("Consolas", 8),
                      text_color=C["text_dim"]).pack(side="left")
-        ctk.CTkLabel(top_row, text=alert.behavior_type.value,
+        ctk.CTkLabel(top_row, text=self._behavior_type_label(alert.behavior_type),
                      font=("Consolas", 8, "bold"), text_color=sev_color
                      ).pack(side="left", padx=8)
         ctk.CTkLabel(top_row, text=f"{alert.process.name} (PID {alert.process.pid})",
@@ -2164,25 +2097,18 @@ class MainWindow(ctk.CTk):
 
         if alert.process.pid:
             ctk.CTkButton(
-                action_row, text="Kill Process", height=24,
+                action_row, text="Dừng process", height=24,
                 font=("Consolas", 8), text_color=C["red"],
                 fg_color="transparent", hover_color=C["bg_card"],
                 command=lambda p=alert.process: self._kill_process_action(p)
             ).pack(side="left", padx=(0, 4))
 
             ctk.CTkButton(
-                action_row, text="Block Network", height=24,
+                action_row, text="Chặn mạng", height=24,
                 font=("Consolas", 8), text_color=C["orange"],
                 fg_color="transparent", hover_color=C["bg_card"],
                 command=lambda p=alert.process: self._block_network_action(p)
             ).pack(side="left")
-
-        ctk.CTkButton(
-            action_row, text="Analyze with AI", height=24,
-            font=("Consolas", 8), text_color=C["cyan"],
-            fg_color="transparent", hover_color=C["bg_card"],
-            command=lambda a=alert: self._ai_analyze_alert(a)
-        ).pack(side="left", padx=(4, 0))
 
         self._behavior_widgets.append(card)
         if len(self._behavior_widgets) > 50:
@@ -2206,7 +2132,7 @@ class MainWindow(ctk.CTk):
             current = self._pm_labels[key].cget("text")
             try:
                 count = int(current.split()[0]) + 1 if " " in current else int(current) + 1
-                self._pm_labels[key].configure(text=f"{count} {alert.behavior_type.value.replace('_', ' ').title()}")
+                self._pm_labels[key].configure(text=f"{count} {self._behavior_type_label(alert.behavior_type)}")
 
             except Exception:
                 pass
@@ -2216,208 +2142,23 @@ class MainWindow(ctk.CTk):
             return
         sev_map = {"CRITICAL": 0.9, "HIGH": 0.7, "MEDIUM": 0.4, "LOW": 0.2}
         score = sev_map.get(alert.severity.upper(), 0.1)
-        self._gauge_plot.signal_gauge(score, alert.behavior_type.value.replace("_", " "))
+        self._gauge_plot.signal_gauge(score, self._behavior_type_label(alert.behavior_type))
 
     def _kill_process_action(self, process: ProcessInfo):
-        if messagebox.askyesno("Kill Process",
-                               f"Kill process '{process.name}' (PID {process.pid})?"):
+        if messagebox.askyesno("Dừng process",
+                               f"Dừng process '{process.name}' (PID {process.pid})?"):
             result = self._responder.kill_process(process.pid, process.name)
             if result:
-                self._log("success", f"Process {process.name} killed")
+                self._log("success", f"Đã dừng process {process.name}")
             else:
-                self._log("danger", f"Failed to kill process {process.name}")
+                self._log("danger", f"Không thể dừng process {process.name}")
 
     def _block_network_action(self, process: ProcessInfo):
         result = self._responder.block_network(process.pid, process.name)
         if result:
-            self._log("success", f"Network blocked for {process.name}")
+            self._log("success", f"Đã chặn mạng cho {process.name}")
         else:
-            self._log("danger", f"Failed to block network for {process.name}")
-
-    def _ai_analyze_alert(self, alert: BehaviorAlert):
-        def _run_ai():
-            # #region agent log
-            _agent_debug_log(
-                "main_window.py:_ai_analyze_alert._run_ai",
-                "thread_start",
-                {"behavior": alert.behavior_type.value},
-                "H2",
-            )
-            # #endregion
-            try:
-                from core.ai_analyzer import get_ai_analyzer
-                analyzer = get_ai_analyzer()
-                self._log("info", f"Sending alert for AI analysis: {alert.behavior_type.value}...")
-                self._set_status("Analyzing threat with AI...", C["cyan"])
-
-                threat_context = {
-                    "filename": alert.process.name,
-                    "file_path": alert.process.path,
-                    "extension": "",
-                    "entropy": 0.0,
-                    "entropy_z_score": 0.0,
-                    "ext_baseline_mean": 0.0,
-                    "ext_baseline_std": 0.0,
-                    "raw_probability": 0.0,
-                    "adjusted_probability": 0.0,
-                    "ml_risk_level": alert.severity.upper(),
-                    "fp_adjusted": False,
-                    "fp_reason": "",
-                    "sha256": "",
-                    "pe_info": None,
-                    "yara_matches": [],
-                    "yara_boosted": False,
-                    "vt_available": False,
-                    "vt_detection_ratio": "0/0",
-                    "vt_malicious_count": 0,
-                    "vt_suspicious_count": 0,
-                    "vt_total_engines": 0,
-                    "vt_permalink": "",
-                    "magic_bytes_mismatch": False,
-                    "known_benign_format": False,
-                    "struct_consistency": 0.0,
-                    "compression_ratio": 0.0,
-                    # BehaviorAlert-specific fields
-                    "behavior_type": alert.behavior_type.value,
-                    "process_pid": alert.process.pid,
-                    "process_path": alert.process.path,
-                    "affected_files": alert.files,
-                    "file_count": len(alert.files),
-                    "alert_description": alert.description,
-                    "alert_timestamp": alert.timestamp.isoformat() if hasattr(alert, "timestamp") else "",
-                    "alert_metadata": alert.metadata,
-                }
-
-                result = analyzer.analyze_threat(threat_context)
-                # #region agent log
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_alert._run_ai",
-                    "after_analyze",
-                    {"result_len": len(result or ""), "configured": analyzer.is_configured()},
-                    "H5",
-                )
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_alert._run_ai",
-                    "before_after",
-                    {},
-                    "H1",
-                )
-                # #endregion
-                self.after(0, lambda: self._show_ai_result_popup(alert.process.name, result))
-                # #region agent log
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_alert._run_ai",
-                    "after_scheduled",
-                    {},
-                    "H1",
-                )
-                # #endregion
-            except Exception as _ex:
-                # #region agent log
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_alert._run_ai",
-                    "exception",
-                    {"type": type(_ex).__name__, "msg": str(_ex)},
-                    "H2",
-                )
-                # #endregion
-                self.after(0, lambda err=str(_ex): (
-                    self._set_status(f"AI Analysis failed: {err}", C["red"]),
-                    self._log("danger", f"AI Analysis error: {err}"),
-                ))
-
-        import threading
-        threading.Thread(target=_run_ai, daemon=True).start()
-
-    def _ai_analyze_threat_event(self, event: ThreatEvent):
-        # #region agent log
-        _agent_debug_log(
-            "main_window.py:_ai_analyze_threat_event",
-            "entry_main_thread",
-            {"filename": getattr(event.result, "filename", None)},
-            "H4",
-        )
-        # #endregion
-
-        def _run_ai():
-            # #region agent log
-            _agent_debug_log(
-                "main_window.py:_ai_analyze_threat_event._run_ai",
-                "thread_start",
-                {},
-                "H2",
-            )
-            # #endregion
-            try:
-                from core.ai_analyzer import get_ai_analyzer
-                analyzer = get_ai_analyzer()
-                self._log("info", f"Sending file threat for AI analysis: {event.result.filename}...")
-                self._set_status("Analyzing file threat with AI...", C["cyan"])
-
-                result = analyzer.analyze_scan_result(event.result)
-                filename_short = event.result.filename.split("/")[-1].split("\\")[-1]
-                # #region agent log
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_threat_event._run_ai",
-                    "after_analyze",
-                    {"result_len": len(result or ""), "configured": analyzer.is_configured()},
-                    "H5",
-                )
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_threat_event._run_ai",
-                    "before_after",
-                    {"popup_title": filename_short},
-                    "H1",
-                )
-                # #endregion
-                self.after(0, lambda: self._show_ai_result_popup(filename_short, result))
-                # #region agent log
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_threat_event._run_ai",
-                    "after_scheduled",
-                    {},
-                    "H1",
-                )
-                # #endregion
-            except Exception as _ex:
-                # #region agent log
-                _agent_debug_log(
-                    "main_window.py:_ai_analyze_threat_event._run_ai",
-                    "exception",
-                    {"type": type(_ex).__name__, "msg": str(_ex)},
-                    "H2",
-                )
-                # #endregion
-                self.after(0, lambda err=str(_ex): (
-                    self._set_status(f"AI Analysis failed: {err}", C["red"]),
-                    self._log("danger", f"AI Analysis error: {err}"),
-                ))
-
-        import threading
-        threading.Thread(target=_run_ai, daemon=True).start()
-
-    def _show_ai_result_popup(self, process_name: str, result: str):
-        # #region agent log
-        _agent_debug_log(
-            "main_window.py:_show_ai_result_popup",
-            "entry",
-            {"process_name": process_name, "result_len": len(result or "")},
-            "H3",
-        )
-        # #endregion
-        self._set_status("AI Analysis complete", C["green"])
-        self._log("success", f"AI Analysis finished for {process_name}")
-        win = ctk.CTkToplevel(self)
-        win.title(f"AI Analysis - {process_name}")
-        win.geometry("700x500")
-        win.attributes("-topmost", True)
-        
-        textbox = ctk.CTkTextbox(win, font=("Consolas", 11), wrap="word")
-        textbox.pack(fill="both", expand=True, padx=10, pady=10)
-        textbox.insert("0.0", result)
-        textbox.configure(state="disabled")
-
-    # ─── DeepSeek AI Settings handlers ──────────────────────────────────────
+            self._log("danger", f"Không thể chặn mạng cho {process.name}")
 
     def _on_proxy_save(self):
         http = self._http_proxy_var.get().strip()
@@ -2427,67 +2168,8 @@ class MainWindow(ctk.CTk):
         import os
         if http: os.environ["HTTP_PROXY"] = http
         if https: os.environ["HTTPS_PROXY"] = https
-        self._log("success", f"Proxy updated: HTTP={http or 'none'}, HTTPS={https or 'none'}")
-        self._set_status("Proxy settings saved and applied", C["green"])
-
-    def _on_ai_save(self):
-        """Save Claude API key to config and reinitialize analyzer."""
-        api_key = self._ai_api_key_var.get().strip()
-        config.set("ai.api_key", api_key)
-        config.set("ai.auth_token", api_key)
-        # Force re-create singleton so new key takes effect
-        import core.ai_analyzer as _ai_mod
-        _ai_mod._ai_analyzer_instance = None
-        if api_key:
-            self._ai_status_lbl.configure(text="API key saved ✓  (click Test to verify)", text_color=C["green"])
-            self._log("success", "Claude API key saved")
-        else:
-            self._ai_status_lbl.configure(text="API key cleared", text_color=C["text_dim"])
-
-    def _on_ai_model_change(self, model: str):
-        config.set("ai.model", model)
-        # Reset singleton so model update takes effect
-        import core.ai_analyzer as _ai_mod
-        _ai_mod._ai_analyzer_instance = None
-        self._log("info", f"Claude model changed to: {model}")
-
-    def _on_ai_toggle(self):
-        enabled = self._ai_toggle.get() == 1
-        config.set("ai.enabled", enabled)
-        self._log("info", f"AI Analysis {'enabled' if enabled else 'disabled'}")
-
-    def _on_ai_test(self):
-        """Test Claude connection with a minimal API call."""
-        if not config.get("ai.api_key", ""):
-            self._ai_status_lbl.configure(text="⚠ No API key — save one first", text_color=C["orange"])
-            return
-        self._ai_status_lbl.configure(text="Testing connection…", text_color=C["text_dim"])
-        self._btn_ai_test.configure(state="disabled")
-
-        def _test():
-            from core.ai_analyzer import get_ai_analyzer
-            import core.ai_analyzer as _ai_mod
-            _ai_mod._ai_analyzer_instance = None  # fresh instance with latest key
-            analyzer = get_ai_analyzer()
-            result = analyzer.analyze_threat({"test": "ping", "message": "Reply with: OK"})
-            ok = "error" not in result.lower() and "401" not in result and "403" not in result
-            self.after(0, lambda: self._on_ai_test_done(ok, result))
-
-        threading.Thread(target=_test, daemon=True).start()
-
-    def _on_ai_test_done(self, ok: bool, message: str):
-        self._btn_ai_test.configure(state="normal")
-        if ok:
-            self._ai_status_lbl.configure(
-                text="✓ Connected to Claude API", text_color=C["green"]
-            )
-            self._log("success", "Claude API connection verified")
-        else:
-            short = message[:120].replace("\n", " ")
-            self._ai_status_lbl.configure(
-                text=f"✗ {short}", text_color=C["red"]
-            )
-            self._log("danger", f"Claude API test failed: {message[:200]}")
+        self._log("success", f"Đã cập nhật Proxy: HTTP={http or 'none'}, HTTPS={https or 'none'}")
+        self._set_status("Đã lưu và áp dụng cài đặt Proxy", C["green"])
 
     def _clear_alerts(self):
         self._threat_events.clear()
@@ -2498,7 +2180,7 @@ class MainWindow(ctk.CTk):
             w.destroy()
         self._threat_event_widgets.clear()
         self._behavior_widgets.clear()
-        self._log("info", "All alerts cleared")
+        self._log("info", "Đã xóa toàn bộ cảnh báo")
 
     # ═══════════════════════════════════════════════════════════════════════
     # SETTINGS HANDLERS
@@ -2509,22 +2191,22 @@ class MainWindow(ctk.CTk):
         self._thresh_val_lbl.configure(text=f"{thresh:.2f}")
         self._engine.set_threshold(thresh)
         config.set("ml.default_threshold", thresh)
-        self._log("info", f"Threshold updated to {thresh:.2f}")
+        self._log("info", f"Đã cập nhật threshold thành {thresh:.2f}")
 
     def _save_auto_response_policy(self):
         self._responder.save()
-        self._log("success", "Auto-response policy saved")
+        self._log("success", "Đã lưu chính sách phản ứng tự động")
 
     def _open_whitelist_editor(self):
         try:
             editor = WhitelistEditorWindow(self)
             editor.lift()
         except Exception as e:
-            self._log("danger", f"Failed to open whitelist editor: {e}")
+            self._log("danger", f"Không thể mở Whitelist Editor: {e}")
 
     def _apply_whitelist(self):
-        self._log("success", "Whitelist applied to scanner")
-        self._set_status("Whitelist updated", C["green"])
+        self._log("success", "Đã áp dụng Whitelist cho scanner")
+        self._set_status("Đã cập nhật Whitelist", C["green"])
 
     def _on_notif_toggle(self, on: bool):
         config.set("notifications.enabled", on)
@@ -2543,7 +2225,7 @@ class MainWindow(ctk.CTk):
         fpr = info.get("false_positive_rate", 0)
 
         text = (
-            f"  Accuracy:     {acc * 100:.2f}%\n"
+            f"  Độ chính xác: {acc * 100:.2f}%\n"
             f"  Precision:   {prec * 100:.2f}%\n"
             f"  Recall:       {rec * 100:.2f}%\n"
             f"  FPR:          {fpr * 100:.2f}%\n"
@@ -2562,22 +2244,22 @@ class MainWindow(ctk.CTk):
                 from core.virustotal_client import VirusTotalClient
                 self._vt_client = VirusTotalClient(api_key)
                 self._vt_status_lbl.configure(
-                    text="Connected", text_color=C["green"]
+                    text="Đã kết nối", text_color=C["green"]
                 )
-                self._log("success", "VirusTotal API key saved and client initialized")
+                self._log("success", "Đã lưu API key VirusTotal và khởi tạo client")
             except Exception as e:
                 self._vt_status_lbl.configure(
-                    text=f"Error: {e}", text_color=C["red"]
+                    text=f"Lỗi: {e}", text_color=C["red"]
                 )
-                self._log("danger", f"VT client init failed: {e}")
+                self._log("danger", f"Không thể khởi tạo VT client: {e}")
         else:
             self._vt_client = None
-            self._vt_status_lbl.configure(text="Not configured", text_color=C["text_dim"])
+            self._vt_status_lbl.configure(text="Chưa cấu hình", text_color=C["text_dim"])
 
     def _on_vt_toggle(self):
         enabled = self._vt_toggle.get() == 1
         config.set("virustotal.enabled", enabled)
-        self._log("info", f"VirusTotal checks {'enabled' if enabled else 'disabled'}")
+        self._log("info", f"Kiểm tra VirusTotal đã được {'bật' if enabled else 'tắt'}")
 
     # ─── API Server handlers ─────────────────────────────────────────────────
 
@@ -2592,15 +2274,15 @@ class MainWindow(ctk.CTk):
             import uvicorn
             from api.main import app
         except ImportError:
-            messagebox.showwarning("Missing Dependency",
-                                   "FastAPI/uvicorn not installed.\nRun: pip install fastapi uvicorn")
+            messagebox.showwarning("Thiếu dependency",
+                                   "FastAPI/uvicorn chưa được cài đặt.\nChạy: pip install fastapi uvicorn")
             return
 
         host = self._api_host_var.get().strip() or "0.0.0.0"
         try:
             port = int(self._api_port_var.get().strip())
         except ValueError:
-            messagebox.showwarning("Invalid Port", "Port must be a number.")
+            messagebox.showwarning("Port không hợp lệ", "Port phải là số.")
             return
 
         def run_server():
@@ -2614,28 +2296,28 @@ class MainWindow(ctk.CTk):
         self._api_server_thread = threading.Thread(target=run_server, daemon=True)
         self._api_server_thread.start()
         self._api_server_running = True
-        self._btn_api_toggle.configure(text="Stop Server", fg_color=C["red"],
+        self._btn_api_toggle.configure(text="Dừng server", fg_color=C["red"],
                                        hover_color=C["danger"], text_color="#FFF")
         self._api_status_lbl.configure(
-            text=f"Running at http://{host}:{port}", text_color=C["green"]
+            text=f"Đang chạy tại http://{host}:{port}", text_color=C["green"]
         )
-        self._log("success", f"API server started at http://{host}:{port}")
-        self._append_api_log(f"[INFO] Server started at http://{host}:{port}")
+        self._log("success", f"Đã khởi động API server tại http://{host}:{port}")
+        self._append_api_log(f"[INFO] Da khoi dong server tai http://{host}:{port}")
 
     def _stop_api_server(self):
         self._api_server_running = False
-        self._btn_api_toggle.configure(text="Start Server", fg_color=C["green"],
-                                      hover_color="#1EA34A", text_color=C["bg_dark"])
-        self._api_status_lbl.configure(text="API server stopped", text_color=C["text_dim"])
-        self._log("info", "API server stopped")
-        self._append_api_log("[INFO] Server stopped")
+        self._btn_api_toggle.configure(text="Khởi động server", fg_color=C["green"],
+                                       hover_color="#1EA34A", text_color=C["bg_dark"])
+        self._api_status_lbl.configure(text="API server đã dừng", text_color=C["text_dim"])
+        self._log("info", "Đã dừng API server")
+        self._append_api_log("[INFO] Da dung server")
 
     def _on_api_error(self, error: str):
         self._api_server_running = False
-        self._btn_api_toggle.configure(text="Start Server", fg_color=C["green"],
-                                      hover_color="#1EA34A", text_color=C["bg_dark"])
-        self._api_status_lbl.configure(text=f"Error: {error}", text_color=C["red"])
-        self._log("danger", f"API server error: {error}")
+        self._btn_api_toggle.configure(text="Khởi động server", fg_color=C["green"],
+                                       hover_color="#1EA34A", text_color=C["bg_dark"])
+        self._api_status_lbl.configure(text=f"Lỗi: {error}", text_color=C["red"])
+        self._log("danger", f"Lỗi API server: {error}")
         self._append_api_log(f"[ERROR] {error}")
 
     def _append_api_log(self, message: str):
@@ -2657,7 +2339,7 @@ class MainWindow(ctk.CTk):
         items = self._responder.get_quarantine_list()
         if not items:
             ctk.CTkLabel(
-                self._quarantine_list, text="No quarantined files",
+                self._quarantine_list, text="Không có tệp bị cách ly",
                 font=("Consolas", 9), text_color=C["text_dim"]
             ).pack(pady=20)
             return
@@ -2680,14 +2362,14 @@ class MainWindow(ctk.CTk):
 
             qid = item["id"]
             ctk.CTkButton(
-                row, text="Restore", height=24,
+                row, text="Khôi phục", height=24,
                 font=("Consolas", 8), text_color=C["green"],
                 fg_color="transparent", hover_color=C["bg_card"],
                 command=lambda i=item: self._restore_file(i)
             ).pack(side="left", padx=(0, 4))
 
             ctk.CTkButton(
-                row, text="Delete", height=24,
+                row, text="Xóa", height=24,
                 font=("Consolas", 8), text_color=C["red"],
                 fg_color="transparent", hover_color=C["bg_card"],
                 command=lambda i=item: self._delete_quarantined(i)
@@ -2696,18 +2378,18 @@ class MainWindow(ctk.CTk):
     def _restore_file(self, item: Dict):
         success = self._responder.restore_file(item["id"])
         if success:
-            self._log("success", f"File restored: {item['original_path']}")
+            self._log("success", f"Đã khôi phục tệp: {item['original_path']}")
         else:
-            self._log("danger", f"Failed to restore: {item['original_path']}")
+            self._log("danger", f"Không thể khôi phục: {item['original_path']}")
         self._refresh_quarantine()
 
     def _delete_quarantined(self, item: Dict):
-        if messagebox.askyesno("Delete", "Permanently delete this quarantined file?"):
+        if messagebox.askyesno("Xóa", "Xóa vĩnh viễn tệp đang bị cách ly này?"):
             success = getattr(self._responder, 'delete_quarantined_file', lambda x: False)(item["id"])
             if success:
-                self._log("warning", f"Quarantined file permanently deleted: {item['original_path']}")
+                self._log("warning", f"Đã xóa vĩnh viễn tệp cách ly: {item['original_path']}")
             else:
-                self._log("danger", f"Failed to delete quarantined file: {item['original_path']}")
+                self._log("danger", f"Không thể xóa tệp cách ly: {item['original_path']}")
             self._refresh_quarantine()
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -2716,7 +2398,7 @@ class MainWindow(ctk.CTk):
 
     def _export_csv(self):
         if not self._scan_results:
-            messagebox.showinfo("No Data", "Run a scan first.")
+            messagebox.showinfo("Chưa có dữ liệu", "Hãy quét trước.")
             return
         path = filedialog.asksaveasfilename(
             defaultextension=".csv",
@@ -2725,12 +2407,12 @@ class MainWindow(ctk.CTk):
         )
         if path:
             export_csv(self._scan_results, path)
-            self._log("success", f"CSV exported: {path}")
+            self._log("success", f"Đã xuất CSV: {path}")
             webbrowser.open(f"file:///{path}")
 
     def _export_png(self):
         if not self._scan_results:
-            messagebox.showinfo("No Data", "Run a scan first.")
+            messagebox.showinfo("Chưa có dữ liệu", "Hãy quét trước.")
             return
         path = filedialog.asksaveasfilename(
             defaultextension=".png",
@@ -2741,18 +2423,29 @@ class MainWindow(ctk.CTk):
             elapsed = time.time() - self._scan_start_time if self._scan_start_time else 0
             export_report_png(self._scan_results, path,
                                scan_duration=float(elapsed))
-            self._log("success", f"PNG chart exported: {path}")
+            self._log("success", f"Đã xuất biểu đồ PNG: {path}")
             webbrowser.open(f"file:///{path}")
 
     def _export_forensic(self):
         if not self._scan_results:
-            messagebox.showinfo("No Data", "Run a scan first.")
+            messagebox.showinfo("Chưa có dữ liệu", "Hãy quét trước.")
             return
-        path = filedialog.askdirectory(title="Select output directory for forensic bundle")
+        path = filedialog.askdirectory(title="Chọn thư mục đầu ra cho gói Forensic")
         if path:
             bundle = export_forensic_bundle(self._scan_results, path)
-            self._log("success", f"Forensic bundle: {bundle}")
+            self._log("success", f"Đã tạo gói Forensic: {bundle}")
             webbrowser.open(f"file:///{bundle}")
+
+    def _status_badge_text(self, color: str) -> str:
+        if color == C["green"]:
+            return "SẴN SÀNG"
+        if color == C["blue"]:
+            return "ĐANG CHẠY"
+        if color == C["orange"]:
+            return "CẢNH BÁO"
+        if color == C["red"]:
+            return "LỖI"
+        return "TRẠNG THÁI"
 
     # ═══════════════════════════════════════════════════════════════════════
     # STATUS & LOGGING
@@ -2762,7 +2455,7 @@ class MainWindow(ctk.CTk):
         self._status_var.set(text)
         try:
             self._status_badge.configure(text_color=C["bg_dark"], color=color)
-            self._status_badge._label.configure(text=text[:15])
+            self._status_badge._label.configure(text=self._status_badge_text(color))
         except Exception:
             pass
 
@@ -2794,10 +2487,6 @@ class MainWindow(ctk.CTk):
             self._log_text.configure(state="normal")
             self._log_text.delete("1.0", "end")
             self._log_text.configure(state="disabled")
-
-    # ═══════════════════════════════════════════════════════════════════════
-    # NEW TABS — Entropy Watch, Honeypot, ML Training
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _build_entropy_watch_page(self):
         page = EntropyWatchTab(self._page_container)

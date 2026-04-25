@@ -60,14 +60,14 @@ class EntropyWatchTab(ctk.CTkFrame):
 
         # ── Title ───────────────────────────────────────────────────────────────
         title = ctk.CTkLabel(
-            self, text="Real-time Entropy Watch",
+            self, text="Theo dõi Entropy thời gian thực",
             font=("Consolas", 14, "bold"), text_color=C["accent"]
         )
         title.grid(row=0, column=0, sticky="w", padx=12, pady=(12, 4))
 
         subtitle = ctk.CTkLabel(
             self,
-            text="Monitors Shannon entropy of modified files — detects ransomware encryption patterns",
+            text="Giám sát Shannon entropy của các tệp bị sửa đổi - phát hiện mẫu mã hóa ransomware",
             font=("Consolas", 8), text_color=C["text_dim"], wraplength=700
         )
         subtitle.grid(row=1, column=0, sticky="w", padx=12, pady=(0, 8))
@@ -80,7 +80,7 @@ class EntropyWatchTab(ctk.CTkFrame):
 
         # Enable toggle
         self._enable_toggle = ctk.CTkSwitch(
-            control_card, text="Enable Entropy Monitoring",
+            control_card, text="Bật giám sát Entropy",
             font=("Consolas", 10, "bold"), text_color=C["text"],
             progress_color=C["accent"], fg_color=C["border"],
             button_color=C["border"], button_hover_color=C["accent"],
@@ -95,13 +95,13 @@ class EntropyWatchTab(ctk.CTkFrame):
         self._threshold_lbl.grid(row=0, column=2, padx=8, pady=8)
 
         self._fps_lbl = ctk.CTkLabel(
-            control_card, text="Files/s: 0",
+            control_card, text="Tệp/s: 0",
             font=("Consolas", 9), text_color=C["text_dim"]
         )
         self._fps_lbl.grid(row=0, column=3, padx=8, pady=8)
 
         self._consecutive_lbl = ctk.CTkLabel(
-            control_card, text="Consecutive: 0 / 5",
+            control_card, text="Liên tiếp: 0 / 5",
             font=("Consolas", 9), text_color=C["text_dim"]
         )
         self._consecutive_lbl.grid(row=0, column=4, padx=(8, 12), pady=8)
@@ -120,7 +120,7 @@ class EntropyWatchTab(ctk.CTkFrame):
         chart_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            chart_card, text="Shannon Entropy Over Time",
+            chart_card, text="Shannon Entropy theo thời gian",
             font=("Consolas", 10, "bold"), text_color=C["accent"]
         ).grid(row=0, column=0, sticky="nw", padx=12, pady=(8, 0))
 
@@ -136,12 +136,12 @@ class EntropyWatchTab(ctk.CTkFrame):
         gauge_card.grid_rowconfigure(1, weight=1)
 
         ctk.CTkLabel(
-            gauge_card, text="Danger Level",
+            gauge_card, text="Mức độ nguy hiểm",
             font=("Consolas", 10, "bold"), text_color=C["accent"]
         ).grid(row=0, column=0, sticky="nw", padx=12, pady=(8, 4))
 
         self._danger_gauge = PlotFrame(gauge_card, figsize=(3, 3.5))
-        self._danger_gauge.signal_gauge(0.0, "Threat Score")
+        self._danger_gauge.signal_gauge(0.0, "Điểm đe dọa")
         self._danger_gauge.grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 8))
 
         self._danger_score_lbl = ctk.CTkLabel(
@@ -153,7 +153,7 @@ class EntropyWatchTab(ctk.CTkFrame):
 
         # Consecutive progress bar
         ctk.CTkLabel(
-            gauge_card, text="Consecutive High-Entropy Files:",
+            gauge_card, text="Số tệp Entropy cao liên tiếp:",
             font=("Consolas", 8), text_color=C["text_dim"]
         ).grid(row=3, column=0, sticky="w", padx=12, pady=(4, 0))
 
@@ -172,7 +172,7 @@ class EntropyWatchTab(ctk.CTkFrame):
         self.grid_rowconfigure(4, weight=1)
 
         ctk.CTkLabel(
-            table_card, text="Recent File Modifications",
+            table_card, text="Các thay đổi tệp gần đây",
             font=("Consolas", 10, "bold"), text_color=C["accent"]
         ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
 
@@ -182,7 +182,7 @@ class EntropyWatchTab(ctk.CTkFrame):
         header_row.pack_propagate(False)
 
         col_widths = [80, 280, 80, 80]
-        col_labels = ["Time", "File", "Entropy", "Risk"]
+        col_labels = ["Thời gian", "Tệp", "Entropy", "Rủi ro"]
         for i, (w, lbl) in enumerate(zip(col_widths, col_labels)):
             f = ctk.CTkFrame(header_row, width=w, fg_color="transparent")
             f.pack(side="left", padx=2, fill="y", expand=True)
@@ -199,7 +199,7 @@ class EntropyWatchTab(ctk.CTkFrame):
         self._recent_container.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            self._recent_container, text="No files monitored yet",
+            self._recent_container, text="Chưa có tệp nào được giám sát",
             font=("Consolas", 9), text_color=C["text_dim"]
         ).grid(row=0, column=0, pady=10)
 
@@ -207,7 +207,7 @@ class EntropyWatchTab(ctk.CTkFrame):
 
         # ── Status bar ────────────────────────────────────────────────────────
         self._status_lbl = ctk.CTkLabel(
-            self, text="Entropy monitoring is disabled",
+            self, text="Giám sát Entropy đang tắt",
             font=("Consolas", 9), text_color=C["text_dim"]
         )
         self._status_lbl.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 8))
@@ -215,10 +215,10 @@ class EntropyWatchTab(ctk.CTkFrame):
     def _on_enable_changed(self):
         self._is_enabled = self._enable_toggle.get() == 1
         if self._is_enabled:
-            self._status_lbl.configure(text="Entropy monitoring is active", text_color=C["green"])
+            self._status_lbl.configure(text="Giám sát Entropy đang hoạt động", text_color=C["green"])
             self._schedule_update()
         else:
-            self._status_lbl.configure(text="Entropy monitoring is disabled", text_color=C["text_dim"])
+            self._status_lbl.configure(text="Giám sát Entropy đang tắt", text_color=C["text_dim"])
             if self._update_job:
                 self.after_cancel(self._update_job)
                 self._update_job = None
@@ -240,7 +240,7 @@ class EntropyWatchTab(ctk.CTkFrame):
 
         # Update danger gauge
         danger = self._danger_score / 10.0
-        self._danger_gauge.signal_gauge(danger, "Threat Score")
+        self._danger_gauge.signal_gauge(danger, "Điểm đe dọa")
 
         score_color = C["red"] if self._danger_score >= 7 else C["orange"] if self._danger_score >= 4 else C["green"]
         self._danger_score_lbl.configure(text=f"{self._danger_score} / 10", text_color=score_color)
@@ -248,7 +248,7 @@ class EntropyWatchTab(ctk.CTkFrame):
         # Update consecutive bar
         self._consecutive_bar.set(self._current_consecutive / 5.0)
         self._consecutive_lbl.configure(
-            text=f"Consecutive: {self._current_consecutive} / 5",
+            text=f"Liên tiếp: {self._current_consecutive} / 5",
             text_color=C["red"] if self._current_consecutive >= 3 else C["text_dim"]
         )
 
@@ -284,7 +284,7 @@ class EntropyWatchTab(ctk.CTkFrame):
 
         # Remove placeholder
         for w in self._recent_container.grid_slaves():
-            if isinstance(w, ctk.CTkLabel) and "No files" in w.cget("text"):
+            if isinstance(w, ctk.CTkLabel) and "Chưa có tệp" in w.cget("text"):
                 w.destroy()
 
         # Add row
@@ -324,7 +324,7 @@ class EntropyWatchTab(ctk.CTkFrame):
 
         # Files/s
         recent_count = len([t for t in self._entropy_timestamps[-10:] if t])
-        self._fps_lbl.configure(text=f"Files/s: {recent_count}")
+        self._fps_lbl.configure(text=f"Tệp/s: {recent_count}")
 
         # Burst alert
         if self._current_consecutive >= 5:
@@ -334,9 +334,9 @@ class EntropyWatchTab(ctk.CTkFrame):
         if not hasattr(self, "_burst_shown") or not self._burst_shown:
             self._burst_shown = True
             messagebox.showerror(
-                "ENTROPY BURST DETECTED!",
-                f"Ransomware encryption suspected!\n\n"
-                f"High entropy files: {self._current_consecutive} consecutive\n"
-                f"Files modified rapidly — immediate action recommended."
+                "PHAT HIEN BURST ENTROPY!",
+                f"Nghi ngờ có mã hóa ransomware!\n\n"
+                f"Số tệp entropy cao liên tiếp: {self._current_consecutive}\n"
+                f"Tệp đang bị sửa rất nhanh - khuyến nghị xử lý ngay."
             )
             self.after(30000, lambda: setattr(self, "_burst_shown", False))

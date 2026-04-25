@@ -13,7 +13,7 @@ Features:
   - Persistent JSON cache (TTL-based)
   - Rate limiting per source
   - Graceful degradation khi source unavailable
-  - Enriches AI analysis với TI context
+  - Enriches scan results with TI context
 
 Usage:
     ti = get_ti_client()
@@ -142,7 +142,7 @@ class ThreatIntelClient:
     Threat Intelligence correlation client.
 
     Lay thong tin TI tu MalwareBazaar, ThreatFox, AlienVault OTX de bo sung
-    context cho AI analysis. Khong thay the VirusTotal ma bo sung them nguon
+    context cho ket qua quet. Khong thay the VirusTotal ma bo sung them nguon
     du lieu.
 
     Args:

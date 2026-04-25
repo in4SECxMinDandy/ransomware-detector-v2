@@ -266,7 +266,7 @@ Các file chính bao gồm: train_model.py (script huấn luyện model), main.p
 
 Luồng xử lý dữ liệu trong hệ thống được mô tả như sau:
 
-Khi người dùng chọn một thư mục để quét (scan), hệ thống duyệt qua tất cả các file trong thư mục đó một cách đệ quy (đối với Full Scan) hoặc chỉ quét một số lượng giới hạn file (đối với Quick Scan).
+Khi người dùng chọn một thư mục để quét (scan), hệ thống duyệt qua tất cả các file trong thư mục đó theo chế độ Full Scan (đệ quy) hoặc Incremental Scan để chỉ quét lại các file mới/thay đổi.
 
 Với mỗi file, FeatureExtractor trích xuất 16 features và trả về một feature vector. MLEngine sử dụng feature vector này để predict xác suất file là ransomware. YARAEngine quét file với các YARA rules và trả về danh sách các rules matched.
 
@@ -835,7 +835,7 @@ Giao diện ứng dụng sẽ hiện ra với các thành phần sau:
 
 ### 6.4. Sử dụng các tính năng
 
-Mode 1: Manual Scan. Người dùng click "Select Folder" để chọn thư mục cần quét, chọn Scan Mode (Full Scan hoặc Quick Scan), điều chỉnh Threshold nếu cần (mặc định: 0.65), click "Start Scan", và xem kết quả trong bảng bên dưới.
+Mode 1: Manual Scan. Người dùng click "Select Folder" để chọn thư mục cần quét, chọn Scan Mode (Full Scan hoặc Incremental Scan), điều chỉnh Threshold nếu cần (mặc định: 0.65), click "Start Scan", và xem kết quả trong bảng bên dưới.
 
 Mode 2: Real-time Protection. Người dùng click "Select Folder" để chọn thư mục giám sát, click "Start Protection". Hệ thống sẽ giám sát và gửi Windows notification khi phát hiện threat.
 

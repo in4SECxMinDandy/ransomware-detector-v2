@@ -54,14 +54,14 @@ class HoneypotTab(ctk.CTkFrame):
 
         # ── Title ───────────────────────────────────────────────────────────────
         title = ctk.CTkLabel(
-            self, text="Honeypot File Monitoring",
+            self, text="Giám sát tệp Honeypot",
             font=("Consolas", 14, "bold"), text_color=C["accent"]
         )
         title.grid(row=0, column=0, sticky="w", padx=12, pady=(12, 4))
 
         subtitle = ctk.CTkLabel(
             self,
-            text="Deploy decoy files to detect ransomware reconnaissance and encryption activity",
+            text="Triển khai tệp mồi để phát hiện hoạt động do thám và mã hóa của ransomware",
             font=("Consolas", 8), text_color=C["text_dim"], wraplength=700
         )
         subtitle.grid(row=1, column=0, sticky="w", padx=12, pady=(0, 8))
@@ -73,7 +73,7 @@ class HoneypotTab(ctk.CTkFrame):
         control_card.grid_columnconfigure(5, weight=1)
 
         self._btn_deploy = ctk.CTkButton(
-            control_card, text="Deploy Honeypots", height=36,
+            control_card, text="Triển khai Honeypot", height=36,
             font=("Consolas", 10, "bold"), fg_color=C["green"],
             hover_color="#1EA34A", text_color=C["bg_dark"],
             command=self._on_deploy
@@ -81,7 +81,7 @@ class HoneypotTab(ctk.CTkFrame):
         self._btn_deploy.grid(row=0, column=0, padx=8, pady=8, sticky="w")
 
         self._btn_remove = ctk.CTkButton(
-            control_card, text="Remove All", height=36,
+            control_card, text="Gỡ tất cả", height=36,
             font=("Consolas", 10), fg_color=C["bg_card"],
             hover_color=C["border"], text_color=C["text"],
             command=self._on_remove_all
@@ -89,7 +89,7 @@ class HoneypotTab(ctk.CTkFrame):
         self._btn_remove.grid(row=0, column=1, padx=(0, 8), pady=8, sticky="w")
 
         self._btn_refresh = ctk.CTkButton(
-            control_card, text="Refresh", height=36,
+            control_card, text="Làm mới", height=36,
             font=("Consolas", 10), fg_color=C["bg_card"],
             hover_color=C["border"], text_color=C["text"],
             command=self._on_refresh
@@ -98,7 +98,7 @@ class HoneypotTab(ctk.CTkFrame):
 
         # Auto-deploy toggle
         self._auto_toggle = ctk.CTkSwitch(
-            control_card, text="Auto-deploy on startup",
+            control_card, text="Tự deploy khi khởi động",
             font=("Consolas", 9), text_color=C["text_dim"],
             progress_color=C["accent"], fg_color=C["border"],
             command=self._on_auto_toggle
@@ -107,7 +107,7 @@ class HoneypotTab(ctk.CTkFrame):
 
         # 24h badge
         self._badge_lbl = ctk.CTkLabel(
-            control_card, text="24h Triggers: 0",
+            control_card, text="Trigger 24h: 0",
             font=("Consolas", 10, "bold"),
             text_color=C["bg_dark"],
             width=140, corner_radius=12
@@ -123,7 +123,7 @@ class HoneypotTab(ctk.CTkFrame):
         hp_card.grid_rowconfigure(2, weight=1)
 
         ctk.CTkLabel(
-            hp_card, text="Active Honeypot Files",
+            hp_card, text="Các tệp Honeypot đang hoạt động",
             font=("Consolas", 11, "bold"), text_color=C["accent"]
         ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
 
@@ -133,7 +133,7 @@ class HoneypotTab(ctk.CTkFrame):
         header.pack_propagate(False)
 
         col_widths = [140, 300, 80, 120, 80, 80]
-        col_labels = ["Name", "Path", "Status", "Last Access", "Access Count", "Triggered"]
+        col_labels = ["Tên", "Đường dẫn", "Trạng thái", "Lần truy cập cuối", "Số lượt truy cập", "Triggered"]
         for i, (w, lbl) in enumerate(zip(col_widths, col_labels)):
             f = ctk.CTkFrame(header, width=w, fg_color="transparent")
             f.pack(side="left", padx=2, fill="y", expand=True)
@@ -149,7 +149,7 @@ class HoneypotTab(ctk.CTkFrame):
         self._hp_container.grid(row=2, column=0, sticky="nsew", padx=8, pady=(0, 8))
 
         ctk.CTkLabel(
-            self._hp_container, text="No honeypots deployed",
+            self._hp_container, text="Chưa triển khai Honeypot nào",
             font=("Consolas", 9), text_color=C["text_dim"]
         ).grid(row=0, column=0, pady=10)
 
@@ -164,7 +164,7 @@ class HoneypotTab(ctk.CTkFrame):
         self.grid_rowconfigure(4, weight=1)
 
         ctk.CTkLabel(
-            history_card, text="Access History",
+            history_card, text="Lịch sử truy cập",
             font=("Consolas", 11, "bold"), text_color=C["accent"]
         ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
 
@@ -174,7 +174,7 @@ class HoneypotTab(ctk.CTkFrame):
         h_header.pack_propagate(False)
 
         h_col_widths = [120, 140, 140, 60, 80, 80]
-        h_col_labels = ["Time", "Honeypot", "Process", "PID", "Event", "Severity"]
+        h_col_labels = ["Thời gian", "Honeypot", "Process", "PID", "Sự kiện", "Mức độ"]
         for i, (w, lbl) in enumerate(zip(h_col_widths, h_col_labels)):
             f = ctk.CTkFrame(h_header, width=w, fg_color="transparent")
             f.pack(side="left", padx=2, fill="y", expand=True)
@@ -190,7 +190,7 @@ class HoneypotTab(ctk.CTkFrame):
         self._history_container.grid(row=2, column=0, sticky="nsew", padx=8, pady=(0, 8))
 
         ctk.CTkLabel(
-            self._history_container, text="No access events yet",
+            self._history_container, text="Chưa có sự kiện truy cập",
             font=("Consolas", 9), text_color=C["text_dim"]
         ).grid(row=0, column=0, pady=10)
 
@@ -198,7 +198,7 @@ class HoneypotTab(ctk.CTkFrame):
 
         # ── Status bar ────────────────────────────────────────────────────────
         self._status_lbl = ctk.CTkLabel(
-            self, text="No honeypots deployed",
+            self, text="Chưa triển khai Honeypot nào",
             font=("Consolas", 9), text_color=C["text_dim"]
         )
         self._status_lbl.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 8))
@@ -220,14 +220,14 @@ class HoneypotTab(ctk.CTkFrame):
 
     def _on_deploy(self):
         if not self._honeypot_manager:
-            messagebox.showwarning("Error", "Honeypot manager not initialized")
+            messagebox.showwarning("Lỗi", "Honeypot manager chưa được khởi tạo")
             return
 
-        folder = filedialog.askdirectory(title="Select Directory to Deploy Honeypots")
+        folder = filedialog.askdirectory(title="Chọn thư mục để triển khai Honeypot")
         if not folder:
             return
 
-        self._btn_deploy.configure(state="disabled", text="Deploying...")
+        self._btn_deploy.configure(state="disabled", text="Đang triển khai...")
         self._btn_remove.configure(state="disabled")
 
         def deploy_worker():
@@ -240,26 +240,26 @@ class HoneypotTab(ctk.CTkFrame):
         threading.Thread(target=deploy_worker, daemon=True).start()
 
     def _on_deploy_done(self, deployed):
-        self._btn_deploy.configure(state="normal", text="Deploy Honeypots")
+        self._btn_deploy.configure(state="normal", text="Triển khai Honeypot")
         self._btn_remove.configure(state="normal")
         self._on_refresh()
-        messagebox.showinfo("Deploy", f"Deployed {len(deployed)} honeypot file(s)")
+        messagebox.showinfo("Triển khai", f"Đã triển khai {len(deployed)} tệp Honeypot")
 
     def _on_deploy_error(self, err):
-        self._btn_deploy.configure(state="normal", text="Deploy Honeypots")
+        self._btn_deploy.configure(state="normal", text="Triển khai Honeypot")
         self._btn_remove.configure(state="normal")
-        messagebox.showerror("Deploy Error", str(err))
+        messagebox.showerror("Lỗi triển khai", str(err))
 
     def _on_remove_all(self):
         reply = messagebox.askyesno(
-            "Remove Honeypots",
-            "Remove all active honeypot files?"
+            "Gỡ Honeypot",
+            "Gỡ tất cả tệp Honeypot đang hoạt động?"
         )
         if not reply or not self._honeypot_manager:
             return
 
         self._btn_deploy.configure(state="disabled")
-        self._btn_remove.configure(state="disabled", text="Removing...")
+        self._btn_remove.configure(state="disabled", text="Đang gỡ...")
 
         def remove_worker():
             try:
@@ -272,14 +272,14 @@ class HoneypotTab(ctk.CTkFrame):
 
     def _on_remove_done(self, removed):
         self._btn_deploy.configure(state="normal")
-        self._btn_remove.configure(state="normal", text="Remove All")
+        self._btn_remove.configure(state="normal", text="Gỡ tất cả")
         self._on_refresh()
-        messagebox.showinfo("Remove", f"Removed {removed} honeypot file(s)")
+        messagebox.showinfo("Gỡ", f"Đã gỡ {removed} tệp Honeypot")
 
     def _on_remove_error(self, err):
         self._btn_deploy.configure(state="normal")
-        self._btn_remove.configure(state="normal", text="Remove All")
-        messagebox.showerror("Remove Error", str(err))
+        self._btn_remove.configure(state="normal", text="Gỡ tất cả")
+        messagebox.showerror("Lỗi gỡ", str(err))
 
     def _on_refresh(self):
         if not self._honeypot_manager:
@@ -288,7 +288,7 @@ class HoneypotTab(ctk.CTkFrame):
             self._refresh_honeypots()
             self._refresh_history()
         except Exception as e:
-            self._status_lbl.configure(text=f"Refresh error: {e}")
+            self._status_lbl.configure(text=f"Lỗi làm mới: {e}")
 
     def _refresh_honeypots(self):
         # Clear rows
@@ -296,17 +296,17 @@ class HoneypotTab(ctk.CTkFrame):
             row.destroy()
         self._hp_rows.clear()
         for w in self._hp_container.grid_slaves():
-            if isinstance(w, ctk.CTkLabel) and "No honeypots" in w.cget("text"):
+            if isinstance(w, ctk.CTkLabel) and "Chưa triển khai Honeypot" in w.cget("text"):
                 w.destroy()
 
         honeypots = self._honeypot_manager.get_status()
 
         if not honeypots:
             ctk.CTkLabel(
-                self._hp_container, text="No honeypots deployed",
+                self._hp_container, text="Chưa triển khai Honeypot nào",
                 font=("Consolas", 9), text_color=C["text_dim"]
             ).grid(row=0, column=0, pady=10)
-            self._status_lbl.configure(text="No honeypots deployed")
+            self._status_lbl.configure(text="Chưa triển khai Honeypot nào")
             return
 
         for row_idx, hp in enumerate(honeypots):
@@ -326,7 +326,7 @@ class HoneypotTab(ctk.CTkFrame):
             if last_access != "-" and "T" in str(last_access):
                 last_access = str(last_access).split("T")[1][:8]
 
-            status = "TRIGGERED" if hp.is_triggered else "Active"
+            status = "TRIGGERED" if hp.is_triggered else "Hoạt động"
             status_color = C["red"] if hp.is_triggered else C["green"]
 
             ctk.CTkLabel(row, text=hp.name[:20], font=("Consolas", 8),
@@ -345,7 +345,7 @@ class HoneypotTab(ctk.CTkFrame):
             ctk.CTkLabel(row, text=str(hp.access_count), font=("Consolas", 8),
                         text_color=C["text_dim"]).grid(row=0, column=4, sticky="w", padx=6, pady=3)
 
-            trig_text = "YES" if hp.is_triggered else "No"
+            trig_text = "Có" if hp.is_triggered else "Không"
             trig_color = C["red"] if hp.is_triggered else C["green"]
             ctk.CTkLabel(row, text=trig_text, font=("Consolas", 8, "bold"),
                         text_color=trig_color).grid(row=0, column=5, sticky="w", padx=(6, 8), pady=3)
@@ -359,12 +359,12 @@ class HoneypotTab(ctk.CTkFrame):
             triggered_24h = 0
 
         self._badge_lbl.configure(
-            text=f"24h Triggers: {triggered_24h}",
+            text=f"Trigger 24h: {triggered_24h}",
             text_color=C["bg_dark"],
             fg_color=C["red"] if triggered_24h > 0 else C["green"]
         )
         self._status_lbl.configure(
-            text=f"{len(honeypots)} honeypot(s) active",
+            text=f"{len(honeypots)} Honeypot đang hoạt động",
             text_color=C["text_dim"]
         )
 
@@ -373,7 +373,7 @@ class HoneypotTab(ctk.CTkFrame):
             row.destroy()
         self._history_rows.clear()
         for w in self._history_container.grid_slaves():
-            if isinstance(w, ctk.CTkLabel) and "No access" in w.cget("text"):
+            if isinstance(w, ctk.CTkLabel) and "Chưa có sự kiện truy cập" in w.cget("text"):
                 w.destroy()
 
         if not self._honeypot_manager:
@@ -386,7 +386,7 @@ class HoneypotTab(ctk.CTkFrame):
 
         if not history:
             ctk.CTkLabel(
-                self._history_container, text="No access events yet",
+                self._history_container, text="Chưa có sự kiện truy cập",
                 font=("Consolas", 9), text_color=C["text_dim"]
             ).grid(row=0, column=0, pady=10)
             return
@@ -428,7 +428,7 @@ class HoneypotTab(ctk.CTkFrame):
 
         total = len(history)
         self._status_lbl.configure(
-            text=f"{total} total access event(s)",
+            text=f"{total} sự kiện truy cập",
             text_color=C["text_dim"]
         )
 

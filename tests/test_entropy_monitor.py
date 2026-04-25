@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.watchdog_monitor import RealTimeMonitor, ThreatEvent
+from core.watchdog_monitor import RealTimeMonitor, ThreatEvent, _EventHandler
 
 
 def test_entropy_stats_initial_state():
@@ -156,6 +156,52 @@ def test_entropy_alert_callback(temp_dir):
     # Alert should be fired
     assert len(alert_received) == 1
     assert alert_received[0]["consecutive_files"] == 5
+
+
+def test_event_handler_skips_ignored_internal_paths(temp_dir):
+    """Ignored project roots should never enqueue events."""
+    ignored_dir = temp_dir / "logs"
+    ignored_dir.mkdir()
+    sample = ignored_dir / "detector.json"
+    sample.write_bytes(b'{"ok": true}')
+
+    handler = _EventHandler(
+        file_queue=__import__("queue").Queue(),
+        debounce_cache={},
+        ignored_roots=[str(ignored_dir)],
+    )
+
+    assert handler._should_process(str(sample)) is False
+
+
+def test_record_process_event_skips_pid_lookup_for_low_risk(temp_dir, monkeypatch):
+    """Low-risk monitor events should not trigger expensive system-wide PID scans."""
+    monitor = RealTimeMonitor()
+    calls = {"count": 0}
+    captured = {}
+
+    def fake_lookup(_path):
+        calls["count"] += 1
+        return 1234
+
+    def fake_record(event):
+        captured["pid"] = event.pid
+        captured["entropy"] = event.entropy
+
+    monkeypatch.setattr(monitor, "_get_file_process_pid", fake_lookup)
+    monkeypatch.setattr(monitor._process_monitor, "record_event", fake_record)
+
+    monitor._record_process_event(
+        str(temp_dir / "sample.txt"),
+        "modified",
+        [3.2] + [0.0] * 15,
+        128,
+        0.05,
+    )
+
+    assert calls["count"] == 0
+    assert captured["pid"] is None
+    assert captured["entropy"] == 3.2
 
 
 if __name__ == "__main__":

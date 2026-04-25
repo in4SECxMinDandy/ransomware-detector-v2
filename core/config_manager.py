@@ -241,22 +241,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "max_file_size_mb": 100,
     },
 
-    # ─── AI Analysis (Claude) ────────────────────────────────────────────────
-    "ai": {
-        "enabled":    True,
-        "api_key":    "",
-        # Model IDs via taphoaapi.info.vn proxy:
-        #   'claude-sonnet-4-6'     → Claude Sonnet 4.6 (balanced, recommended)
-        #   'claude-opus-4-6'       → Claude Opus 4.6 (most capable)
-        #   'claude-haiku-4-5-20251001' → Claude Haiku 4.5 (fastest, lightweight)
-        "model":      "claude-sonnet-4-6",
-        "base_url":   "",
-        "max_tokens": 1024,
-        "temperature": 0.2,
-    },
-
     # ─── Threat Intelligence (TI) Correlation ───────────────────────────────
-    # Enriches scan results with global threat intelligence before AI analysis.
+    # Enriches scan results with global threat intelligence for operator context.
     # All sources are free; API keys available at:
     #   - MalwareBazaar + ThreatFox: https://auth.abuse.ch/
     #   - AlienVault OTX: https://otx.alienvault.com/api
@@ -314,22 +300,9 @@ class ConfigManager:
         if https:
             os.environ["HTTPS_PROXY"] = https
         
-        # httpx and requests will pick these up automatically.
+        # requests/httpx-compatible clients will pick these up automatically.
         if http or https:
             logger.info(f"Proxy configured: HTTP={http}, HTTPS={https}")
-
-        # [DEBUG] Instrument proxy propagation for ai_analyzer InvalidPort issue
-        import httpx
-        _orig_init = httpx._client.Client.__init__
-
-        def _patched_init(self, *args, **kwargs):
-            import os as _os
-            http_e = _os.environ.get("HTTP_PROXY", "")
-            https_e = _os.environ.get("HTTPS_PROXY", "")
-            logger.info(f"[DEBUG PROXY] HTTP_PROXY env={http_e!r}  HTTPS_PROXY env={https_e!r}")
-            return _orig_init(self, *args, **kwargs)
-
-        httpx._client.Client.__init__ = _patched_init
 
     # ─── Persistence ─────────────────────────────────────────────────────────
 

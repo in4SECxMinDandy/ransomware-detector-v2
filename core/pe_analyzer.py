@@ -15,11 +15,12 @@ Dependencies:
 - Optional pefile: pip install pefile (for detailed analysis)
 """
 
+import importlib
 import struct
 import os
 import math
 import logging
-from typing import List, Dict, Optional, Tuple
+from typing import Any, List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -388,6 +389,14 @@ def analyze_pe(file_path: str) -> PEAnalysisResult:
     return result
 
 
+def _load_pefile_module() -> Optional[Any]:
+    """Load pefile lazily so the analyzer still works without the optional package."""
+    try:
+        return importlib.import_module("pefile")
+    except ImportError:
+        return None
+
+
 def _analyze_imports(file_path: str, pe_offset: int, optional_header: bytes, opt_header_size: int) -> Tuple[List[ImportInfo], List[str]]:
     """Phân tích import table để tìm dangerous APIs."""
     imports = []
@@ -395,8 +404,11 @@ def _analyze_imports(file_path: str, pe_offset: int, optional_header: bytes, opt
     
     # Try using pefile if available
     try:
-        import pefile
-        pe = pefile.PE(file_path)
+        pefile_module = _load_pefile_module()
+        if pefile_module is None:
+            return _analyze_imports_manual(file_path, pe_offset, optional_header, opt_header_size)
+
+        pe = pefile_module.PE(file_path)
         
         if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
             for entry in pe.DIRECTORY_ENTRY_IMPORT:
@@ -553,8 +565,8 @@ def _assess_threat(result: PEAnalysisResult):
     # ── Dangerous Imports ────────────────────────────────────────────────────
     # Distinguish benign vs suspicious DLLs
     suspicious_dangerous_apis = [
-        imp for imp in result.dangerous_imports
-        if imp.dll_name.lower() not in _BENIGN_DLL_DANGEROUS_OK
+        imp for imp in result.imports
+        if imp.is_dangerous and imp.dll_name.lower() not in _BENIGN_DLL_DANGEROUS_OK
     ]
 
     if len(suspicious_dangerous_apis) >= 3:
@@ -562,7 +574,7 @@ def _assess_threat(result: PEAnalysisResult):
         indicators.append(f"Suspicious DLLs with dangerous APIs: {', '.join(set(imp.dll_name for imp in suspicious_dangerous_apis))}")
 
     # Specific INJECTION combo (VirtualAlloc + WriteProcessMemory + CreateRemoteThread)
-    imp_names = {imp.function_name for imp in result.dangerous_imports}
+    imp_names = set(result.dangerous_imports)
     injection_combo = imp_names >= {"VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"}
     if injection_combo:
         # Only suspicious if NOT from benign DLLs OR has additional indicators

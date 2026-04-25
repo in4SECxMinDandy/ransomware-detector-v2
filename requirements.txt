@@ -55,9 +55,9 @@ passlib[bcrypt]>=1.7      # Password hashing
 pydantic>=2.5             # Data validation
 pydantic-settings>=2.0     # Settings management
 
-# ─── AI Analysis (Claude Integration) ────────────────────────────────────────
-anthropic>=0.21.0           # Anthropic Claude API client (ai_analyzer.py)
-requests>=2.31.0           # HTTP client (VirusTotal, DeepSeek API calls)
+# ─── HTTP Clients ────────────────────────────────────────────────────────────
+httpx>=0.27.0              # HTTP client for threat intelligence integrations
+requests>=2.31.0           # HTTP client (VirusTotal and related APIs)
 
 # ─── Testing ──────────────────────────────────────────────────────────────────
 pytest>=8.0.0              # Unit tests

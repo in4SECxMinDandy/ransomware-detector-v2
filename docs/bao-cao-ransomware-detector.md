@@ -1059,7 +1059,7 @@ Giao diện sẽ hiện ra như sau:
 **Các chức năng chính của GUI:**
 
 1. **Directory Selector**: Chọn thư mục cần quét
-2. **Scan Mode**: Full Scan (đệ quy) hoặc Quick Scan
+2. **Scan Mode**: Full Scan (đệ quy) hoặc Incremental Scan
 3. **Threshold Slider**: Điều chỉnh độ nhạy (0.30 - 0.95)
 4. **Start Scan**: Bắt đầu quét thủ công
 5. **Start Protection**: Bật real-time monitoring

@@ -1,3 +1,6 @@
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+
 [tool.pyright]
 include = ["core"]
 exclude = ["**/node_modules", "**/__pycache__"]

@@ -98,7 +98,7 @@ def export_report_png(
     results       : danh sách kết quả ScanResult
     output_path   : đường dẫn file PNG đầu ra
     scan_directory: thư mục đã quét
-    scan_mode     : "Full Scan" hoặc "Quick Scan"
+    scan_mode     : "Full Scan" hoặc "Incremental"
     scan_duration : thời gian quét (giây)
     """
     if not results:

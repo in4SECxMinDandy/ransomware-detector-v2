@@ -100,7 +100,7 @@ class PlotFrame(ctk.CTkFrame):
         if threshold_line is not None:
             self._ax.axhline(y=threshold_line, color=threshold_color,
                             linestyle="--", linewidth=1.5, alpha=0.7,
-                            label=f"Threshold ({threshold_line})")
+                            label=f"Ngưỡng ({threshold_line})")
             self._ax.legend(facecolor="#161E29", labelcolor="#E6EAF0",
                            edgecolor="#263042", fontsize=8)
 
@@ -128,7 +128,7 @@ class PlotFrame(ctk.CTkFrame):
 
         # Threshold line
         self._ax.axhline(y=threshold, color="#EF4444", linestyle="--",
-                        linewidth=1.5, alpha=0.8, label=f"Alert Threshold ({threshold})")
+                        linewidth=1.5, alpha=0.8, label=f"Ngưỡng cảnh báo ({threshold})")
 
         # Fill above threshold
         if len(x) > 0:
@@ -145,8 +145,8 @@ class PlotFrame(ctk.CTkFrame):
 
         self._ax.set_ylim(0, 8.5)
         self._ax.set_ylabel("Shannon Entropy (bits)", color="#A3ADBD", fontsize=9)
-        self._ax.set_xlabel("Time", color="#A3ADBD", fontsize=9)
-        self._ax.set_title("Real-time Entropy Monitor", color="#60A5FA",
+        self._ax.set_xlabel("Thời gian", color="#A3ADBD", fontsize=9)
+        self._ax.set_title("Giám sát Entropy thời gian thực", color="#60A5FA",
                           fontsize=10, fontweight="bold", pad=6)
         self._ax.tick_params(colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, alpha=0.3, color="#263042")
@@ -202,7 +202,7 @@ class PlotFrame(ctk.CTkFrame):
         # Filter zero values
         non_zero = [(label, size) for label, size in zip(labels, sizes) if size > 0]
         if not non_zero:
-            non_zero = [("No Data", 1)]
+            non_zero = [("Chưa có dữ liệu", 1)]
         filtered_labels, filtered_sizes = zip(*non_zero)
         filtered_colors = colors[:len(filtered_labels)]
 
@@ -262,7 +262,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.axvline(x=7.2, color="#FACC15", linestyle="--",
                         linewidth=0.8, alpha=0.7)
         self._ax.set_xlabel("Entropy (b/B)", color="#A3ADBD", fontsize=9)
-        self._ax.set_ylabel("Risk Prob", color="#A3ADBD", fontsize=9)
+        self._ax.set_ylabel("Xác suất rủi ro", color="#A3ADBD", fontsize=9)
         self._ax.tick_params(colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, alpha=0.3, color="#263042")
         self._canvas.draw_idle()
@@ -270,7 +270,7 @@ class PlotFrame(ctk.CTkFrame):
     # ─── Histogram ───────────────────────────────────────────────────────────
 
     def plot_histogram(self, data: List[float], bins: int = 20,
-                       title: str = "", xlabel: str = "", ylabel: str = "Frequency",
+                       title: str = "", xlabel: str = "", ylabel: str = "Tần suất",
                        color: str = "#60A5FA"):
         """Plot a histogram."""
         self.clear()
@@ -286,7 +286,7 @@ class PlotFrame(ctk.CTkFrame):
 
     # ─── Signal Gauge ────────────────────────────────────────────────────────
 
-    def signal_gauge(self, score: float, label: str = "Threat Score"):
+    def signal_gauge(self, score: float, label: str = "Điểm đe dọa"):
         """Draw a horizontal threat score gauge."""
         self.clear()
         self._ax.set_xlim(0, 1)
@@ -314,19 +314,19 @@ class PlotFrame(ctk.CTkFrame):
         self._canvas.draw_idle()
 
     def plot_signal_gauge(self, score: float, max_score: float = 1.0,
-                          title: str = "Threat Score"):
+                          title: str = "Điểm đe dọa"):
         """Alias for signal_gauge()."""
         self.signal_gauge(score / max_score, title)
 
     # ─── Feedback History ────────────────────────────────────────────────────
 
     def plot_feedback_history(self, dates: List[str], accuracies: List[float],
-                               title: str = "Model Accuracy History"):
+                               title: str = "Lịch sử Accuracy của model"):
         """Plot model accuracy over time."""
         self.clear()
 
         if not dates:
-            self._ax.text(0.5, 0.5, "No training history available",
+            self._ax.text(0.5, 0.5, "Chưa có lịch sử training",
                         ha="center", va="center", fontsize=10, color="#263042",
                         transform=self._ax.transAxes)
             self._canvas.draw_idle()
@@ -339,9 +339,9 @@ class PlotFrame(ctk.CTkFrame):
 
         # Reference lines
         self._ax.axhline(y=0.95, color="#60A5FA", linestyle="--",
-                        linewidth=1, alpha=0.5, label="Target (0.95)")
+                        linewidth=1, alpha=0.5, label="Mục tiêu (0.95)")
         self._ax.axhline(y=0.90, color="#FACC15", linestyle="--",
-                        linewidth=1, alpha=0.5, label="Min (0.90)")
+                        linewidth=1, alpha=0.5, label="Tối thiểu (0.90)")
 
         step = max(1, len(dates) // 5)
         tick_positions = list(range(0, len(dates), step))
@@ -351,7 +351,7 @@ class PlotFrame(ctk.CTkFrame):
 
         self._ax.set_ylim(0.80, 1.02)
         self._ax.set_ylabel("Accuracy", color="#A3ADBD", fontsize=9)
-        self._ax.set_xlabel("Training Date", color="#A3ADBD", fontsize=9)
+        self._ax.set_xlabel("Ngày training", color="#A3ADBD", fontsize=9)
         self._ax.set_title(title, color="#60A5FA", fontsize=10, fontweight="bold", pad=6)
         self._ax.tick_params(colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, alpha=0.3, color="#263042")

@@ -145,7 +145,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Whitelist Editor — Premium Control")
+        self.title("Whitelist Editor - Điều khiển nâng cao")
         self.geometry("820x620")
         self.configure(fg_color=C["bg_dark"])
         self.resizable(True, True)
@@ -195,15 +195,15 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
         )
         tabs.pack(fill="both", expand=True, padx=8, pady=8)
 
-        tab1 = tabs.add("Extensions")
-        tab2 = tabs.add("Path Keywords")
-        tab3 = tabs.add("Custom Paths")
-        tabs.set("Extensions")
+        tab1 = tabs.add("Extension")
+        tab2 = tabs.add("Từ khóa path")
+        tab3 = tabs.add("Custom Path")
+        tabs.set("Extension")
 
         self._build_list_tab(
             tab1,
             list_key="extensions",
-            title="Extensions luôn bỏ qua (fonts, icons, system files)",
+            title="Extension luôn bỏ qua (font, icon, tệp hệ thống)",
             example=".ttf, .ico, .log, .tmp",
             placeholder=".myext",
         )
@@ -236,7 +236,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
         ).pack(side="left", padx=(12, 6), pady=9)
 
         ctk.CTkButton(
-            btn_frame, text="📤  Export JSON",
+            btn_frame, text="📤  Xuất JSON",
             font=ctk.CTkFont(family="Consolas", size=10),
             fg_color=C["bg_card"], hover_color=C["border"],
             text_color=C["text"], height=36, width=130, corner_radius=6,
@@ -244,7 +244,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
         ).pack(side="left", padx=4, pady=9)
 
         ctk.CTkButton(
-            btn_frame, text="📥  Import JSON",
+            btn_frame, text="📥  Nhập JSON",
             font=ctk.CTkFont(family="Consolas", size=10),
             fg_color=C["bg_card"], hover_color=C["border"],
             text_color=C["text"], height=36, width=130, corner_radius=6,
@@ -252,7 +252,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
         ).pack(side="left", padx=4, pady=9)
 
         ctk.CTkButton(
-            btn_frame, text="↺  Reset Default",
+            btn_frame, text="↺  Khôi phục mặc định",
             font=ctk.CTkFont(family="Consolas", size=10),
             fg_color=C["bg_card"], hover_color=C["danger"],
             text_color=C["text_dim"], height=36, width=130, corner_radius=6,
@@ -344,7 +344,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
         # Browse button for paths
         if "path" in list_key or "custom" in list_key:
             ctk.CTkButton(
-                ctrl_frame, text="📁 Browse",
+                ctrl_frame, text="📁 Chọn",
                 font=ctk.CTkFont(family="Consolas", size=9),
                 fg_color=C["bg_card"], hover_color=C["border"],
                 text_color=C["text_dim"], height=32, width=90, corner_radius=6,
@@ -353,7 +353,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
 
         # Count label
         count_lbl = ctk.CTkLabel(
-            ctrl_frame, text="0 entries",
+            ctrl_frame, text="0 mục",
             font=ctk.CTkFont(family="Consolas", size=8),
             text_color=C["text_dim"]
         )
@@ -379,7 +379,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
         lb  = getattr(self, f"_lb_{list_key}")
         lbl = getattr(self, f"_count_lbl_{list_key}")
         n   = lb.size()
-        lbl.configure(text=f"{n} entries")
+        lbl.configure(text=f"{n} mục")
 
     def _add_item(self, list_key: str, lb: tk.Listbox, entry_var: tk.StringVar):
         """Thêm một entry vào listbox và whitelist."""
@@ -451,7 +451,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
             self._modified = False
             self._modified_lbl.configure(text="")
             self._status(
-                f"✓ Đã lưu whitelist ({sum(len(self._whitelist.get(k,[])) for k in ['extensions','path_keywords','custom_paths'])} entries)",
+                f"✓ Đã lưu whitelist ({sum(len(self._whitelist.get(k,[])) for k in ['extensions','path_keywords','custom_paths'])} mục)",
                 C["green"]
             )
         else:
@@ -460,9 +460,9 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
     def _export(self):
         path = filedialog.asksaveasfilename(
             defaultextension=".json",
-            filetypes=[("JSON files", "*.json")],
+            filetypes=[("Tệp JSON", "*.json")],
             initialfile="ransomware_detector_whitelist.json",
-            title="Export Whitelist"
+            title="Xuất Whitelist"
         )
         if path:
             for key in ["extensions", "path_keywords", "custom_paths"]:
@@ -471,14 +471,14 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
             try:
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(self._whitelist, f, indent=2, ensure_ascii=False)
-                self._status(f"✓ Exported: {os.path.basename(path)}", C["green"])
+                self._status(f"✓ Đã xuất: {os.path.basename(path)}", C["green"])
             except Exception as e:
                 self._status(f"❌ Export thất bại: {e}", C["red"])
 
     def _import(self):
         path = filedialog.askopenfilename(
-            filetypes=[("JSON files", "*.json")],
-            title="Import Whitelist"
+            filetypes=[("Tệp JSON", "*.json")],
+            title="Nhập Whitelist"
         )
         if path:
             try:
@@ -496,7 +496,7 @@ class WhitelistEditorWindow(ctk.CTkToplevel):
 
     def _reset_default(self):
         if messagebox.askyesno(
-            "Reset Whitelist",
+            "Khôi phục Whitelist",
             "Reset về whitelist mặc định?\nMọi thay đổi sẽ bị mất.",
             parent=self
         ):

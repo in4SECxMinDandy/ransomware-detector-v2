@@ -50,6 +50,28 @@ from core.process_monitor import (
 )
 from core.notifications import get_notifier
 
+PID_LOOKUP_COOLDOWN_SECONDS = 1.0
+PID_LOOKUP_CACHE_TTL_SECONDS = 5.0
+INTERNAL_PROJECT_DIRS = {
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "logs",
+    "quarantine",
+    "data",
+    "models",
+    "datasets",
+    "venv",
+}
+
+
+def _normalize_path(path: str) -> str:
+    return os.path.normcase(os.path.normpath(os.path.abspath(path)))
+
+
+PROJECT_ROOT = _normalize_path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 DEBOUNCE_SECONDS  = 2.0   # Cooldown mỗi file
 QUEUE_MAX_SIZE    = 500   # Tối đa 500 events trong queue
 WORKER_THREADS    = 3     # Số worker thread phân tích song song
@@ -79,14 +101,29 @@ class ThreatEvent:
 class _EventHandler(FileSystemEventHandler):
     """Internal event handler gửi events vào queue."""
 
-    def __init__(self, file_queue: queue.Queue, debounce_cache: Dict[str, float]):
+    def __init__(
+        self,
+        file_queue: queue.Queue,
+        debounce_cache: Dict[str, float],
+        ignored_roots: Optional[List[str]] = None,
+    ):
         super().__init__()
         self._queue         = file_queue
         self._debounce      = debounce_cache
         self._debounce_lock = threading.Lock()
+        self._ignored_roots = [_normalize_path(path) for path in (ignored_roots or [])]
+
+    def _is_ignored_path(self, path: str) -> bool:
+        normalized = _normalize_path(path)
+        return any(
+            normalized == root or normalized.startswith(root + os.sep)
+            for root in self._ignored_roots
+        )
 
     def _should_process(self, path: str) -> bool:
         """Kiểm tra debounce và filter."""
+        if self._is_ignored_path(path):
+            return False
         if not os.path.isfile(path):
             return False
         ext = os.path.splitext(path)[1].lower()
@@ -150,6 +187,8 @@ class RealTimeMonitor:
         self._observer_ready_event: threading.Event = threading.Event()
         self._watch_directory: str                = ""
         self._watch_recursive: bool               = True
+        self._pid_lookup_cache: Dict[str, tuple[float, Optional[int]]] = {}
+        self._last_pid_lookup_at: float           = 0.0
 
         # History của các threats đã phát hiện
         self.threat_history: List[ThreatEvent]    = []
@@ -201,6 +240,8 @@ class RealTimeMonitor:
 
         self._stop_event.clear()
         self._debounce.clear()
+        self._pid_lookup_cache.clear()
+        self._last_pid_lookup_at = 0.0
         self.threat_history.clear()
         self.total_analyzed = 0
         self.total_threats  = 0
@@ -229,7 +270,11 @@ class RealTimeMonitor:
     def _observer_start_thread(self):
         """Chạy observer schedule + start trong background thread."""
         try:
-            handler = _EventHandler(self._queue, self._debounce)
+            handler = _EventHandler(
+                self._queue,
+                self._debounce,
+                ignored_roots=self._build_ignored_roots(),
+            )
             self._observer = Observer()
             self._observer.schedule(handler, self._watch_directory,
                                    recursive=self._watch_recursive)
@@ -308,7 +353,13 @@ class RealTimeMonitor:
                     )
 
                     # Record to Process Monitor (v2.2)
-                    self._record_process_event(file_path, event_type, features, result.size)
+                    self._record_process_event(
+                        file_path,
+                        event_type,
+                        features,
+                        result.size,
+                        result.probability,
+                    )
                 else:
                     result.error = "Không thể trích xuất features"
             except Exception as e:
@@ -336,12 +387,24 @@ class RealTimeMonitor:
                     severity=result.risk_level.lower()
                 )
 
-    def _record_process_event(self, file_path: str, event_type: str, features, size: int):
+    def _record_process_event(
+        self,
+        file_path: str,
+        event_type: str,
+        features,
+        size: int,
+        probability: float,
+    ):
         """Ghi nhận event vào Process Monitor."""
         from datetime import datetime
 
-        # Get PID of process accessing the file (if available)
-        pid = self._get_file_process_pid(file_path)
+        entropy = float(features[0]) if features is not None else 0.0
+        should_lookup_pid = (
+            event_type == "created" or
+            probability >= ALERT_THRESHOLD or
+            entropy >= self._entropy_threshold
+        )
+        pid = self._get_file_process_pid(file_path) if should_lookup_pid else None
 
         file_event = FileEvent(
             path=file_path,
@@ -349,16 +412,36 @@ class RealTimeMonitor:
             timestamp=datetime.now(),
             pid=pid,
             process_name="",
-            entropy=float(features[0]) if features is not None else 0.0,
+            entropy=entropy,
             size=size
         )
 
         self._process_monitor.record_event(file_event)
 
+    def _build_ignored_roots(self) -> List[str]:
+        roots = []
+        for dirname in INTERNAL_PROJECT_DIRS:
+            candidate = os.path.join(PROJECT_ROOT, dirname)
+            if os.path.exists(candidate):
+                roots.append(candidate)
+        return roots
+
     def _get_file_process_pid(self, file_path: str) -> Optional[int]:
         """Lấy PID của process đang truy cập file (Windows only)."""
         if platform.system() != "Windows":
             return None
+
+        normalized_path = _normalize_path(file_path)
+        now = time.time()
+
+        cached = self._pid_lookup_cache.get(normalized_path)
+        if cached and now - cached[0] <= PID_LOOKUP_CACHE_TTL_SECONDS:
+            return cached[1]
+
+        if now - self._last_pid_lookup_at < PID_LOOKUP_COOLDOWN_SECONDS:
+            return None
+
+        self._last_pid_lookup_at = now
 
         try:
             import psutil
@@ -367,13 +450,19 @@ class RealTimeMonitor:
                     open_files = proc.info.get('open_files')
                     if open_files:
                         for f in open_files:
-                            if f.path == file_path or file_path in f.path:
-                                return proc.info['pid']
+                            candidate = getattr(f, "path", "")
+                            if not candidate:
+                                continue
+                            if _normalize_path(candidate) == normalized_path:
+                                pid = proc.info['pid']
+                                self._pid_lookup_cache[normalized_path] = (time.time(), pid)
+                                return pid
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
         except Exception:
             pass
 
+        self._pid_lookup_cache[normalized_path] = (time.time(), None)
         return None
 
     def _handle_behavior_alert(self, alert: BehaviorAlert):

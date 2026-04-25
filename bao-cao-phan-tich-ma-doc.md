@@ -609,7 +609,7 @@ flowchart TB
 
 *Response System* thực hiện các actions dựa trên detection results bao gồm Auto-Responder, Quarantine mechanism, và Notifications.
 
-*External Integrations* kết nối với VirusTotal API, Claude AI analysis, và Honeypot System.
+*External Integrations* kết nối với VirusTotal API, Threat Intelligence feeds, và Honeypot System.
 
 ## 5.2 Mô hình đa lớp (Defense in Depth)
 

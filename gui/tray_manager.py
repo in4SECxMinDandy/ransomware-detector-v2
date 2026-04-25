@@ -19,10 +19,11 @@ Requirements:
 import logging
 import threading
 import time
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 try:
     from PIL import Image, ImageDraw
+
     PILLOW_AVAILABLE = True
 except ImportError:
     PILLOW_AVAILABLE = False
@@ -30,6 +31,7 @@ except ImportError:
 
 try:
     import pystray
+
     PYSTRRAY_AVAILABLE = True
 except ImportError:
     PYSTRRAY_AVAILABLE = False
@@ -43,9 +45,11 @@ if not PYSTRRAY_AVAILABLE:
     class MenuStub:
         Item = None
         SEPARATOR = None
+
     class IconStub:
         pass
-    pystray = type('pystray', (), {'Menu': MenuStub, 'Icon': IconStub})()  # type: ignore
+
+    pystray = type("pystray", (), {"Menu": MenuStub, "Icon": IconStub})()  # type: ignore
 
 
 class TrayManager:
@@ -55,10 +59,10 @@ class TrayManager:
     """
 
     STATUS_COLORS = {
-        "safe": (0, 200, 0),      # green
-        "warning": (255, 180, 0), # yellow
-        "threat": (220, 0, 0),    # red
-        "off": (100, 100, 100),   # gray
+        "safe": (0, 200, 0),  # green
+        "warning": (255, 180, 0),  # yellow
+        "threat": (220, 0, 0),  # red
+        "off": (100, 100, 100),  # gray
     }
 
     def __init__(self, app_window=None):
@@ -90,53 +94,41 @@ class TrayManager:
             PIL Image object
         """
         if not PILLOW_AVAILABLE:
-            # Return a simple 1x1 transparent image as fallback
             return Image.new("RGBA", (64, 64), (0, 0, 0, 0))
 
-        # Get color based on status
         color = self.STATUS_COLORS.get(status, self.STATUS_COLORS["safe"])
-
-        # Create image
         size = 64
         image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
 
-        # Draw shield shape
         margin = 8
         top = margin
         bottom = size - margin
         left = margin
         right = size - margin
 
-        # Shield points
         shield_points = [
-            (size // 2, top),              # top center
-            (right, top + 10),             # top right
-            (right, bottom - 15),          # bottom right
-            (size // 2, bottom),           # bottom center
-            (left, bottom - 15),           # bottom left
-            (left, top + 10),              # top left
+            (size // 2, top),
+            (right, top + 10),
+            (right, bottom - 15),
+            (size // 2, bottom),
+            (left, bottom - 15),
+            (left, top + 10),
         ]
 
-        # Draw filled shield
         draw.polygon(shield_points, fill=color)
-
-        # Draw outline
         draw.polygon(shield_points, outline=(50, 50, 50), width=2)
 
-        # Draw checkmark for safe status
         if status == "safe":
-            check_color = (255, 255, 255)
-            # Simple checkmark
             check_points = [
-                (20, 35), (28, 45), (44, 25),
+                (20, 35),
+                (28, 45),
+                (44, 25),
             ]
-            draw.line(check_points, fill=check_color, width=4)
+            draw.line(check_points, fill=(255, 255, 255), width=4)
         elif status == "threat":
-            # Draw X for threat
-            x_color = (255, 255, 255)
-            draw.line([(22, 22), (42, 42)], fill=x_color, width=4)
-            draw.line([(42, 22), (22, 42)], fill=x_color, width=4)
+            draw.line([(22, 22), (42, 42)], fill=(255, 255, 255), width=4)
+            draw.line([(42, 22), (22, 42)], fill=(255, 255, 255), width=4)
 
         return image
 
@@ -150,19 +142,19 @@ class TrayManager:
         Returns:
             pystray.Menu object
         """
-        protection_text = "Protection: ON ✓" if self._protection_enabled else "Protection: OFF ✗"
+        protection_text = "Bảo vệ: BẬT" if self._protection_enabled else "Bảo vệ: TẮT"
 
         menu_items = [
-            pystray.MenuItem("Open Dashboard", self._on_open),
+            pystray.MenuItem("Mở tổng quan", self._on_open),
             pystray.MenuItem(protection_text, self._on_toggle_protection),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Quick Scan...", self._on_quick_scan),
-            pystray.MenuItem(f"View Alerts ({alert_count})", self._on_view_alerts),
+            pystray.MenuItem("Quét nhanh...", self._on_quick_scan_action),
+            pystray.MenuItem(f"Xem cảnh báo ({alert_count})", self._on_view_alerts),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Settings", self._on_settings),
-            pystray.MenuItem("About v2.3", self._on_about),
+            pystray.MenuItem("Cài đặt", self._on_settings),
+            pystray.MenuItem("Giới thiệu v2.3", self._on_about),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Exit", self._on_quit),
+            pystray.MenuItem("Thoát", self._on_quit),
         ]
 
         return pystray.Menu(*menu_items)
@@ -171,15 +163,13 @@ class TrayManager:
         """Open main window."""
         if self._on_open_callback:
             self._on_open_callback()
-        else:
-            # Default: restore window
-            if self._app_window:
-                try:
-                    self._app_window.deiconify()
-                    self._app_window.lift()
-                    self._app_window.focus()
-                except Exception:
-                    pass
+        elif self._app_window:
+            try:
+                self._app_window.deiconify()
+                self._app_window.lift()
+                self._app_window.focus()
+            except Exception:
+                pass
 
     def _on_toggle_protection(self, icon=None, item=None):
         """Toggle protection on/off."""
@@ -188,8 +178,8 @@ class TrayManager:
             self._on_toggle_protection(self._protection_enabled)
         self._update_menu()
 
-    def _on_quick_scan(self, icon=None, item=None):
-        """Start quick scan."""
+    def _on_quick_scan_action(self, icon=None, item=None):
+        """Open the app and trigger the quick scan flow."""
         if self._on_quick_scan:
             self._on_quick_scan()
         if self._app_window:
@@ -252,10 +242,8 @@ class TrayManager:
                 menu=self.build_menu(self._alert_count),
             )
 
-            # Run in separate thread
             self._tray_thread = threading.Thread(target=self._icon.run, daemon=True)
             self._tray_thread.start()
-
             logger.info("System tray icon started")
         except Exception as e:
             logger.error(f"Failed to start tray icon: {e}")
@@ -306,7 +294,6 @@ class TrayManager:
             return
 
         def _flash():
-            original_icon = self._icon.icon
             for _ in range(times):
                 self._icon.icon = self.create_icon("threat")
                 time.sleep(0.5)
@@ -350,7 +337,6 @@ class TrayManager:
                 pass
 
 
-# Singleton instance
 _tray_manager: Optional[TrayManager] = None
 
 
