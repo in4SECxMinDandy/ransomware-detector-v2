@@ -118,13 +118,37 @@ class TestCheckMagicBytes:
 
 
 class TestApplyFpReduction:
-    def test_magic_bytes_valid_reduces_probability(self, sample_png_header):
-        """Valid magic bytes should reduce probability."""
-        prob, threshold, reason = apply_fp_reduction(
+    def test_magic_bytes_valid_reduces_probability(self, sample_png_header, monkeypatch):
+        """Valid magic bytes should reduce probability when the discount is enabled.
+
+        After audit P4-6 the magic-bytes discount is OFF by default
+        (it double-counted with feature 15), so this test must opt in
+        explicitly to exercise the discount path.
+        """
+        from core import fp_reducer as _fp
+        monkeypatch.setattr(_fp, "_magic_bytes_discount_enabled", lambda: True)
+
+        prob, _threshold, reason = apply_fp_reduction(
             sample_png_header, 0.80, 0.65
         )
         assert prob < 0.80  # Reduced by MAGIC_BYTES_DISCOUNT_FACTOR
         assert "magic_ok" in reason
+
+    def test_magic_bytes_default_does_not_double_count(self, sample_png_header):
+        """Audit P4-6 regression: with the default config (discount OFF)
+        a valid PNG must not have its probability multiplied by 0.70.
+
+        Feature 15 ``Is Known Benign Format`` already encodes this
+        signal in the model, so applying it again post-hoc broke
+        calibration.
+        """
+        prob, _threshold, reason = apply_fp_reduction(
+            sample_png_header, 0.80, 0.65
+        )
+        # No probability scaling should have been applied.
+        assert prob == pytest.approx(0.80, abs=1e-6)
+        assert "magic_ok" in reason
+        assert "prob×" not in reason
 
     def test_magic_bytes_mismatch_increases_probability(self, temp_dir):
         """Mismatch magic bytes should slightly increase probability."""

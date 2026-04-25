@@ -1,66 +1,73 @@
-# Ransomware Detector v2.4 — Runtime Dependencies
+# Ransomware Detector v2 — Runtime Dependencies (bounded ranges)
 # Install: pip install -r requirements.txt
 #
-# Development extras (pytest, ruff, pip-audit, ...) live in requirements-dev.txt.
-# This file is intentionally trimmed so production images never pull dev tools.
+# Source of truth: requirements.in (loose specs).
+# To regenerate exact pins from .in via pip-tools:
+#     pip install pip-tools
+#     pip-compile --output-file=requirements.txt --strip-extras requirements.in
+#
+# Bounded ranges (>=X,<Y) accept patch + minor upgrades but block breaking
+# major bumps — gives reasonable reproducibility without a full lock file.
+# Development extras live in requirements-dev.txt; production images must NOT
+# install dev tools.
 
 # ─── Core ML / Data ────────────────────────────────────────────────────────────
-scikit-learn>=1.3.0       # RandomForest, CalibratedClassifierCV, metrics
-numpy>=1.24.0            # Feature extraction, entropy computation
-pandas>=2.0.0             # Data analysis, CSV export
-scipy>=1.11.0             # Scientific computing
+scikit-learn>=1.3,<2     # RandomForest, CalibratedClassifierCV, metrics
+numpy>=1.24,<3           # Feature extraction, entropy computation
+pandas>=2.0,<3           # Data analysis, CSV export
+scipy>=1.11,<2           # Scientific computing
 
 # ─── Malware Detection ────────────────────────────────────────────────────────
-psutil>=5.9.0             # Process monitoring, IO counters, network
+psutil>=5.9,<8           # Process monitoring, IO counters, network
 # yara-python>=4.3.0      # Optional — native YARA engine (much faster)
                         # pip install yara-python  (requires YARA dev headers)
 
 # ─── Filesystem Monitoring ────────────────────────────────────────────────────
-watchdog>=3.0.0           # Real-time filesystem watcher (RealTimeMonitor)
+watchdog>=3.0,<7         # Real-time filesystem watcher (RealTimeMonitor)
 
 # ─── Office Document Analysis ──────────────────────────────────────────────────
-oletools>=0.60            # VBA macro extraction (olevba, mraptor, rtfobj)
-PyMuPDF>=1.23             # PDF analysis (OpenAction, JavaScript, /AA, /Launch)
-python-docx>=1.1           # DOCX analysis
-openpyxl>=3.1              # XLSX/XLSM analysis
-python-pptx>=0.6           # PPTX analysis
-pdfminer.six>=20231228     # PDF text extraction (fallback)
+oletools>=0.60,<1        # VBA macro extraction (olevba, mraptor, rtfobj)
+PyMuPDF>=1.23,<2         # PDF analysis (OpenAction, JavaScript, /AA, /Launch)
+python-docx>=1.1,<2      # DOCX analysis
+openpyxl>=3.1,<4         # XLSX/XLSM analysis
+python-pptx>=0.6,<2      # PPTX analysis
+pdfminer.six>=20231228   # PDF text extraction (fallback)
 
 # ─── GUI (CustomTkinter — lightweight, modern dark theme) ────────────────────
-customtkinter>=5.2.0         # Modern dark-themed Tkinter wrapper
-Pillow>=10.0.0               # Image handling (for GUI icons)
+customtkinter>=5.2,<6    # Modern dark-themed Tkinter wrapper
+Pillow>=10.0,<13         # Image handling (for GUI icons)
 
 # ─── Reporting / Export ───────────────────────────────────────────────────────
-matplotlib>=3.7.0         # Charts, PNG export, PR curves
-reportlab>=4.0.0          # PDF report generation
-joblib>=1.3.0              # Model serialization
+matplotlib>=3.7,<4       # Charts, PNG export, PR curves
+reportlab>=4.0,<5        # PDF report generation
+joblib>=1.3,<2           # Model serialization
 
 # ─── Notifications ────────────────────────────────────────────────────────────
-win10toast>=0.9            # Windows 10/11 toast notifications
-plyer>=2.1.0              # Cross-platform notifications (fallback)
+win10toast>=0.9,<1; sys_platform == "win32"  # Windows 10/11 toast notifications
+plyer>=2.1,<3            # Cross-platform notifications (fallback)
 
 # ─── System Tray ──────────────────────────────────────────────────────────────
-pystray>=0.19.5            # System tray integration
+pystray>=0.19,<1         # System tray integration
 
 # ─── Threat Intelligence (optional) ────────────────────────────────────────────
-stix2>=3.0.0               # STIX/TAXII threat intel format
-scapy>=2.5.0              # Network packet analysis (advanced C2 detection)
+stix2>=3.0,<4            # STIX/TAXII threat intel format
+scapy>=2.5,<3            # Network packet analysis (advanced C2 detection)
 
 # ─── Imbalanced Learning ──────────────────────────────────────────────────────
-imbalanced-learn>=0.11.0   # SMOTE oversampling for class imbalance
+imbalanced-learn>=0.11,<1  # SMOTE oversampling for class imbalance
 
 # ─── FastAPI & API Server ─────────────────────────────────────────────────────
-fastapi>=0.109             # REST API framework
-uvicorn[standard]>=0.27   # ASGI server
-python-multipart>=0.0.9   # File upload support
-python-jose[cryptography]>=3.3  # JWT token handling
-passlib[bcrypt]>=1.7      # Password hashing
-pydantic>=2.5             # Data validation
-pydantic-settings>=2.0     # Settings management
+fastapi>=0.109,<1                  # REST API framework
+uvicorn[standard]>=0.27,<1         # ASGI server
+python-multipart>=0.0.9            # File upload support (no upper bound — 0.x line)
+python-jose[cryptography]>=3.3,<4  # JWT token handling
+passlib[bcrypt]>=1.7,<2            # Password hashing
+pydantic>=2.5,<3                   # Data validation
+pydantic-settings>=2.0,<3          # Settings management
 
 # ─── HTTP Clients ────────────────────────────────────────────────────────────
-httpx>=0.27.0              # HTTP client for threat intelligence integrations
-requests>=2.31.0           # HTTP client (VirusTotal and related APIs)
+httpx>=0.27,<1           # HTTP client for threat intelligence integrations
+requests>=2.31,<3        # HTTP client (VirusTotal and related APIs)
 
 # Testing dependencies have been moved to requirements-dev.txt.
 # Production deployments must NOT install pytest / coverage tooling.

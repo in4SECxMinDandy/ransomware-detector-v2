@@ -1,25 +1,29 @@
-# Ransomware Detector — Development Dependencies
+# Ransomware Detector — Development Dependencies (bounded ranges)
 # Install (in addition to runtime deps):
 #   pip install -r requirements.txt
 #   pip install -r requirements-dev.txt
 #
-# Keep this file in sync with .github/workflows/ci.yml.
+# Source of truth: requirements-dev.in (loose specs).
+# To regenerate exact pins:
+#     pip-compile --output-file=requirements-dev.txt --strip-extras requirements-dev.in
+#
+# Keep in sync with .github/workflows/ci.yml.
 
 # ─── Testing ──────────────────────────────────────────────────────────────────
-pytest>=8.0.0              # Unit tests
-pytest-cov>=4.0.0          # Coverage reports
-pytest-mock>=3.10.0        # Mock helpers
-pytest-asyncio>=0.21.0     # Async test support
-hypothesis>=6.0.0          # Property-based tests
+pytest>=8.0,<10            # Unit tests
+pytest-cov>=4.0,<8         # Coverage reports
+pytest-mock>=3.10,<4       # Mock helpers
+pytest-asyncio>=0.21,<2    # Async test support
+hypothesis>=6.0,<7         # Property-based tests
 
 # ─── Linting / Formatting ────────────────────────────────────────────────────
-ruff>=0.4.0                # Fast linter & formatter
+ruff>=0.4,<1               # Fast linter & formatter
 
 # ─── Type checking (optional, used by pyright workflow) ──────────────────────
 # pyright is installed via npm, not pip — see .windsurf/workflows/lint.md
 
 # ─── Security scanning ───────────────────────────────────────────────────────
-pip-audit>=2.7.0           # Dependency vulnerability scanner
+pip-audit>=2.7,<3          # Dependency vulnerability scanner
 
 # ─── Build / packaging ───────────────────────────────────────────────────────
-build>=1.0.0               # PEP 517 build backend
+build>=1.0,<3              # PEP 517 build backend

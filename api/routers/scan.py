@@ -18,7 +18,6 @@ from api.schemas import (
 )
 from core.security_utils import (
     PathSafetyError,
-    compute_sha256,
     resolve_safe_path,
 )
 
@@ -121,175 +120,58 @@ async def scan_file(
             summary={"clean": 0, "suspicious": 0, "malicious": 0, "errors": 0},
         )
 
-    # Import core modules
+    # ────────────────────────────────────────────────────────────────────
+    # Delegate the per-file pipeline to ``core.scanner.Scanner``. There
+    # is exactly one implementation of the detection pipeline in this
+    # codebase — open-coding it here in the past silently dropped the
+    # Threat Intelligence + PE-injection stages, which was the audit
+    # P1-Code-Quality regression we are now closing.
+    # ────────────────────────────────────────────────────────────────────
     try:
-        from core.ml_engine import get_engine
-        from core.yara_engine import get_yara_engine
-        from core.feature_extractor import extract_features
-        from core.fp_reducer import apply_fp_reduction
+        from core.scanner import Scanner
         from core.config_manager import config
     except ImportError as e:
         raise HTTPException(status_code=500, detail=f"Core module error: {e}")
 
-    results = []
+    vt_enabled    = bool(config.get("virustotal.enabled", False))
+    vt_auto_check = bool(config.get("virustotal.auto_check", False))
+    sensitivity   = str(config.get("scanner.sensitivity_profile", "balanced"))
+
+    scanner = Scanner(
+        sensitivity_profile=sensitivity,
+        vt_enabled=vt_enabled,
+        vt_auto_check=vt_auto_check,
+    )
+
+    results: List[Dict[str, Any]] = []
     threats_found = 0
-    engine = get_engine()
-    yara_engine = get_yara_engine()
-
-    # VirusTotal settings from config
-    vt_enabled        = config.get("virustotal.enabled", False)
-    vt_api_key        = config.get("virustotal.api_key", "")
-    vt_auto_check     = config.get("virustotal.auto_check", False)
-    vt_mal_threshold  = 5
-
-    vt_client = None
-    if vt_enabled and vt_api_key and len(vt_api_key) > 10:
-        try:
-            from core.virustotal_client import get_vt_client
-            vt_client = get_vt_client(vt_api_key)
-        except Exception:
-            vt_client = None
-
-    def _query_vt(file_path: str, sha256: str) -> dict:
-        """Query VT, return dict of VT fields. Returns empty dict on failure."""
-        if vt_client is None or not vt_client.is_configured():
-            return {}
-        report = vt_client.get_file_report(sha256)
-        if report is None:
-            return {}
-        return {
-            "vt_available":          True,
-            "vt_malicious_count":    report.malicious_count,
-            "vt_suspicious_count":   report.suspicious_count,
-            "vt_total_engines":      report.total_engines,
-            "vt_detection_ratio":    report.detection_ratio,
-            "vt_permalink":          report.permalink,
-            "vt_from_cache":         bool(report.cached_at),
-            "vt_error":              "",
-        }
 
     for file_path in files:
         try:
-            size = os.path.getsize(file_path)
-
-            # Compute SHA256 for VT lookup (streaming — supports multi-GB files)
-            sha256 = compute_sha256(file_path)
-
-            features = extract_features(file_path)
-
-            if features is None:
-                results.append({
-                    "path": file_path,
-                    "filename": os.path.basename(file_path),
-                    "size": size,
-                    "extension": os.path.splitext(file_path)[1].lower(),
-                    "threat_level": "UNKNOWN",
-                    "probability": 0.0,
-                    "risk_level": "UNKNOWN",
-                    "entropy": 0.0,
-                    "scan_time_ms": 0.0,
-                    "error": "Feature extraction failed",
-                    "yara_matches": [],
-                    "yara_boosted": False,
-                    "sha256": sha256,
-                    "vt_available": False,
-                    "vt_malicious_count": 0,
-                    "vt_suspicious_count": 0,
-                    "vt_total_engines": 0,
-                    "vt_detection_ratio": "0/0",
-                    "vt_permalink": "",
-                    "vt_from_cache": False,
-                    "vt_error": "",
-                    "vt_pending": False,
-                })
-                continue
-
-            label, proba = engine.predict(features)
-
-            # YARA scan
-            yara_matches = []
-            yara_boosted = False
-            if yara_engine:
-                try:
-                    matches = yara_engine.scan_file(file_path)
-                    if matches:
-                        yara_boosted = True
-                        for m in matches:
-                            yara_matches.append(m.to_dict())
-                        proba, _ = yara_engine.apply_yara_boost(proba, matches)
-                except Exception:
-                    pass
-
-            # FP reduction
-            proba_adjusted, effective_thresh, fp_reason = apply_fp_reduction(
-                file_path, proba, engine.get_threshold()
-            )
-            final_risk = engine.get_risk_level(proba_adjusted)
-
-            entry = {
-                "path": file_path,
-                "filename": os.path.basename(file_path),
-                "size": size,
-                "extension": os.path.splitext(file_path)[1].lower(),
-                "threat_level": final_risk,
-                "probability": round(proba_adjusted, 4),
-                "risk_level": final_risk,
-                "entropy": round(float(features[0]), 4),
-                "scan_time_ms": 0.0,
-                "error": None,
-                "yara_matches": yara_matches,
-                "yara_boosted": yara_boosted,
-                "fp_reason": fp_reason,
-                "sha256": sha256,
-                "vt_available": False,
-                "vt_malicious_count": 0,
-                "vt_suspicious_count": 0,
-                "vt_total_engines": 0,
-                "vt_detection_ratio": "0/0",
-                "vt_permalink": "",
-                "vt_from_cache": False,
-                "vt_error": "",
-                "vt_pending": False,
-            }
-
-            # VirusTotal lookup (v3.0)
-            should_vt = vt_auto_check or final_risk in ("HIGH", "CRITICAL")
-            if should_vt and vt_client:
-                entry["vt_pending"] = True
-                vt_fields = _query_vt(file_path, sha256)
-                entry.update(vt_fields)
-                entry["vt_pending"] = False
-
-                # Override risk level dựa trên VT result
-                if entry.get("vt_malicious_count", 0) >= vt_mal_threshold:
-                    entry["threat_level"] = "CRITICAL"
-                    entry["risk_level"]   = "CRITICAL"
-                    entry["fp_reason"]   += f" | VT({entry['vt_malicious_count']}/{entry['vt_total_engines']})"
-                elif entry.get("vt_malicious_count", 0) >= 1:
-                    entry["threat_level"] = "HIGH"
-                    entry["risk_level"]   = "HIGH"
-                    entry["fp_reason"]   += f" | VT_suspicious({entry['vt_malicious_count']}/{entry['vt_total_engines']})"
-
+            scan_result = scanner.scan_single_file(file_path)
+            entry = scan_result.to_dict()
+            # API contract: ``threat_level`` mirrors ``risk_level`` so
+            # consumers built against the legacy response shape keep
+            # working without touching client code.
+            entry["threat_level"] = entry.get("risk_level", "UNKNOWN")
             results.append(entry)
-
-            if final_risk in ("HIGH", "CRITICAL"):
+            if entry.get("risk_level") in ("HIGH", "CRITICAL"):
                 threats_found += 1
-
-        except Exception as e:
+        except Exception as exc:  # noqa: BLE001 — surface any pipeline crash
             results.append({
-                "path": file_path,
-                "filename": os.path.basename(file_path),
-                "size": 0,
-                "extension": os.path.splitext(file_path)[1].lower(),
+                "path":        file_path,
+                "filename":    os.path.basename(file_path),
+                "size":        0,
+                "extension":   os.path.splitext(file_path)[1].lower(),
                 "threat_level": "ERROR",
                 "probability": 0.0,
-                "risk_level": "UNKNOWN",
-                "entropy": 0.0,
+                "risk_level":  "UNKNOWN",
+                "entropy":     0.0,
                 "scan_time_ms": 0.0,
-                "error": str(e),
+                "error":       str(exc)[:200],
                 "yara_matches": [],
                 "yara_boosted": False,
-                "sha256": "",
+                "sha256":      "",
                 "vt_available": False,
                 "vt_malicious_count": 0,
                 "vt_suspicious_count": 0,
@@ -297,8 +179,8 @@ async def scan_file(
                 "vt_detection_ratio": "0/0",
                 "vt_permalink": "",
                 "vt_from_cache": False,
-                "vt_error": "",
-                "vt_pending": False,
+                "vt_error":    "",
+                "vt_pending":  False,
             })
 
     # Summary

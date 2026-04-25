@@ -158,26 +158,38 @@ MAGIC_SIGNATURES: Dict[str, Optional[bytes]] = {
 # 0.7 = giảm 30% probability (giảm FP đáng kể)
 MAGIC_BYTES_DISCOUNT_FACTOR = 0.70
 
-# ── Audit P4-6: opt-out for magic-bytes discount ──────────────────────────
-# Feature 16 (``Is Known Benign Format``) already encodes the same magic-
-# bytes signal that ``MAGIC_BYTES_DISCOUNT_FACTOR`` re-applies in post-
-# process — that is double-counting and biases probability calibration.
-# Operators who want a *single* signal can flip the config flag
-# ``fp_reducer.disable_magic_bytes_discount`` to True, in which case the
-# discount is skipped (the model alone decides).
+# ── Audit P4-6: magic-bytes discount is OFF by default ────────────────────
+# Feature 15 (``Is Known Benign Format``) in the trained model already
+# encodes the magic-bytes signal that ``MAGIC_BYTES_DISCOUNT_FACTOR``
+# re-applies in post-process. Multiplying the calibrated probability by
+# 0.70 on top of a feature the model has already weighed amounts to
+# *double-counting* and breaks the Platt/Isotonic calibration learned at
+# training time — it makes well-formed PNG/ZIP scores artificially low
+# and erodes the meaning of the threshold.
+#
+# Default (``disable_magic_bytes_discount = True``):
+#     The model alone decides; ``apply_fp_reduction`` only annotates the
+#     reason string, leaving the probability untouched.
+#
+# Legacy behaviour (set ``disable_magic_bytes_discount = False`` in
+# ``data/config.json``):
+#     Multiply by ``MAGIC_BYTES_DISCOUNT_FACTOR`` (0.70) when magic
+#     bytes match. Restores pre-audit behaviour. Use only when running
+#     with a model that was *not* trained with feature 15.
 #
 # We resolve the flag lazily so unit tests can monkeypatch the config
 # without re-importing the module.
 def _magic_bytes_discount_enabled() -> bool:
     try:
         from core.config_manager import config as _cfg
+        # Default True ⇒ discount disabled. Operators must opt in.
         return not bool(
-            _cfg.get("fp_reducer.disable_magic_bytes_discount", False)
+            _cfg.get("fp_reducer.disable_magic_bytes_discount", True)
         )
     except Exception:
-        # Config unavailable (e.g. in early tests) — fall back to the
-        # historical behaviour so we never silently change semantics.
-        return True
+        # Config unavailable (e.g. in early tests) — match the new safe
+        # default: discount disabled so calibration is preserved.
+        return False
 
 
 def check_path_whitelist(file_path: str) -> bool:

@@ -4,15 +4,30 @@ from __future__ import annotations
 
 import json
 import time
+from collections import namedtuple
 from pathlib import Path
 
 import pytest
 
 
+_FakeUsage = namedtuple("FakeUsage", ["total", "used", "free"])
+
+
 @pytest.fixture
 def isolated_responder(tmp_path, monkeypatch):
-    """An AutoResponder rooted at tmp_path so we don't pollute the repo."""
+    """An AutoResponder rooted at tmp_path so we don't pollute the repo.
+
+    Mocks ``shutil.disk_usage`` so the disk-quota guard
+    (``_check_disk_quota``) cannot reject the quarantine just because
+    the developer's machine happens to be near full. The guard logic
+    itself is exercised separately in ``tests/test_disk_quota.py``.
+    """
     monkeypatch.chdir(tmp_path)  # quarantine_dir + manifest live under cwd
+    gib = 1024 ** 3
+    monkeypatch.setattr(
+        "shutil.disk_usage",
+        lambda _p: _FakeUsage(total=100 * gib, used=10 * gib, free=90 * gib),
+    )
     from core.auto_responder import AutoResponder
     return AutoResponder()
 

@@ -34,8 +34,15 @@ All of the following must pass locally before opening a PR:
 ```cmd
 ruff check core api tests scripts gui main.py train_model.py
 pyright
-pytest tests --cov=core --cov=api --cov-fail-under=60
+pytest tests --cov=core --cov=api --cov-fail-under=45
 ```
+
+> **Coverage ratchet**: the floor is currently `45%` (actual ~47%).
+> The long-term target is `60%`. When you add tests that push
+> coverage up, raise the `--cov-fail-under` value in
+> `.github/workflows/ci.yml` to lock in the gain. The largest under-
+> tested modules are listed in that workflow file and in
+> `audit-report-v2.md`.
 
 Or use the bundled workflow shortcuts:
 

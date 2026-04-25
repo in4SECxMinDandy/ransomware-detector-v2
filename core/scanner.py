@@ -564,6 +564,19 @@ class Scanner:
             pass
         return files
 
+    def scan_single_file(self, file_path: str) -> ScanResult:
+        """Public entry point — runs the full single-file detection pipeline.
+
+        This is the supported way for non-Scanner code (CLI, GUI, REST
+        API router) to obtain a :class:`ScanResult` for one file. It
+        delegates to :meth:`_scan_single_file` so the implementation
+        lives in exactly one place — there is no second copy of the
+        pipeline anywhere else in the codebase. (Audit P1-Code Quality
+        regression: ``api/routers/scan.py`` previously open-coded the
+        pipeline and silently dropped the TI / PE-injection stages.)
+        """
+        return self._scan_single_file(file_path)
+
     def _scan_single_file(self, file_path: str) -> ScanResult:
         """
         Quét một file đơn lẻ với FP reduction pipeline.

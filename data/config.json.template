@@ -66,6 +66,8 @@
     "magic_bytes_multiplier": 0.7,
     "magic_mismatch_boost": 1.15,
     "default_threshold": 0.65,
+    "_comment_disable_magic_bytes_discount": "Audit P4-6: feature 15 in the trained model already encodes the magic-bytes signal, so the post-process discount double-counted it. Default is now true (discount disabled). Set to false ONLY when running with a model that was NOT trained with feature 15.",
+    "disable_magic_bytes_discount": true,
     "extension_thresholds": {
       ".png": 0.8, ".jpg": 0.8, ".jpeg": 0.8, ".gif": 0.8, ".webp": 0.8,
       ".mp4": 0.82, ".mkv": 0.82, ".avi": 0.82, ".mov": 0.82,

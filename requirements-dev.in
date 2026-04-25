@@ -1,0 +1,25 @@
+# Ransomware Detector v2 — Development Dependencies (loose specs / source of truth)
+#
+# Compile via:
+#
+#     pip-compile --output-file=requirements-dev.txt --strip-extras requirements-dev.in
+#
+# Keep this file in sync with .github/workflows/ci.yml.
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+pytest         >=8.0,<10
+pytest-cov     >=4.0,<8
+pytest-mock    >=3.10,<4
+pytest-asyncio >=0.21,<2
+hypothesis     >=6.0,<7
+
+# ─── Linting / Formatting ────────────────────────────────────────────────────
+ruff           >=0.4,<1
+
+# Type checking — pyright installed via npm, see .windsurf/workflows/lint.md.
+
+# ─── Security scanning ───────────────────────────────────────────────────────
+pip-audit      >=2.7,<3
+
+# ─── Build / packaging ───────────────────────────────────────────────────────
+build          >=1.0,<3

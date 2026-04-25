@@ -1,0 +1,93 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.yml — Ransomware Detector v2
+#
+# Brings up the FastAPI service defined by ``Dockerfile`` with persistent
+# volumes for runtime state (config, audit logs, quarantine, threat-intel
+# cache, optional models). Designed for *single-host* deployments — for
+# Kubernetes use a Helm chart instead.
+#
+# Quick start::
+#
+#     :: Linux/macOS
+#     export RANSOMWARE_JWT_SECRET="$(python -c 'import secrets;print(secrets.token_urlsafe(48))')"
+#     docker compose up --build
+#
+#     :: Windows (PowerShell)
+#     $env:RANSOMWARE_JWT_SECRET = python -c "import secrets;print(secrets.token_urlsafe(48))"
+#     docker compose up --build
+#
+# The API will be reachable at http://localhost:8000.
+# Authentication endpoints: /auth/login, /auth/refresh.
+# Health probe: /health (returns 401 unauthenticated, 200 with bearer).
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  api:
+    image: ransomware-detector:${IMAGE_TAG:-latest}
+    container_name: ransomware-detector-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Pass through Python version override if the operator wants a
+      # specific runtime: ``PYTHON_VERSION=3.12 docker compose build``.
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
+    restart: unless-stopped
+
+    # JWT secret MUST be supplied by the operator. The container refuses
+    # to start without it (api/main.py / core/security_utils.py).
+    environment:
+      RANSOMWARE_JWT_SECRET: ${RANSOMWARE_JWT_SECRET:?RANSOMWARE_JWT_SECRET must be set}
+      RANSOMWARE_LOG_LEVEL:  ${RANSOMWARE_LOG_LEVEL:-INFO}
+      RANSOMWARE_LOG_FORMAT: ${RANSOMWARE_LOG_FORMAT:-json}
+      # Optional Threat Intel keys — leave blank to disable that source.
+      THREATFOX_API_KEY:     ${THREATFOX_API_KEY:-}
+      OTX_API_KEY:           ${OTX_API_KEY:-}
+
+    ports:
+      - "${API_BIND_HOST:-127.0.0.1}:${API_PORT:-8000}:8000"
+
+    # Persistent state. ``./data`` and ``./logs`` are bind-mounted so the
+    # operator can rotate them with standard host tooling (logrotate,
+    # tar, rclone, …). Quarantine is a *named volume* by default so the
+    # host filesystem cannot accidentally execute a captured payload via
+    # double-click.
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./models:/app/models:ro
+      - quarantine:/app/quarantine
+
+    # Hardening — defense in depth on top of non-root USER from Dockerfile.
+    read_only: false        # /app/logs and /app/quarantine need writes
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+    # Resource caps — tune to your host. Leaving conservative defaults so
+    # a runaway scan thread cannot OOM the host.
+    deploy:
+      resources:
+        limits:
+          cpus: "${API_CPU_LIMIT:-2.0}"
+          memory: ${API_MEM_LIMIT:-1G}
+        reservations:
+          memory: 256M
+
+    # The Dockerfile already declares HEALTHCHECK; compose just inherits.
+    # We add a logging cap so the json log driver can't fill the disk.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  # Quarantined files live in a named volume — never on the host FS so an
+  # accidental ``cd /app/quarantine && ./malware.exe`` from a sysadmin
+  # drops them into the container, not the host.
+  quarantine:
+    driver: local
