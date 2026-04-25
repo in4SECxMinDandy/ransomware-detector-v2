@@ -27,12 +27,22 @@ import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.dataset_generator import generate_synthetic_dataset
-from core.ml_engine import CalibratedMalwareDetector, MODEL_PATH, META_PATH
-from core.feature_extractor import N_FEATURES, FEATURE_NAMES
-from core.yara_engine import get_yara_engine
-from core.smote_trainer import get_smote_info, SUPPORTED_STRATEGIES
-import numpy as np
+# All third-party + project imports must precede any module-level code so
+# ruff is happy and so import errors surface up-front rather than mid-run.
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from core.dataset_generator import generate_synthetic_dataset  # noqa: E402
+from core.ml_engine import (  # noqa: E402
+    CalibratedMalwareDetector,
+    MODEL_PATH,
+    META_PATH,
+    CLASS_WEIGHT_SAFE,
+    CLASS_WEIGHT_ENC,
+)
+from core.feature_extractor import N_FEATURES, FEATURE_NAMES  # noqa: E402
+from core.yara_engine import get_yara_engine  # noqa: E402
+from core.smote_trainer import get_smote_info, SUPPORTED_STRATEGIES  # noqa: E402
 
 # ─── Parse arguments ───
 parser = argparse.ArgumentParser(
@@ -89,7 +99,6 @@ if X.shape[1] != N_FEATURES:
 
 # ── Step 2: Lưu dataset ──
 print("\n[Step 2/4] Lưu dataset v2.1...")
-import pandas as pd
 
 fn_list   = FEATURE_NAMES[:X.shape[1]]
 df        = pd.DataFrame(X, columns=fn_list)
@@ -102,8 +111,8 @@ print(f"  Saved: {data_path} ({len(df)} rows × {len(fn_list)+1} cols)")
 
 # ── Step 3: Train Model ──
 print("\n[Step 3/4] Train CalibratedMalwareDetector v2.1...")
-print("  → n_estimators=300, class_weight={0:3.0, 1:1.0}")
-print(f"  → SMOTE strategy='{smote_strategy}'")
+print(f"  → n_estimators=300, class_weight={{0:{CLASS_WEIGHT_SAFE}, 1:{CLASS_WEIGHT_ENC}}} (cost-aware FN-averse)")
+print(f"  → SMOTE strategy='{smote_strategy}' (training fold only — no leakage)")
 print("  → Calibration: isotonic regression")
 print("  → Threshold optimizer: Precision ≥ 95%")
 

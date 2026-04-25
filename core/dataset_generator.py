@@ -28,7 +28,7 @@ import os
 import struct
 import numpy as np
 import pandas as pd
-from typing import Tuple
+from typing import Optional, Tuple
 from core.feature_extractor import extract_features, FEATURE_NAMES, N_FEATURES
 
 RNG = np.random.default_rng(seed=42)
@@ -211,7 +211,7 @@ def _make_full_encrypted(size: int) -> bytes:
     return bytes(RNG.integers(0, 256, size, dtype=np.uint8))
 
 
-def _make_partial_encrypted(size: int, ratio: float = None) -> bytes:
+def _make_partial_encrypted(size: int, ratio: Optional[float] = None) -> bytes:
     """Intermittent encryption (LockBit 3.0 style)."""
     if ratio is None:
         ratio = float(RNG.uniform(0.3, 0.8))
@@ -253,7 +253,7 @@ def _make_disguised_zip(size: int) -> bytes:
 def generate_synthetic_dataset(
     n_safe: int = 1000,
     n_encrypted: int = 1000,
-    output_dir: str = None,
+    output_dir: Optional[str] = None,
     save_files: bool = False,
     verbose: bool = True
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -346,9 +346,9 @@ def generate_synthetic_dataset(
         raise ValueError("Dataset rỗng — không có sample nào được tạo thành công.")
 
     # Lưu CSV
-    df = pd.DataFrame(X, columns=FEATURE_NAMES)
+    df = pd.DataFrame(X, columns=pd.Index(FEATURE_NAMES))  # type: ignore[arg-type]
     df["label"] = y
-    df["label_name"] = df["label"].map({0: "SAFE", 1: "ENCRYPTED"})
+    df["label_name"] = df["label"].map(lambda v: "SAFE" if v == 0 else "ENCRYPTED")
     csv_path = os.path.join(output_dir, "synthetic_dataset_v2.csv")
     df.to_csv(csv_path, index=False)
 

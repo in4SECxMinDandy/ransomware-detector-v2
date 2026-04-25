@@ -187,7 +187,7 @@ def search_training_sources(
                 str(source.get("notes", "")),
                 str(source.get("source_type", "")),
                 str(source.get("access_mode", "")),
-                " ".join(str(keyword) for keyword in source.get("keywords", [])),
+                " ".join(str(keyword) for keyword in (source.get("keywords") or [])),  # type: ignore[union-attr]
             ]
         ).lower()
 

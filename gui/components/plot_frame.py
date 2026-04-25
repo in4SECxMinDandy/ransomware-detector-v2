@@ -29,7 +29,7 @@ class PlotFrame(ctk.CTkFrame):
     def __init__(self, parent, figsize: Tuple[float, float] = (6, 3), **kwargs):
         self._figsize = figsize
         self._figure: Optional[Figure] = None
-        self._canvas = None
+        self._mpl_canvas = None
         self._ax = None
 
         super().__init__(parent, **kwargs)
@@ -55,11 +55,11 @@ class PlotFrame(ctk.CTkFrame):
 
     def _setup_canvas(self):
         """Create Matplotlib canvas inside CTk frame."""
-        if self._canvas is not None:
-            self._canvas.destroy()
+        if self._mpl_canvas is not None:
+            self._mpl_canvas.get_tk_widget().destroy()
 
-        self._canvas = FigureCanvasTkAgg(self._figure, master=self)
-        self._canvas.get_tk_widget().pack(fill="both", expand=True)
+        self._mpl_canvas = FigureCanvasTkAgg(self._figure, master=self)
+        self._mpl_canvas.get_tk_widget().pack(fill="both", expand=True)
         self._figure.tight_layout()
 
     def clear(self):
@@ -86,7 +86,7 @@ class PlotFrame(ctk.CTkFrame):
             self._ax.legend(facecolor="#161E29", labelcolor="#E6EAF0",
                            edgecolor="#263042", fontsize=8)
         self._configure_axes()
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     def plot_line(self, x: List, y: List,
                   title: str = "", xlabel: str = "", ylabel: str = "",
@@ -113,7 +113,7 @@ class PlotFrame(ctk.CTkFrame):
 
         self._ax.tick_params(colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, alpha=0.3, color="#263042")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     # ─── Entropy Real-time Chart ─────────────────────────────────────────────
 
@@ -152,7 +152,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.grid(True, alpha=0.3, color="#263042")
         self._ax.legend(loc="upper left", fontsize=8, facecolor="#161E29",
                        edgecolor="#263042", labelcolor="#E6EAF0")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     # ─── Bar Chart ───────────────────────────────────────────────────────────
 
@@ -169,7 +169,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.tick_params(axis="y", colors="#A3ADBD", labelsize=8)
         for spine in self._ax.spines.values():
             spine.set_edgecolor("#263042")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     def plot_bar(self, categories: List[str], values: List[float],
                  title: str = "", xlabel: str = "", ylabel: str = "",
@@ -191,7 +191,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.tick_params(axis="x", rotation=45, colors="#A3ADBD", labelsize=8)
         self._ax.tick_params(axis="y", colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, axis="y", alpha=0.3, color="#263042")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     # ─── Pie Chart ───────────────────────────────────────────────────────────
 
@@ -218,7 +218,7 @@ class PlotFrame(ctk.CTkFrame):
         if title:
             self._ax.set_title(title, color="#60A5FA", fontsize=10,
                               fontweight="bold", pad=8)
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     def plot_pie(self, labels: List[str], sizes: List[float],
                  title: str = "", colors: List[str] = None):
@@ -244,7 +244,7 @@ class PlotFrame(ctk.CTkFrame):
             self._ax.set_ylabel(ylabel, color="#A3ADBD", fontsize=9)
         self._ax.tick_params(colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, alpha=0.3, color="#263042")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     def scatter_entropy(self, entropies, probabilities, risk_levels):
         """Scatter plot for scan results (entropy vs probability)."""
@@ -265,7 +265,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.set_ylabel("Xác suất rủi ro", color="#A3ADBD", fontsize=9)
         self._ax.tick_params(colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, alpha=0.3, color="#263042")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     # ─── Histogram ───────────────────────────────────────────────────────────
 
@@ -282,7 +282,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.set_ylabel(ylabel, color="#A3ADBD", fontsize=9)
         self._ax.tick_params(colors="#A3ADBD", labelsize=8)
         self._ax.grid(True, axis="y", alpha=0.3, color="#263042")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     # ─── Signal Gauge ────────────────────────────────────────────────────────
 
@@ -311,7 +311,7 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.text(0.5, 0.38, label, ha="center", va="center",
                      fontsize=7, color="#A3ADBD")
         self._figure.patch.set_facecolor("#161E29")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
     def plot_signal_gauge(self, score: float, max_score: float = 1.0,
                           title: str = "Điểm đe dọa"):
@@ -329,7 +329,7 @@ class PlotFrame(ctk.CTkFrame):
             self._ax.text(0.5, 0.5, "Chưa có lịch sử training",
                         ha="center", va="center", fontsize=10, color="#263042",
                         transform=self._ax.transAxes)
-            self._canvas.draw_idle()
+            self._mpl_canvas.draw_idle()
             return
 
         x = list(range(len(dates)))
@@ -357,8 +357,12 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.grid(True, alpha=0.3, color="#263042")
         self._ax.legend(loc="lower right", fontsize=8, facecolor="#161E29",
                        edgecolor="#263042", labelcolor="#E6EAF0")
-        self._canvas.draw_idle()
+        self._mpl_canvas.draw_idle()
 
 
-# ─── Inline matplotlib backend import ────────────────────────────────────────
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+# ─── Inline matplotlib backend import ────────────────────────────────────────────────
+# Imported here — not at the top — because the calling module sets the
+# matplotlib backend via ``matplotlib.use('Agg')`` *before* this import
+# runs. Moving it to the top would force the default Tk backend during
+# import time on headless test runners. Hence the deliberate E402 noqa.
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # noqa: E402

@@ -5,7 +5,6 @@ Scan endpoints for the Ransomware Detector API.
 """
 
 import os
-import hashlib
 import threading
 from datetime import datetime
 from typing import List, Dict, Any
@@ -17,6 +16,19 @@ from api.schemas import (
     ScanFileResponse, ScanHashRequest, ScanHashResponse,
     OfficeScanResponse,
 )
+from core.security_utils import (
+    PathSafetyError,
+    compute_sha256,
+    resolve_safe_path,
+)
+
+# Office upload defence-in-depth
+_OFFICE_ALLOWED_EXTENSIONS = {
+    ".doc", ".docx", ".docm",
+    ".xls", ".xlsx", ".xlsm",
+    ".ppt", ".pptx", ".pptm",
+    ".pdf", ".rtf",
+}
 
 router = APIRouter(prefix="/scan", tags=["Scan"])
 
@@ -70,8 +82,29 @@ async def scan_file(
     scan_id = _next_scan_id()
     started_at = datetime.now().isoformat()
 
-    if not os.path.isdir(directory):
-        raise HTTPException(status_code=400, detail=f"Directory not found: {directory}")
+    # Path-traversal / SSRF defence: caller must pass a directory inside one of
+    # the configured allowed roots. Empty allowlist = scan disabled.
+    try:
+        from core.config_manager import config as _cfg
+        allowed_roots = _cfg.get("api.allowed_scan_roots", []) or []
+    except Exception:
+        allowed_roots = []
+    if not allowed_roots:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Scanning is disabled: configure api.allowed_scan_roots in "
+                "data/config.json with one or more absolute directories."
+            ),
+        )
+    try:
+        safe_dir = resolve_safe_path(directory, allowed_roots)
+    except PathSafetyError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+
+    if not safe_dir.is_dir():
+        raise HTTPException(status_code=400, detail=f"Directory not found: {safe_dir}")
+    directory = str(safe_dir)
 
     # Collect files
     files = _collect_files(directory, recursive)
@@ -90,7 +123,6 @@ async def scan_file(
 
     # Import core modules
     try:
-        from core.scanner import Scanner
         from core.ml_engine import get_engine
         from core.yara_engine import get_yara_engine
         from core.feature_extractor import extract_features
@@ -109,7 +141,6 @@ async def scan_file(
     vt_api_key        = config.get("virustotal.api_key", "")
     vt_auto_check     = config.get("virustotal.auto_check", False)
     vt_mal_threshold  = 5
-    vt_susp_threshold = 3
 
     vt_client = None
     if vt_enabled and vt_api_key and len(vt_api_key) > 10:
@@ -141,12 +172,8 @@ async def scan_file(
         try:
             size = os.path.getsize(file_path)
 
-            # Compute SHA256 for VT lookup
-            try:
-                with open(file_path, "rb") as f:
-                    sha256 = hashlib.sha256(f.read()).hexdigest()
-            except Exception:
-                sha256 = ""
+            # Compute SHA256 for VT lookup (streaming — supports multi-GB files)
+            sha256 = compute_sha256(file_path)
 
             features = extract_features(file_path)
 
@@ -178,7 +205,6 @@ async def scan_file(
                 continue
 
             label, proba = engine.predict(features)
-            risk_level = engine.get_risk_level(proba)
 
             # YARA scan
             yara_matches = []
@@ -191,7 +217,6 @@ async def scan_file(
                         for m in matches:
                             yara_matches.append(m.to_dict())
                         proba, _ = yara_engine.apply_yara_boost(proba, matches)
-                        risk_level = engine.get_risk_level(proba)
                 except Exception:
                     pass
 
@@ -382,15 +407,42 @@ async def scan_office(
     temp_dir = tempfile.mkdtemp()
 
     try:
-        # Save uploaded files temporarily
+        # Read upload limit from config (default 50 MiB)
+        try:
+            from core.config_manager import config as _cfg
+            max_upload_bytes = int(_cfg.get("api.max_upload_mb", 50)) * 1024 * 1024
+        except Exception:
+            max_upload_bytes = 50 * 1024 * 1024
+
+        # Save uploaded files temporarily — enforce extension allowlist + size cap
         saved_paths = []
         for upload_file in files:
             if not upload_file.filename:
                 continue
-
-            save_path = os.path.join(temp_dir, upload_file.filename)
+            # Strip directory components (defence against path traversal in filename)
+            safe_name = os.path.basename(upload_file.filename)
+            ext = os.path.splitext(safe_name)[1].lower()
+            if ext not in _OFFICE_ALLOWED_EXTENSIONS:
+                raise HTTPException(
+                    status_code=415,
+                    detail=f"Unsupported file type: {ext or '(none)'}",
+                )
+            save_path = os.path.join(temp_dir, safe_name)
+            written = 0
             with open(save_path, "wb") as f:
-                shutil.copyfileobj(upload_file.file, f)
+                while True:
+                    chunk = upload_file.file.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    written += len(chunk)
+                    if written > max_upload_bytes:
+                        f.close()
+                        os.unlink(save_path)
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"File {safe_name} exceeds {max_upload_bytes // (1024 * 1024)} MiB limit",
+                        )
+                    f.write(chunk)
             saved_paths.append(save_path)
 
         # Analyze each file

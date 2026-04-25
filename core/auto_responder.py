@@ -16,18 +16,25 @@ Usage:
 
 import os
 import sys
-import json
 import shutil
 import logging
 import subprocess
+import threading
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import TYPE_CHECKING, Dict, Any, Optional
 
-try:
+from core.security_utils import atomic_write_json, compute_sha256, safe_read_json
+
+if TYPE_CHECKING:
     import psutil
     PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
+else:
+    try:
+        import psutil
+        PSUTIL_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        psutil = None
+        PSUTIL_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -50,20 +57,96 @@ class AutoResponder:
     ]
 
     RESPONSE_POLICY = {
-        "CRITICAL": "auto_quarantine",  # automatic, no prompt
+        "CRITICAL": "auto_quarantine",  # automatic with countdown (see DEFAULT_COUNTDOWN_S)
         "HIGH": "ask_user",              # show dialog with countdown
         "MEDIUM": "notify_only",
         "LOW": "log_only",
     }
 
+    # Number of seconds to wait before auto-quarantining a CRITICAL detection
+    # so a UI / operator has a chance to abort. Configurable via
+    # ``auto_response.countdown_seconds`` in data/config.json.
+    DEFAULT_COUNTDOWN_S = 30
+
+    # Disk-quota safety: refuse to quarantine when the destination volume has
+    # less than this fraction of free space. A 100 GiB ransomware drop must
+    # never be allowed to fill the disk and crash the OS. Audit P3-15.
+    MIN_FREE_DISK_FRACTION = 0.10  # require >=10% free
+    MIN_FREE_DISK_BYTES    = 1 * 1024 * 1024 * 1024  # and >=1 GiB absolute
+
     def __init__(self):
         """Initialize AutoResponder."""
         os.makedirs(self.QUARANTINE_DIR, exist_ok=True)
         os.makedirs(os.path.dirname(self.AUDIT_LOG), exist_ok=True)
+        self._abort_callback: Optional[Any] = None  # callable(file_path) -> bool
+        # Serialise audit-log writes so concurrent quarantines from a thread
+        # pool cannot interleave half-flushed lines (audit P3-15).
+        self._audit_lock = threading.Lock()
+
+    def set_abort_callback(self, callback) -> None:
+        """
+        Register a callback invoked during the countdown before auto-quarantine.
+
+        The callback receives the file path and must return ``True`` to abort
+        (do not quarantine) or ``False`` to allow the action. If no callback
+        is registered the action proceeds after the countdown elapses.
+        """
+        self._abort_callback = callback
+
+    def quarantine_with_countdown(self, file_path: str, *,
+                                   reason: str = "Auto-detected CRITICAL",
+                                   seconds: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Wait ``seconds`` (default from config or DEFAULT_COUNTDOWN_S) before
+        quarantining ``file_path``. Returns the same dict as
+        :meth:`quarantine_file` plus an ``aborted`` flag.
+
+        This is the preferred entry point for CRITICAL events because it
+        gives the user a chance to undo a false-positive quarantine.
+        """
+        import time as _time
+        try:
+            from core.config_manager import config as _cfg
+            cfg_seconds = int(_cfg.get("auto_response.countdown_seconds", self.DEFAULT_COUNTDOWN_S))
+        except Exception:
+            cfg_seconds = self.DEFAULT_COUNTDOWN_S
+        wait_s = seconds if seconds is not None else cfg_seconds
+        wait_s = max(0, wait_s)
+
+        deadline = _time.monotonic() + wait_s
+        while _time.monotonic() < deadline:
+            if self._abort_callback is not None:
+                try:
+                    if bool(self._abort_callback(file_path)):
+                        self._log_action("QUARANTINE_ABORTED", file=file_path, reason=reason)
+                        logger.info("Quarantine aborted by callback for %s", file_path)
+                        return {"success": False, "aborted": True, "id": None}
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.warning("abort_callback raised: %s", exc)
+            # Poll once per second so the abort signal is responsive without
+            # spinning a CPU.
+            _time.sleep(min(1.0, max(0.0, deadline - _time.monotonic())))
+
+        result = self.quarantine_file(file_path, reason=reason)
+        result["aborted"] = False
+        return result
 
     def quarantine_file(self, file_path: str, reason: str = "Auto-detected threat") -> Dict[str, Any]:
         """
         Quarantine a malicious file.
+
+        The move is performed defensively to avoid data loss even when
+        ``file_path`` and the quarantine directory are on different volumes
+        (where ``shutil.move`` falls back to copy-and-delete with no rollback):
+
+          1. SHA256 of source is computed up-front.
+          2. File is copied to ``<quarantine>/<file>.quarantined``.
+          3. The destination is ``fsync()``-ed so the write reaches disk.
+          4. SHA256 of destination is recomputed and compared with #1.
+          5. Only on match is the source removed (with retries to defeat
+             transient AV / handle-locking races).
+          6. On any failure we delete the partial destination and bail out
+             — the original file is preserved.
 
         Args:
             file_path: Path to the file to quarantine
@@ -76,6 +159,17 @@ class AutoResponder:
             logger.error(f"File not found for quarantine: {file_path}")
             return {"success": False, "error": "File not found"}
 
+        # Disk-quota guard — refuse before we copy anything. This is a
+        # critical safety net: a 100 GB ransomware payload must NOT be
+        # allowed to fill the system volume.
+        quota_err = self._check_disk_quota(file_path)
+        if quota_err is not None:
+            logger.error("Refusing to quarantine %s: %s", file_path, quota_err)
+            self._log_action(
+                "QUARANTINE_REFUSED", file=file_path, reason=quota_err,
+            )
+            return {"success": False, "error": quota_err}
+
         # Generate unique quarantine ID
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         quarantine_id = f"Q_{timestamp}"
@@ -84,15 +178,12 @@ class AutoResponder:
         quarantine_subdir = os.path.join(self.QUARANTINE_DIR, timestamp)
         os.makedirs(quarantine_subdir, exist_ok=True)
 
-        # Compute hash
-        import hashlib
-        file_hash = None
-        try:
-            with open(file_path, "rb") as f:
-                file_hash = hashlib.sha256(f.read()).hexdigest()
-        except IOError as e:
-            logger.error(f"Failed to read file for hash: {e}")
-            file_hash = None
+        # Compute hash of *source* (streaming — supports multi-GB files).
+        # This anchors the integrity check that follows the copy.
+        source_hash = compute_sha256(file_path)
+        if not source_hash:
+            logger.error("Cannot compute SHA256 of source: %s", file_path)
+            return {"success": False, "error": "Source unreadable"}
 
         # New path
         filename = os.path.basename(file_path)
@@ -100,15 +191,14 @@ class AutoResponder:
         new_path = os.path.join(quarantine_subdir, new_filename)
 
         try:
-            # Move file to quarantine
-            shutil.move(file_path, new_path)
+            self._safe_quarantine_move(file_path, new_path, source_hash)
 
             # Create manifest entry
             manifest_entry = {
                 "id": quarantine_id,
                 "original_path": file_path,
                 "quarantined_path": new_path,
-                "hash": file_hash,
+                "hash": source_hash,
                 "timestamp": datetime.now().isoformat(),
                 "reason": reason,
                 "size": os.path.getsize(new_path),
@@ -120,14 +210,65 @@ class AutoResponder:
             self._save_manifest(manifest)
 
             # Log to audit
-            self._log_action("QUARANTINE", file=file_path, hash=file_hash, reason=reason)
+            self._log_action("QUARANTINE", file=file_path, hash=source_hash, reason=reason)
 
             logger.info(f"File quarantined: {file_path} -> {new_path}")
             return {"success": True, "id": quarantine_id, "new_path": new_path}
 
         except Exception as e:
             logger.error(f"Failed to quarantine file: {e}")
+            # Best-effort cleanup of any partial destination so we do not
+            # leave a half-copied artefact behind.
+            try:
+                if os.path.isfile(new_path):
+                    os.remove(new_path)
+            except OSError:
+                pass
             return {"success": False, "error": str(e)}
+
+    @staticmethod
+    def _safe_quarantine_move(src: str, dst: str, expected_hash: str,
+                              *, delete_retries: int = 5,
+                              delete_retry_delay_s: float = 0.2) -> None:
+        """Copy *src* → *dst* with fsync + SHA256 verify, then delete *src*.
+
+        Raises on any inconsistency — caller must clean up *dst* on error.
+        """
+        # 1. Copy with metadata preservation (timestamps useful for forensics).
+        shutil.copy2(src, dst)
+
+        # 2. fsync the destination so the bytes survive a power loss before
+        #    the source is deleted. fsync of the directory is best-effort
+        #    (not all filesystems / Windows builds support it).
+        try:
+            with open(dst, "rb", buffering=0) as f_dst:
+                os.fsync(f_dst.fileno())
+        except OSError as exc:
+            logger.debug("fsync(dst) failed (continuing): %s", exc)
+
+        # 3. Verify destination matches the source hash.
+        dst_hash = compute_sha256(dst)
+        if not dst_hash or dst_hash.lower() != expected_hash.lower():
+            raise IOError(
+                f"Quarantine integrity check failed: src={expected_hash} "
+                f"dst={dst_hash}"
+            )
+
+        # 4. Delete source with retries — on Windows AV scanners frequently
+        #    hold transient handles right after we close the source.
+        last_exc: Optional[Exception] = None
+        for attempt in range(delete_retries):
+            try:
+                os.remove(src)
+                return
+            except (OSError, PermissionError) as exc:
+                last_exc = exc
+                if attempt + 1 < delete_retries:
+                    import time as _t
+                    _t.sleep(delete_retry_delay_s)
+        raise IOError(
+            f"Could not delete source after copy ({delete_retries} attempts): {last_exc}"
+        )
 
     def restore_file(self, quarantine_id: str) -> bool:
         """
@@ -153,12 +294,33 @@ class AutoResponder:
             logger.error(f"Quarantined file not found: {quarantined_path}")
             return False
 
+        # Verify the quarantined file matches what we recorded — guards
+        # against silent tamper between quarantine and restore.
+        recorded_hash = entry.get("hash")
+        if recorded_hash:
+            current_hash = compute_sha256(quarantined_path)
+            if not current_hash or current_hash.lower() != str(recorded_hash).lower():
+                logger.error(
+                    "Refusing to restore — quarantined file hash changed "
+                    "(expected=%s, got=%s)", recorded_hash, current_hash,
+                )
+                self._log_action(
+                    "RESTORE_REJECTED",
+                    file=original_path, quarantine_id=quarantine_id,
+                    reason="hash_mismatch",
+                )
+                return False
+
         try:
             # Ensure original directory exists
-            os.makedirs(os.path.dirname(original_path), exist_ok=True)
+            os.makedirs(os.path.dirname(original_path) or ".", exist_ok=True)
 
-            # Move back to original location
-            shutil.move(quarantined_path, original_path)
+            # Same defensive move (copy → fsync → verify → delete) as
+            # the outbound quarantine path.
+            self._safe_quarantine_move(
+                quarantined_path, original_path,
+                recorded_hash or compute_sha256(quarantined_path),
+            )
 
             # Remove from manifest
             del manifest[quarantine_id]
@@ -396,7 +558,12 @@ class AutoResponder:
         if sys.platform != "win32":
             return False
 
-        rule_name = f"RansomwareDetector_Block_{pid}_{process_name}"
+        # Sanitize must mirror block_network() exactly so the rule name
+        # produced here matches the one created at block-time. Without this,
+        # netsh would silently fail to find the rule and orphaned firewall
+        # rules accumulate (DoS by exhaustion).
+        safe_process_name = self._sanitize_process_name(process_name)
+        rule_name = f"RansomwareDetector_Block_{pid}_{safe_process_name}"
 
         try:
             cmd = [
@@ -406,7 +573,7 @@ class AutoResponder:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
-                self._log_action("UNBLOCK_NETWORK", pid=pid, name=process_name)
+                self._log_action("UNBLOCK_NETWORK", pid=pid, name=safe_process_name)
                 logger.info(f"Network unblocked for PID={pid}")
                 return True
             else:
@@ -435,26 +602,21 @@ class AutoResponder:
 
     def _load_manifest(self) -> Dict[str, Any]:
         """Load quarantine manifest."""
-        if not os.path.exists(self.MANIFEST_FILE):
-            return {}
-        try:
-            with open(self.MANIFEST_FILE, "r") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            logger.warning(f"Failed to load manifest: {e}")
-            return {}
-        except Exception as e:
-            logger.error(f"Unexpected error loading manifest: {e}")
-            return {}
+        data = safe_read_json(self.MANIFEST_FILE, default={})
+        return data if isinstance(data, dict) else {}
 
     def _save_manifest(self, manifest: Dict[str, Any]):
-        """Save quarantine manifest."""
-        os.makedirs(os.path.dirname(self.MANIFEST_FILE), exist_ok=True)
-        with open(self.MANIFEST_FILE, "w") as f:
-            json.dump(manifest, f, indent=2)
+        """Save quarantine manifest atomically (crash-safe)."""
+        if not atomic_write_json(self.MANIFEST_FILE, manifest):
+            logger.error("Failed to persist quarantine manifest")
 
     def _log_action(self, action: str, **kwargs):
-        """Log action to audit log."""
+        """Log action to audit log.
+
+        Writes are serialised through ``self._audit_lock`` so concurrent
+        quarantine operations from the scanner thread pool cannot interleave
+        partially-flushed lines (which would corrupt audit reconstruction).
+        """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         parts = [f"[{timestamp}] {action}"]
 
@@ -464,10 +626,47 @@ class AutoResponder:
         log_line = " | ".join(parts) + "\n"
 
         try:
-            with open(self.AUDIT_LOG, "a") as f:
-                f.write(log_line)
+            with self._audit_lock:
+                # Open / append / close inside the lock so the OS-level
+                # write is fully flushed before another thread proceeds.
+                with open(self.AUDIT_LOG, "a", encoding="utf-8") as f:
+                    f.write(log_line)
+                    f.flush()
         except Exception as e:
             logger.error(f"Failed to write audit log: {e}")
+
+    def _check_disk_quota(self, file_path: str) -> Optional[str]:
+        """Return an error string if the quarantine volume is too full.
+
+        Computes (a) free fraction and (b) absolute free bytes on the volume
+        backing :pyattr:`QUARANTINE_DIR` and refuses any quarantine that
+        would land on a near-full disk. This prevents a 100 GB ransomware
+        drop from filling the system drive and crashing the host
+        (audit P3-15).
+
+        Returns ``None`` when the quarantine is allowed to proceed.
+        """
+        try:
+            usage = shutil.disk_usage(self.QUARANTINE_DIR)
+        except OSError as exc:
+            # If we cannot stat the volume something is very wrong — refuse.
+            return f"disk_usage failed: {exc}"
+
+        free_fraction = usage.free / max(usage.total, 1)
+        try:
+            file_size = os.path.getsize(file_path)
+        except OSError:
+            file_size = 0
+
+        # Need enough headroom for the file plus the absolute floor.
+        required_bytes = max(self.MIN_FREE_DISK_BYTES, file_size * 2)
+        if usage.free < required_bytes or free_fraction < self.MIN_FREE_DISK_FRACTION:
+            return (
+                f"insufficient disk space: free={usage.free} bytes "
+                f"({free_fraction*100:.1f}%), required>={required_bytes} bytes "
+                f"and >={self.MIN_FREE_DISK_FRACTION*100:.0f}% free"
+            )
+        return None
 
     def get_quarantine_list(self) -> list:
         """Get list of quarantined files."""

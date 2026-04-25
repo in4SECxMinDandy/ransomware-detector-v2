@@ -66,6 +66,68 @@ class RateLimiter:
             return max(0.0, self.min_interval - (time.time() - self._last_time))
 
 
+class CircuitBreaker:
+    """Per-source circuit breaker for TI HTTP calls.
+
+    Trips ``OPEN`` after ``failure_threshold`` consecutive failures and
+    short-circuits subsequent requests for ``cooldown_seconds`` so a single
+    flaky upstream cannot stall the scanner thread pool. The first request
+    after the cooldown enters ``HALF_OPEN`` state and probes the upstream
+    once — success closes the breaker, failure re-opens it for another
+    cooldown window.
+
+    Audit P4-10: replaces unconditional ``time.sleep`` waits that previously
+    blocked scans for hours when MalwareBazaar / OTX were down.
+    """
+
+    STATE_CLOSED    = "closed"
+    STATE_OPEN      = "open"
+    STATE_HALF_OPEN = "half_open"
+
+    def __init__(self, failure_threshold: int = 3, cooldown_seconds: float = 60.0):
+        self.failure_threshold = max(1, failure_threshold)
+        # Floor at 1 ms — high enough to keep the breaker meaningful, low
+        # enough that unit tests can exercise the cooldown without sleeping
+        # for whole seconds.
+        self.cooldown_seconds  = max(0.001, float(cooldown_seconds))
+        self._failures   = 0
+        self._opened_at  = 0.0
+        self._state      = self.STATE_CLOSED
+        self._lock       = Lock()
+
+    def allow(self) -> bool:
+        """Return True if the caller should proceed with the request."""
+        with self._lock:
+            if self._state == self.STATE_CLOSED:
+                return True
+            if self._state == self.STATE_OPEN:
+                if time.time() - self._opened_at >= self.cooldown_seconds:
+                    # Probe the upstream once.
+                    self._state = self.STATE_HALF_OPEN
+                    return True
+                return False
+            # HALF_OPEN — only one probe is in flight; block the rest.
+            return False
+
+    def record_success(self) -> None:
+        with self._lock:
+            self._failures = 0
+            self._state    = self.STATE_CLOSED
+
+    def record_failure(self) -> None:
+        with self._lock:
+            self._failures += 1
+            if self._state == self.STATE_HALF_OPEN or \
+               self._failures >= self.failure_threshold:
+                self._state    = self.STATE_OPEN
+                self._opened_at = time.time()
+
+    @property
+    def state(self) -> str:
+        with self._lock:
+            return self._state
+
+
 # ─── Dataclasses ─────────────────────────────────────────────────────────────
 
 @dataclass
@@ -170,6 +232,13 @@ class ThreatIntelClient:
         self._tf_limiter = RateLimiter(rpm=10)
         self._otx_limiter = RateLimiter(rpm=20)
 
+        # Per-source circuit breakers (audit P4-10). After 3 consecutive
+        # network/HTTP failures we stop hitting that source for 60s so a
+        # flaky upstream cannot block the whole scanner thread pool.
+        self._mb_breaker  = CircuitBreaker(failure_threshold=3, cooldown_seconds=60.0)
+        self._tf_breaker  = CircuitBreaker(failure_threshold=3, cooldown_seconds=60.0)
+        self._otx_breaker = CircuitBreaker(failure_threshold=3, cooldown_seconds=60.0)
+
         self._lock   = Lock()
         self._cache: Dict[str, TICacheEntry] = {}
 
@@ -230,11 +299,16 @@ class ThreatIntelClient:
         """Tra ve thong ke su dung."""
         return {
             **self._stats,
+            "total_lookups": self._stats.get("total_queries", 0),
             "cache_size": len(self._cache),
             "mb_wait_time": round(self._mb_limiter.get_wait_time(), 1),
             "tf_wait_time": round(self._tf_limiter.get_wait_time(), 1),
             "otx_wait_time": round(self._otx_limiter.get_wait_time(), 1),
         }
+
+    def _save_cache(self):
+        """Alias for _save_cache_to_disk (compat)."""
+        self._save_cache_to_disk()
 
     def clear_cache(self):
         """Xoa toan bo cache."""
@@ -282,6 +356,9 @@ class ThreatIntelClient:
         Payload: {"query": "get_info", "hash": "<sha256>"}
         Khong can API key cho basic hash lookup.
         """
+        if not self._mb_breaker.allow():
+            result.mb_error = "circuit_open"
+            return
         try:
             self._mb_limiter.wait()
             payload = {"query": "get_info", "hash": sha256}
@@ -296,15 +373,23 @@ class ThreatIntelClient:
             if response.status_code == 200:
                 data = response.json()
                 self._parse_malwarebazaar_response(data, result)
+                self._mb_breaker.record_success()
             else:
                 result.mb_error = f"HTTP {response.status_code}"
+                if response.status_code >= 500:
+                    self._mb_breaker.record_failure()
+                else:
+                    # 4xx is a client/data issue, not an upstream outage.
+                    self._mb_breaker.record_success()
 
         except httpx.TimeoutException:
             result.mb_error = "Timeout"
             self._stats["errors"] += 1
+            self._mb_breaker.record_failure()
         except Exception as e:
             result.mb_error = str(e)[:100]
             self._stats["errors"] += 1
+            self._mb_breaker.record_failure()
 
     def _parse_malwarebazaar_response(self, data: Dict, result: TIResult):
         """Parse response tu MalwareBazaar API."""
@@ -356,6 +441,10 @@ class ThreatIntelClient:
                 result.tf_error = "No API key"
                 return
 
+            if not self._tf_breaker.allow():
+                result.tf_error = "circuit_open"
+                return
+
             self._tf_limiter.wait()
             payload = {"query": "search_ioc", "hash": sha256}
 
@@ -372,15 +461,22 @@ class ThreatIntelClient:
             if response.status_code == 200:
                 data = response.json()
                 self._parse_threatfox_response(data, result)
+                self._tf_breaker.record_success()
             else:
                 result.tf_error = f"HTTP {response.status_code}"
+                if response.status_code >= 500:
+                    self._tf_breaker.record_failure()
+                else:
+                    self._tf_breaker.record_success()
 
         except httpx.TimeoutException:
             result.tf_error = "Timeout"
             self._stats["errors"] += 1
+            self._tf_breaker.record_failure()
         except Exception as e:
             result.tf_error = str(e)[:100]
             self._stats["errors"] += 1
+            self._tf_breaker.record_failure()
 
     def _parse_threatfox_response(self, data: Dict, result: TIResult):
         """Parse response tu ThreatFox API."""
@@ -422,6 +518,10 @@ class ThreatIntelClient:
                 result.otx_error = "No API key"
                 return
 
+            if not self._otx_breaker.allow():
+                result.otx_error = "circuit_open"
+                return
+
             self._otx_limiter.wait()
             url = f"{OTX_API_BASE}/indicators/file/sha256/{sha256}"
 
@@ -434,15 +534,22 @@ class ThreatIntelClient:
             if response.status_code == 200:
                 data = response.json()
                 self._parse_alienvault_response(data, result)
+                self._otx_breaker.record_success()
             else:
                 result.otx_error = f"HTTP {response.status_code}"
+                if response.status_code >= 500:
+                    self._otx_breaker.record_failure()
+                else:
+                    self._otx_breaker.record_success()
 
         except httpx.TimeoutException:
             result.otx_error = "Timeout"
             self._stats["errors"] += 1
+            self._otx_breaker.record_failure()
         except Exception as e:
             result.otx_error = str(e)[:100]
             self._stats["errors"] += 1
+            self._otx_breaker.record_failure()
 
     def _parse_alienvault_response(self, data: Dict, result: TIResult):
         """Parse response tu AlienVault OTX API."""

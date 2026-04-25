@@ -29,15 +29,20 @@ Cài đặt yara-python (tùy chọn, hiệu năng tốt hơn):
 """
 
 import os
-from typing import List, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, List, Dict, Optional, Tuple
 import numpy as np
 
 # ─── Try import yara-python (optional) ───
-try:
-    import yara
+if TYPE_CHECKING:
+    import yara  # type: ignore[import-not-found]
     YARA_PYTHON_AVAILABLE = True
-except ImportError:
-    YARA_PYTHON_AVAILABLE = False
+else:
+    try:
+        import yara
+        YARA_PYTHON_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        yara = None
+        YARA_PYTHON_AVAILABLE = False
 
 # ─────────────────────────────────────────────────────────────
 # BUILT-IN YARA RULES (10 rules)
@@ -60,8 +65,11 @@ rule WannaCry_Magic
         $magic4 = { 4D 53 53 45 43 53 56 43 } // "MSSECSVC"
         $note1  = "!Please Read Me!.txt" nocase
 
+    // Hardened condition (Phase 4): require either two distinct strings OR
+    // exactly one of the highly specific markers. Prevents FP on text files
+    // that happen to contain ".WNCRY" or "WANNA" in unrelated context.
     condition:
-        any of them
+        2 of them or any of ($magic3, $magic4, $note1)
 }
 
 rule LockBit_3_Marker
@@ -100,8 +108,11 @@ rule BlackCat_ALPHV
         $note2 = "FILES.txt" nocase
         $str1  = "ALPHV" nocase
 
+    // Hardened (Phase 4): two markers required or an extension marker plus a
+    // generic ransom-note keyword. ".alphv" alone is too easy to match in
+    // benign text.
     condition:
-        any of them
+        (any of ($ext*) and any of ($note*)) or 2 of them
 }
 
 rule Ryuk_Marker
@@ -653,6 +664,8 @@ class YaraEngine:
 
     def _scan_with_yara_python(self, file_path: str) -> List[YaraMatch]:
         """Quét dùng yara-python compiled rules."""
+        if self._compiled_rules is None:
+            return []
         matches = self._compiled_rules.match(file_path)
         results = []
         for m in matches:
@@ -779,7 +792,7 @@ class YaraEngine:
         if not os.path.isfile(rules_path):
             return False
         try:
-            extra = yara.compile(filepath=rules_path)
+            yara.compile(filepath=rules_path)
             with open(rules_path, "r", encoding="utf-8") as f:
                 custom_rules_source = f.read()
             self._compiled_rules = yara.compile(

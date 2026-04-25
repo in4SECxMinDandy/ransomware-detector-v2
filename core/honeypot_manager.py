@@ -23,7 +23,6 @@ Usage:
 """
 
 import os
-import json
 import time
 import logging
 import hashlib
@@ -40,23 +39,27 @@ REGISTRY_PATH = "data/honeypot_registry.json"
 
 # ─── Default Honeypot Configuration ──────────────────────────────────────────
 
+# Honeypot file names are intentionally prefixed with a marker so a curious
+# user cannot mistake them for genuine personal files. The marker also helps
+# AV products skip scanning them (avoiding false positives on the decoys).
+_HP_PREFIX = "_DECOY_"
 DEFAULT_HONEYPOT_NAMES = [
-    "passwords.xlsx",
-    "backup.docx",
-    "financial_report_2025.pdf",
-    "company_secrets.txt",
-    "wallet_keys.txt",
-    "tax_returns_2024.pdf",
-    "credentials.xlsx",
-    "banking_info.xlsx",
-    "private_keys.pem",
-    "recovery_codes.txt",
+    f"{_HP_PREFIX}passwords.xlsx",
+    f"{_HP_PREFIX}backup.docx",
+    f"{_HP_PREFIX}financial_report_2025.pdf",
+    f"{_HP_PREFIX}company_secrets.txt",
+    f"{_HP_PREFIX}wallet_keys.txt",
+    f"{_HP_PREFIX}tax_returns_2024.pdf",
+    f"{_HP_PREFIX}credentials.xlsx",
+    f"{_HP_PREFIX}banking_info.xlsx",
+    f"{_HP_PREFIX}private_keys.pem",
+    f"{_HP_PREFIX}recovery_codes.txt",
 ]
 
+# Default to a single isolated directory under the user's profile so we never
+# pollute Desktop / Documents / Downloads unless the operator opts in.
 DEFAULT_HONEYPOT_LOCATIONS = [
-    "Desktop",
-    "Documents",
-    "Downloads",
+    os.path.join(os.path.expanduser("~"), ".ransomware_detector", "honeypots"),
 ]
 
 
@@ -272,10 +275,19 @@ class HoneypotManager:
         deployed = []
         target_dir = os.path.abspath(target_directory)
 
-        # Find all available locations
+        # Find all available locations.
+        # ``honeypot_locations`` may contain either:
+        #   - an absolute path (preferred — isolated decoy directory), or
+        #   - a relative name like "Desktop" which is joined with target_dir
+        #     for backwards compatibility.
         available_locations = []
         for loc_name in self.honeypot_locations:
-            loc_path = os.path.join(target_dir, loc_name)
+            expanded = os.path.expanduser(loc_name)
+            if os.path.isabs(expanded):
+                loc_path = expanded
+            else:
+                loc_path = os.path.join(target_dir, expanded)
+            os.makedirs(loc_path, exist_ok=True)
             if os.path.isdir(loc_path):
                 available_locations.append((loc_name, loc_path))
 
@@ -553,13 +565,15 @@ class HoneypotManager:
 
     def _load_registry(self):
         """Load registry tu disk."""
+        from core.security_utils import safe_read_json
         registry_file = self._resolve_path(self.registry_path)
         if not os.path.isfile(registry_file):
             return
 
         try:
-            with open(registry_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = safe_read_json(registry_file, default=None)
+            if data is None:
+                return
 
             # Clean up non-existent files
             for hp_data in data.get("honeypots", []):
@@ -580,23 +594,16 @@ class HoneypotManager:
             logger.warning(f"Failed to load honeypot registry: {e}")
 
     def _save_registry(self):
-        """Save registry ra disk."""
+        """Save registry ra disk (atomic, crash-safe)."""
+        from core.security_utils import atomic_write_json
         registry_file = self._resolve_path(self.registry_path)
-
-        try:
-            os.makedirs(os.path.dirname(registry_file), exist_ok=True)
-
-            data = {
-                "version": "1.0",
-                "last_updated": datetime.now().isoformat(),
-                "honeypots": [hp.to_dict() for hp in self._honeypots.values()],
-            }
-
-            with open(registry_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-
-        except Exception as e:
-            logger.warning(f"Failed to save honeypot registry: {e}")
+        data = {
+            "version": "1.0",
+            "last_updated": datetime.now().isoformat(),
+            "honeypots": [hp.to_dict() for hp in self._honeypots.values()],
+        }
+        if not atomic_write_json(registry_file, data):
+            logger.warning("Failed to save honeypot registry")
 
     def _generate_id(self) -> str:
         """Sinh unique ID."""

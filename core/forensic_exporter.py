@@ -21,15 +21,20 @@ import socket
 import hashlib
 import logging
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import TYPE_CHECKING, List, Dict, Any, Optional
 from zipfile import ZipFile, ZIP_DEFLATED
 
-try:
-    import stix2
+if TYPE_CHECKING:
+    import stix2  # type: ignore[import-not-found]
     STIX_AVAILABLE = True
-except ImportError:
-    STIX_AVAILABLE = False
-    logging.warning("stix2 not available - using manual JSON format for IOC report")
+else:
+    try:
+        import stix2
+        STIX_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        stix2 = None
+        STIX_AVAILABLE = False
+        logging.warning("stix2 not available - using manual JSON format for IOC report")
 
 logger = logging.getLogger(__name__)
 

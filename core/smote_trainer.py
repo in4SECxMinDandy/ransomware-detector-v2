@@ -23,19 +23,31 @@ Sử dụng:
 
 import numpy as np
 import warnings
-from typing import Tuple, Dict
+from typing import TYPE_CHECKING, Tuple, Dict
 
 warnings.filterwarnings("ignore")
 
 # ─── Try import imbalanced-learn ───
-try:
-    from imblearn.over_sampling import (
+if TYPE_CHECKING:
+    from imblearn.over_sampling import (  # type: ignore[import-not-found]
         SMOTE, ADASYN, BorderlineSMOTE
     )
-    from imblearn.combine import SMOTETomek, SMOTEENN
+    from imblearn.combine import SMOTETomek, SMOTEENN  # type: ignore[import-not-found]
     IMBLEARN_AVAILABLE = True
-except ImportError:
-    IMBLEARN_AVAILABLE = False
+else:
+    try:
+        from imblearn.over_sampling import (
+            SMOTE, ADASYN, BorderlineSMOTE
+        )
+        from imblearn.combine import SMOTETomek, SMOTEENN
+        IMBLEARN_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        SMOTE = None
+        ADASYN = None
+        BorderlineSMOTE = None
+        SMOTETomek = None
+        SMOTEENN = None
+        IMBLEARN_AVAILABLE = False
 
 # ─── Constants ───
 SUPPORTED_STRATEGIES = [
@@ -132,7 +144,8 @@ class SMOTETrainer:
 
         try:
             sampler = self._build_sampler(k)
-            X_res, y_res = sampler.fit_resample(X, y)
+            resampled = sampler.fit_resample(X, y)
+            X_res, y_res = resampled[0], resampled[1]
 
             n_safe_after = int(np.sum(y_res == 0))
             n_enc_after  = int(np.sum(y_res == 1))
@@ -150,7 +163,7 @@ class SMOTETrainer:
                       f"(+{len(y_res)-total} synthetic samples)")
                 print("[SMOTE] ✅ Resampling hoàn tất")
 
-            return X_res, y_res
+            return np.asarray(X_res), np.asarray(y_res)
 
         except Exception as e:
             print(f"[SMOTE] ❌ Lỗi: {e} — trả về dataset gốc")
@@ -158,36 +171,36 @@ class SMOTETrainer:
 
     def _build_sampler(self, k: int):
         """Tạo sampler theo strategy."""
-        kwargs = {"random_state": self.random_state}
+        rs = self.random_state
 
         if self.strategy == "smote":
-            return SMOTE(k_neighbors=k, **kwargs)
+            return SMOTE(k_neighbors=k, random_state=rs)  # type: ignore[call-arg]
 
         elif self.strategy == "smote_tomek":
-            return SMOTETomek(
-                smote=SMOTE(k_neighbors=k, random_state=self.random_state),
-                **kwargs
+            return SMOTETomek(  # type: ignore[call-arg]
+                smote=SMOTE(k_neighbors=k, random_state=rs),  # type: ignore[call-arg]
+                random_state=rs,
             )
 
         elif self.strategy == "smote_enn":
-            return SMOTEENN(
-                smote=SMOTE(k_neighbors=k, random_state=self.random_state),
-                **kwargs
+            return SMOTEENN(  # type: ignore[call-arg]
+                smote=SMOTE(k_neighbors=k, random_state=rs),  # type: ignore[call-arg]
+                random_state=rs,
             )
 
         elif self.strategy == "adasyn":
-            return ADASYN(n_neighbors=k, **kwargs)
+            return ADASYN(n_neighbors=k, random_state=rs)  # type: ignore[call-arg]
 
         elif self.strategy == "borderline":
-            return BorderlineSMOTE(
+            return BorderlineSMOTE(  # type: ignore[call-arg]
                 k_neighbors=k,
                 kind="borderline-2",
-                **kwargs
+                random_state=rs,
             )
 
         else:
             # Fallback to basic SMOTE
-            return SMOTE(k_neighbors=k, **kwargs)
+            return SMOTE(k_neighbors=k, random_state=rs)  # type: ignore[call-arg]
 
     def get_stats(self) -> Dict:
         """Trả về thống kê trước/sau resampling."""

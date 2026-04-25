@@ -15,6 +15,17 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
+@pytest.fixture(autouse=True)
+def _isolate_jwt_secret(monkeypatch):
+    """
+    Provide a deterministic JWT secret to every test so api/auth.py never
+    falls back to mutating ``data/config.json`` during the suite. Tests that
+    need to flip the secret can still override the env var locally.
+    """
+    monkeypatch.setenv("RANSOMWARE_JWT_SECRET", "tests-only-secret-" + "x" * 40)
+    yield
+
+
 @pytest.fixture
 def project_root():
     """Return the project root directory."""

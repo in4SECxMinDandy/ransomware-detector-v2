@@ -20,14 +20,19 @@ import json
 import socket
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import TYPE_CHECKING, Dict, List, Optional, Any
 from collections import defaultdict
 
-try:
+if TYPE_CHECKING:
     import psutil
     PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
+else:
+    try:
+        import psutil
+        PSUTIL_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        psutil = None
+        PSUTIL_AVAILABLE = False
 
 import numpy as np
 
@@ -41,15 +46,48 @@ class NetworkAnalyzer:
     """
 
     FEODO_BLOCKLIST = "data/threat_intel/feodo_ips.json"
-    DGA_ENTROPY_THRESHOLD = 3.5
+    # Threshold is applied against the *normalised* Shannon entropy returned
+    # by ``_calculate_entropy`` (entropy / log2(256) ⇒ range [0.0, 1.0]).
+    # Empirically, legitimate domain labels rarely exceed ~0.55 while DGA
+    # labels typically score >0.75. We pick 0.60 as a conservative default
+    # that catches Conficker/Necurs-style DGAs without flagging CDN hosts.
+    # NOTE: pre-fix this was 3.5 which is mathematically unreachable for
+    # normalised entropy ⇒ DGA detector was effectively dead code.
+    DGA_ENTROPY_THRESHOLD = 0.60
     BEACON_COVARIANCE_MAX = 0.10
 
     # Common legitimate ports (we care about rare ports)
     COMMON_PORTS = {80, 443, 8080, 53, 22, 21, 25, 110, 143, 993, 995}
 
+    # ── DGA false-positive whitelist (audit P4-11) ────────────────────────
+    # CDN, cloud-storage, telemetry and other legitimate hosts whose
+    # *labels* score above ``DGA_ENTROPY_THRESHOLD`` because they encode
+    # account / tenant / region IDs. Without this whitelist the detector
+    # would flag normal browser activity. Entries are full domains OR
+    # registrable suffixes — ``_is_whitelisted_domain`` matches any host
+    # ending in ``"." + suffix``.
+    DGA_WHITELIST_SUFFIXES = frozenset({
+        # Cloudflare / Akamai / Fastly
+        "cloudflare.com", "cloudfront.net", "akamaized.net",
+        "akamaihd.net", "akadns.net", "fastly.net",
+        # AWS / Azure / GCP
+        "amazonaws.com", "s3.amazonaws.com",
+        "azureedge.net", "azurewebsites.net", "core.windows.net",
+        "googleusercontent.com", "appspot.com", "gvt1.com",
+        # CI / dev infra
+        "githubusercontent.com", "github.io", "githubassets.com",
+        "gitlabusercontent.com",
+        # CDN / reputable shorteners
+        "jsdelivr.net", "unpkg.com", "cdn.jsdelivr.net",
+        # Telemetry that uses long random subdomains
+        "sentry.io", "datadoghq.com", "newrelic.com",
+        # Common SaaS
+        "slack-edge.com", "twimg.com", "fbcdn.net",
+    })
+
     # C2 Detection Heuristics
     C2_INDICATORS = {
-        "dga_domain": "Domain entropy >= 3.5",
+        "dga_domain": "Normalised domain entropy >= 0.60",
         "beacon_pattern": "Regular interval connections (CoV < 0.10)",
         "rare_port": "Outbound to port not in common_ports",
         "known_bad_ip": "IP in Feodo/abuse.ch blocklist",
@@ -140,10 +178,29 @@ class NetworkAnalyzer:
         if len(self._connection_history[pid]) > 100:
             self._connection_history[pid] = self._connection_history[pid][-100:]
 
+    def _is_whitelisted_domain(self, domain: str) -> bool:
+        """Return True if ``domain`` ends in a known-good suffix.
+
+        Used to suppress DGA false positives for CDN / SaaS hosts whose
+        random-looking subdomains are normal product behaviour.
+        """
+        if not domain:
+            return False
+        host = domain.lower().rstrip(".")
+        for suffix in self.DGA_WHITELIST_SUFFIXES:
+            if host == suffix or host.endswith("." + suffix):
+                return True
+        return False
+
     def detect_dga_domain(self, domain: str) -> bool:
         """
         Detect DGA (Domain Generation Algorithm) domains.
         Uses Shannon entropy of domain label.
+
+        Audit P4-11: high-entropy CDN / cloud subdomains (e.g. d2x...
+        .cloudfront.net, abc123.s3.amazonaws.com) are exempted via
+        ``DGA_WHITELIST_SUFFIXES`` so the heuristic only fires on truly
+        unknown hosts.
 
         Args:
             domain: Domain name to check
@@ -152,6 +209,9 @@ class NetworkAnalyzer:
             True if likely DGA domain
         """
         if not domain:
+            return False
+
+        if self._is_whitelisted_domain(domain):
             return False
 
         # Remove TLD
@@ -180,7 +240,7 @@ class NetworkAnalyzer:
         entropy = -np.sum(prob * np.log2(prob))
         # Normalize: divide by log2(256) = 8 (max entropy for byte text)
         normalized = entropy / 8.0
-        return normalized
+        return float(normalized)
 
     def detect_beacon(self, connection_timestamps: List[float]) -> bool:
         """

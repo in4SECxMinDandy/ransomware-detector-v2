@@ -13,7 +13,6 @@ Usage:
 """
 
 import os
-import json
 import hashlib
 import logging
 import threading
@@ -22,7 +21,15 @@ import urllib.error
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
+import hmac
+from core.security_utils import atomic_write_json, safe_read_json
+
 logger = logging.getLogger(__name__)
+
+
+def _hash_eq(a: str, b: str) -> bool:
+    """Constant-time, case-insensitive comparison of hex digests."""
+    return hmac.compare_digest(a.lower().strip(), b.lower().strip())
 
 
 class YARARuleUpdater:
@@ -31,16 +38,23 @@ class YARARuleUpdater:
     Downloads community YARA rules from remote sources and manages updates.
     """
 
+    # Each source MAY include ``sha256`` — if present the downloaded payload
+    # MUST match exactly. This defends against upstream-account-compromise
+    # (poisoned rules with ``condition: false`` would silently disable
+    # detection). Operators pin the hash by computing it once after manual
+    # review and updating ``data/config.json[yara.sources]``.
     SOURCES = [
         {
             "name": "Yara-Rules/rules",
             "url": "https://raw.githubusercontent.com/Yara-Rules/rules/master/malware/MALW_Ransomware.yar",
-            "enabled": True,
+            "enabled": False,  # disabled by default until a SHA is pinned
+            "sha256": "",
         },
         {
             "name": "Neo23x0/signature-base",
             "url": "https://raw.githubusercontent.com/Neo23x0/signature-base/master/yara/apt_ransomware.yar",
-            "enabled": True,
+            "enabled": False,
+            "sha256": "",
         },
     ]
 
@@ -55,26 +69,53 @@ class YARARuleUpdater:
         self._scheduler_timer: Optional[threading.Timer] = None
         self._running = False
 
-    def fetch_and_validate(self, url: str) -> bool:
+    def fetch_and_validate(self, url: str, expected_sha256: str = "") -> bool:
         """
-        Download rule from URL, compile with yara.compile(), save if valid.
+        Download rule from URL, optionally verify SHA256, compile, save if valid.
 
         Args:
             url: URL to fetch YARA rule from
+            expected_sha256: hex digest the payload MUST match. Empty disables
+                the check (legacy behaviour) but logs a warning.
 
         Returns:
             True if successful, False otherwise
         """
+        if not url.lower().startswith("https://"):
+            logger.error("Refusing to fetch YARA rule over non-HTTPS URL: %s", url)
+            return False
         logger.info(f"Fetching YARA rules from: {url}")
 
         try:
-            # Download rules
+            # Download rules — cap to 16 MiB to avoid memory bombs.
             response = urllib.request.urlopen(url, timeout=30)
-            rule_content = response.read().decode("utf-8")
+            raw = response.read(16 * 1024 * 1024 + 1)
+            if len(raw) > 16 * 1024 * 1024:
+                logger.error("YARA payload exceeded 16 MiB cap: %s", url)
+                return False
+            rule_content = raw.decode("utf-8")
 
             if not rule_content.strip():
                 logger.warning(f"Empty rule content from: {url}")
                 return False
+
+            # Pin verification
+            actual_sha = hashlib.sha256(raw).hexdigest()
+            if expected_sha256:
+                if not _hash_eq(actual_sha, expected_sha256):
+                    logger.error(
+                        "SHA256 mismatch for %s (expected=%s, got=%s) — refusing",
+                        url, expected_sha256, actual_sha,
+                    )
+                    self._log_update(url, "", "sha256_mismatch",
+                                     error=f"expected {expected_sha256}, got {actual_sha}")
+                    return False
+            else:
+                logger.warning(
+                    "No expected_sha256 pinned for %s; downloaded SHA=%s. "
+                    "Pin this hash in config to harden against upstream compromise.",
+                    url, actual_sha,
+                )
 
             # Try to compile with YARA
             if self._compile_rules(rule_content):
@@ -114,7 +155,7 @@ class YARARuleUpdater:
             True if compilation successful, False otherwise
         """
         try:
-            import yara
+            import yara  # type: ignore[import-not-found]
             yara.compile(source=rule_content)
             return True
         except ImportError:
@@ -142,7 +183,7 @@ class YARARuleUpdater:
         filename: str,
         status: str,
         rules_count: int = 0,
-        error: str = None
+        error: Optional[str] = None
     ):
         """Log update to update_log.json."""
         log_entry = {
@@ -155,37 +196,23 @@ class YARARuleUpdater:
         if error:
             log_entry["error"] = error
 
-        # Load existing log
-        logs = []
-        if os.path.exists(self.UPDATE_LOG):
-            try:
-                with open(self.UPDATE_LOG, "r") as f:
-                    logs = json.load(f)
-            except (json.JSONDecodeError, IOError) as e:
-                logger.warning(f"Failed to load update log: {e}")
-                logs = []
+        # Load existing log (best-effort)
+        logs = safe_read_json(self.UPDATE_LOG, default=[])
+        if not isinstance(logs, list):
+            logs = []
 
         logs.append(log_entry)
 
         # Keep only last 100 entries
         logs = logs[-100:]
 
-        # Save
-        os.makedirs(os.path.dirname(self.UPDATE_LOG), exist_ok=True)
-        with open(self.UPDATE_LOG, "w") as f:
-            json.dump(logs, f, indent=2)
+        # Atomic save
+        atomic_write_json(self.UPDATE_LOG, logs)
 
     def get_update_log(self) -> List[Dict[str, Any]]:
         """Get update log entries."""
-        if not os.path.exists(self.UPDATE_LOG):
-            return []
-
-        try:
-            with open(self.UPDATE_LOG, "r") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            logger.warning(f"Failed to read update log: {e}")
-            return []
+        data = safe_read_json(self.UPDATE_LOG, default=[])
+        return data if isinstance(data, list) else []
 
     def check_for_updates(self) -> Dict[str, Any]:
         """
@@ -206,7 +233,9 @@ class YARARuleUpdater:
                 continue
 
             results["total_sources"] += 1
-            success = self.fetch_and_validate(source["url"])
+            success = self.fetch_and_validate(
+                source["url"], expected_sha256=source.get("sha256", ""),
+            )
 
             results["details"].append({
                 "name": source["name"],

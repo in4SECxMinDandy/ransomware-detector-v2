@@ -26,16 +26,21 @@ import sys
 import ctypes
 import logging
 from ctypes import wintypes
-from typing import List, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 
-try:
+if TYPE_CHECKING:
     import psutil
     PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
+else:
+    try:
+        import psutil
+        PSUTIL_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        psutil = None
+        PSUTIL_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -489,7 +494,7 @@ class InjectionDetector:
             proc = psutil.Process(pid)
             proc_name = proc.name()
             
-            for dll in proc.dlls():
+            for dll in proc.dlls():  # type: ignore[attr-defined]
                 dll_path = dll.path.lower()
                 dll_name = dll.name.lower() if hasattr(dll, 'name') else os.path.basename(dll_path)
                 
@@ -558,8 +563,7 @@ class InjectionDetector:
                     continue
                 
                 cmd_str = " ".join(cmdline).lower()
-                proc_path = proc.exe().lower() if hasattr(proc, 'exe') else ""
-                
+
                 lolbin_info = self.LOLBINS[name]
                 suspicious_args = lolbin_info.get('suspicious_args', [])
                 
@@ -651,7 +655,7 @@ class InjectionDetector:
                 "ntdll.dll": ["NtCreateThreadEx", "NtMapViewOfSection", "NtUnmapViewOfSection"],
             }
             
-            for dll in proc.dlls():
+            for dll in proc.dlls():  # type: ignore[attr-defined]
                 dll_name = dll.name.lower()
                 
                 for known_dll, apis in dangerous_dlls.items():

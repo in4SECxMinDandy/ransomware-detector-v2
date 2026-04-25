@@ -145,7 +145,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
     "network_monitor": {
         "enabled":              True,
-        "dga_entropy_threshold": 3.5,
+        # Normalised Shannon entropy threshold (range 0.0–1.0).
+        # See NetworkAnalyzer.DGA_ENTROPY_THRESHOLD for rationale.
+        "dga_entropy_threshold": 0.60,
         "beacon_cov_max":       0.10,
         "connection_history_max": 100,
     },
@@ -192,25 +194,27 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     },
 
     # ─── Honeypot Configuration ─────────────────────────────────────────────
+    # NOTE: file names are prefixed with ``_DECOY_`` to prevent curious users
+    # from confusing decoy files with their own data. Default location is an
+    # isolated directory under the user's profile; deploying to Desktop /
+    # Documents / Downloads requires an explicit opt-in by the operator.
     "honeypot": {
         "enabled":         False,
         "auto_deploy":     False,
         "names": [
-            "passwords.xlsx",
-            "backup.docx",
-            "financial_report_2025.pdf",
-            "company_secrets.txt",
-            "wallet_keys.txt",
-            "tax_returns_2024.pdf",
-            "credentials.xlsx",
-            "banking_info.xlsx",
-            "private_keys.pem",
-            "recovery_codes.txt",
+            "_DECOY_passwords.xlsx",
+            "_DECOY_backup.docx",
+            "_DECOY_financial_report_2025.pdf",
+            "_DECOY_company_secrets.txt",
+            "_DECOY_wallet_keys.txt",
+            "_DECOY_tax_returns_2024.pdf",
+            "_DECOY_credentials.xlsx",
+            "_DECOY_banking_info.xlsx",
+            "_DECOY_private_keys.pem",
+            "_DECOY_recovery_codes.txt",
         ],
         "locations": [
-            "Desktop",
-            "Documents",
-            "Downloads",
+            "~/.ransomware_detector/honeypots",
         ],
         "max_per_location": 3,
     },
@@ -218,13 +222,24 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     # ─── FastAPI Server ────────────────────────────────────────────────────
     "api": {
         "enabled":                    False,
-        "host":                      "0.0.0.0",
+        "host":                      "127.0.0.1",  # bind localhost by default — operator must opt-in to 0.0.0.0
         "port":                      8000,
         "api_key":                   "",
+        # Leave jwt_secret empty here. The auth layer prefers the
+        # RANSOMWARE_JWT_SECRET env var, and otherwise auto-generates a
+        # 256-bit secret on first start (logging a warning).
         "jwt_secret":                "",
         "jwt_algorithm":             "HS256",
         "access_token_expire_minutes": 60,
         "reload":                    False,
+        # Security hardening (Phase 1)
+        "allowed_origins":          ["http://localhost:3000", "http://127.0.0.1:3000"],
+        "allowed_scan_roots":        [],          # whitelist for /scan/file directory param
+        "max_upload_mb":             50,            # Office scan upload cap
+        "auth_rate_limit_per_minute": 10,        # /auth/token brute-force protection
+        "expose_internal_errors":    False,      # show stacktrace via 500 response
+        "users":                    {},          # populated by scripts/init_admin.py
+        "api_keys":                 {},
     },
 
     # ─── ML Feedback Loop ──────────────────────────────────────────────────

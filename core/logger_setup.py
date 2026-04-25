@@ -82,6 +82,16 @@ def setup_logging(level: str = "INFO"):
     """
     One-time initialization of the root logger and handlers.
     Called automatically by get_logger(); safe to call multiple times.
+
+    Audit P3: when ``RANSOMWARE_LOG_FORMAT=json`` is set in the environment
+    both the console and rotating-file handlers emit one JSON object per
+    record (see ``core.logging_setup.JsonFormatter``). This makes SIEM
+    ingestion (Elastic / Splunk / Loki) trivial without replacing the
+    existing colourful text format for interactive use.
+
+    Env vars (when JSON mode is on the colour formatter is bypassed):
+      - ``RANSOMWARE_LOG_LEVEL``  override default level
+      - ``RANSOMWARE_LOG_FORMAT`` ``json`` | ``text`` (default: ``text``)
     """
     global _initialized
     if _initialized:
@@ -89,13 +99,31 @@ def setup_logging(level: str = "INFO"):
 
     os.makedirs(_LOG_DIR, exist_ok=True)
 
+    # Allow env var to override the function argument so deployments can
+    # bump verbosity without touching code.
+    env_level = os.environ.get("RANSOMWARE_LOG_LEVEL", "").strip().upper()
+    effective_level_name = env_level or level.upper()
+
     # Root logger
     root = logging.getLogger()
-    root.setLevel(getattr(logging, level.upper(), logging.INFO))
+    root.setLevel(getattr(logging, effective_level_name, logging.INFO))
 
     # Remove any pre-existing handlers
     for h in root.handlers[:]:
         root.removeHandler(h)
+
+    use_json = os.environ.get("RANSOMWARE_LOG_FORMAT", "text").strip().lower() == "json"
+    text_formatter = logging.Formatter(_FILE_FORMAT, _DATE_FORMAT)
+    json_formatter: logging.Formatter | None = None
+    if use_json:
+        try:
+            from core.logging_setup import JsonFormatter
+            json_formatter = JsonFormatter()
+        except Exception:
+            # Fall back to text if anything goes wrong importing the
+            # structured formatter — better than no logs at all.
+            json_formatter = None
+            use_json = False
 
     # File handler (DEBUG+)
     try:
@@ -106,7 +134,7 @@ def setup_logging(level: str = "INFO"):
             encoding="utf-8",
         )
         fh.setLevel(logging.DEBUG)
-        fh.setFormatter(logging.Formatter(_FILE_FORMAT, _DATE_FORMAT))
+        fh.setFormatter(json_formatter if use_json and json_formatter else text_formatter)
         root.addHandler(fh)
     except (IOError, OSError):
         pass  # File logging is non-critical
@@ -115,7 +143,10 @@ def setup_logging(level: str = "INFO"):
     try:
         ch = logging.StreamHandler(sys.stderr)
         ch.setLevel(logging.WARNING)
-        ch.setFormatter(_ColorFormatter(_FILE_FORMAT, _DATE_FORMAT))
+        if use_json and json_formatter:
+            ch.setFormatter(json_formatter)
+        else:
+            ch.setFormatter(_ColorFormatter(_FILE_FORMAT, _DATE_FORMAT))
         root.addHandler(ch)
     except Exception:
         pass

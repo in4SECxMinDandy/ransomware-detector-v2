@@ -21,7 +21,6 @@ Xử lý đa luồng:
 
 import os
 import time
-import hashlib
 import threading
 import json
 import base64
@@ -38,6 +37,7 @@ from core.fp_reducer import (  # type: ignore[import]
 )
 from core.pe_analyzer import analyze_pe  # type: ignore[import]
 from core.logger_setup import get_logger
+from core.security_utils import atomic_write_json, compute_sha256, safe_read_json
 
 logger = get_logger("scanner")
 
@@ -50,38 +50,29 @@ _SCAN_DEBUG_TRACE = os.environ.get("RANSOMWARE_DEBUG_TRACE", "").strip().lower()
 }
 
 
+def _cache_path() -> str:
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        _INCREMENTAL_CACHE_FILE,
+    )
+
+
 def _load_incremental_cache() -> dict[str, float]:
     """Load file modification-time cache from disk."""
     global _INCREMENTAL_CACHE
     if not _INCREMENTAL_CACHE:
-        cache_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            _INCREMENTAL_CACHE_FILE,
-        )
-        if os.path.isfile(cache_path):
-            try:
-                import json
-                with open(cache_path, "r", encoding="utf-8") as f:
-                    _INCREMENTAL_CACHE = json.load(f)
-            except (json.JSONDecodeError, IOError) as e:
-                logger.warning(f"Failed to load cache file: {e}")
-                _INCREMENTAL_CACHE = {}
+        loaded = safe_read_json(_cache_path(), default=None)
+        if isinstance(loaded, dict):
+            _INCREMENTAL_CACHE = loaded
+        else:
+            _INCREMENTAL_CACHE = {}
     return _INCREMENTAL_CACHE
 
 
 def _save_incremental_cache():
-    """Persist file modification-time cache to disk."""
-    cache_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        _INCREMENTAL_CACHE_FILE,
-    )
-    try:
-        import json
-        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        with open(cache_path, "w", encoding="utf-8") as f:
-            json.dump(_INCREMENTAL_CACHE, f, indent=2)
-    except (IOError, OSError) as e:
-        logger.warning(f"Failed to save cache file: {e}")
+    """Persist file modification-time cache to disk (atomic)."""
+    if not atomic_write_json(_cache_path(), _INCREMENTAL_CACHE):
+        logger.warning("Failed to save incremental scan cache")
 
 
 def is_modified_since_last_scan(file_path: str) -> bool:
@@ -107,6 +98,7 @@ def mark_scanned(file_path: str, persist: bool = True):
 def flush_incremental_cache():
     """Persist all pending incremental-scan updates in one write."""
     _save_incremental_cache()
+
 
 # Extensions luôn bỏ qua (hệ thống, không cần phân tích)
 SKIP_EXTENSIONS = {
@@ -508,12 +500,8 @@ class Scanner:
             result.ti_error = str(e)[:100]
 
     def _compute_sha256(self, file_path: str) -> str:
-        """Compute SHA256 of a file."""
-        try:
-            with open(file_path, "rb") as f:
-                return hashlib.sha256(f.read()).hexdigest()
-        except Exception:
-            return ""
+        """Compute SHA256 of a file (streaming)."""
+        return compute_sha256(file_path)
 
     def cancel(self):
         """Hủy scan đang chạy."""
@@ -590,12 +578,8 @@ class Scanner:
         result  = ScanResult(file_path)
         t_start = time.perf_counter()
 
-        # Compute SHA256 for VirusTotal lookup
-        try:
-            with open(file_path, "rb") as f:
-                result.sha256 = hashlib.sha256(f.read()).hexdigest()
-        except Exception:
-            result.sha256 = ""
+        # Compute SHA256 for VirusTotal lookup (streaming — multi-GB safe)
+        result.sha256 = compute_sha256(file_path)
 
         # Sensitivity profile (per-instance)
         profile = SENSITIVITY_PROFILES.get(
@@ -699,14 +683,19 @@ class Scanner:
             if adjusted_proba < base_threshold * 0.8 and not result.yara_boosted:
                 result.risk_level = "SAFE"
 
-            # #region agent debug
+            # Optional pipeline trace (opt-in via RANSOMWARE_DEBUG_TRACE env var).
+            # The destination file is configurable so we don't ship a hard-coded
+            # session ID. Default = ``debug-trace.log`` next to the repo root,
+            # which is also covered by the .gitignore ``debug-*.log`` rule.
             if _SCAN_DEBUG_TRACE:
                 try:
-                    _debug_log_path = os.path.normpath(
-                        os.path.join(os.path.dirname(__file__), "..", "debug-4602d0.log")
+                    _debug_log_path = os.environ.get(
+                        "RANSOMWARE_DEBUG_TRACE_PATH",
+                        os.path.normpath(
+                            os.path.join(os.path.dirname(__file__), "..", "debug-trace.log")
+                        ),
                     )
                     _debug_payload = {
-                        "sessionId": "4602d0",
                         "timestamp": int(time.time() * 1000),
                         "location": "scanner.py:_scan_one",
                         "message": "pipeline_trace",
@@ -729,13 +718,11 @@ class Scanner:
                             "suspicious_ext": suspicious_ext,
                             "base_threshold": base_threshold,
                         },
-                        "hypothesisId": "UNIKEY",
                     }
                     with open(_debug_log_path, "a", encoding="utf-8") as _f:
                         _f.write(json.dumps(_debug_payload, ensure_ascii=False) + "\n")
                 except Exception:
                     pass
-            # #endregion
 
             # ── Bước 7: VirusTotal Lookup (v3.0) ──
             # Query VT khi: toàn bộ file (auto_check), HIGH/CRITICAL, hoặc nhị phân (.exe…)

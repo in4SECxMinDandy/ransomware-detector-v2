@@ -30,12 +30,12 @@ def test_honeypot_file_creation():
     )
 
     assert hp.access_count == 0
-    assert hp.is_triggered == False
+    assert not hp.is_triggered
 
     hp.record_access(pid=1234, process_name="test.exe", event_type="modified")
     assert hp.access_count == 1
     assert hp.last_accessed is not None
-    assert hp.is_triggered == False
+    assert not hp.is_triggered
 
 
 def test_honeypot_access_event():
@@ -59,9 +59,11 @@ def test_honeypot_access_event():
     assert d["event_type"] == "modified"
 
 
-def test_manager_init(temp_dir):
-    """Test HoneypotManager initialization."""
-    manager = HoneypotManager()
+def test_manager_init(temp_dir, monkeypatch):
+    """Test HoneypotManager initialization with isolated registry."""
+    # Use isolated registry path to avoid interference from existing data
+    registry_path = temp_dir / "honeypot_registry.json"
+    manager = HoneypotManager(registry_path=str(registry_path))
 
     assert manager.get_active_count() == 0
     assert manager.get_triggered_count() == 0
@@ -69,9 +71,11 @@ def test_manager_init(temp_dir):
     assert len(manager.honeypot_names) > 0
 
 
-def test_deploy_honeypots(temp_dir):
-    """Test deploying honeypot files."""
-    manager = HoneypotManager()
+def test_deploy_honeypots(temp_dir, monkeypatch):
+    """Test deploying honeypot files with isolated registry."""
+    # Use isolated registry path
+    registry_path = temp_dir / "honeypot_registry.json"
+    manager = HoneypotManager(registry_path=str(registry_path))
 
     # Create target directory structure
     desktop = temp_dir / "Desktop"
@@ -89,9 +93,10 @@ def test_deploy_honeypots(temp_dir):
         assert os.path.isfile(hp.path)
 
 
-def test_remove_all_honeypots(temp_dir):
-    """Test removing all honeypot files."""
-    manager = HoneypotManager()
+def test_remove_all_honeypots(temp_dir, monkeypatch):
+    """Test removing all honeypot files with isolated registry."""
+    registry_path = temp_dir / "honeypot_registry.json"
+    manager = HoneypotManager(registry_path=str(registry_path))
 
     # Create honeypots
     desktop = temp_dir / "Desktop"
@@ -106,9 +111,10 @@ def test_remove_all_honeypots(temp_dir):
     assert manager.get_active_count() == 0
 
 
-def test_is_honeypot(temp_dir):
-    """Test is_honeypot() method."""
-    manager = HoneypotManager()
+def test_is_honeypot(temp_dir, monkeypatch):
+    """Test is_honeypot() method with isolated registry."""
+    registry_path = temp_dir / "honeypot_registry.json"
+    manager = HoneypotManager(registry_path=str(registry_path))
 
     desktop = temp_dir / "Desktop"
     desktop.mkdir()
@@ -117,13 +123,14 @@ def test_is_honeypot(temp_dir):
     assert len(deployed) > 0
     hp_path = deployed[0].path
 
-    assert manager.is_honeypot(hp_path) == True
-    assert manager.is_honeypot(str(temp_dir / "nonexistent.txt")) == False
+    assert manager.is_honeypot(hp_path)
+    assert not manager.is_honeypot(str(temp_dir / "nonexistent.txt"))
 
 
-def test_get_status(temp_dir):
-    """Test get_status() method."""
-    manager = HoneypotManager()
+def test_get_status(temp_dir, monkeypatch):
+    """Test get_status() method with isolated registry."""
+    registry_path = temp_dir / "honeypot_registry.json"
+    manager = HoneypotManager(registry_path=str(registry_path))
 
     desktop = temp_dir / "Desktop"
     desktop.mkdir()
@@ -134,10 +141,10 @@ def test_get_status(temp_dir):
     assert status[0].name in DEFAULT_HONEYPOT_NAMES
 
 
-def test_access_history(temp_dir):
-    """Test access history tracking."""
-
-    manager = HoneypotManager()
+def test_access_history(temp_dir, monkeypatch):
+    """Test access history tracking with isolated registry."""
+    registry_path = temp_dir / "honeypot_registry.json"
+    manager = HoneypotManager(registry_path=str(registry_path))
 
     desktop = temp_dir / "Desktop"
     desktop.mkdir()
@@ -153,18 +160,20 @@ def test_access_history(temp_dir):
     assert history[0].event_type == "accessed"
 
 
-def test_get_triggered_count(temp_dir):
-    """Test triggered count in 24h."""
-    manager = HoneypotManager()
+def test_get_triggered_count(temp_dir, monkeypatch):
+    """Test triggered count in 24h with isolated registry."""
+    registry_path = temp_dir / "honeypot_registry.json"
+    manager = HoneypotManager(registry_path=str(registry_path))
 
     assert manager.get_triggered_count(hours=24) == 0
 
 
 def test_default_honeypot_names():
-    """Test that default honeypot names include attractive filenames."""
-    assert "passwords.xlsx" in DEFAULT_HONEYPOT_NAMES
-    assert "wallet_keys.txt" in DEFAULT_HONEYPOT_NAMES
-    assert "company_secrets.txt" in DEFAULT_HONEYPOT_NAMES
+    """Test that default honeypot names include _DECOY_ prefix (Phase 1 security fix)."""
+    # Names should now have _DECOY_ prefix to avoid user confusion
+    assert "_DECOY_passwords.xlsx" in DEFAULT_HONEYPOT_NAMES
+    assert "_DECOY_wallet_keys.txt" in DEFAULT_HONEYPOT_NAMES
+    assert "_DECOY_company_secrets.txt" in DEFAULT_HONEYPOT_NAMES
     assert len(DEFAULT_HONEYPOT_NAMES) >= 7
 
 

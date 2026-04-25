@@ -51,35 +51,17 @@ from gui.tab_ml_training import MLTrainingTab
 setup_logging()
 logger = get_logger("gui.main_window")
 
-# #region agent log
-def _agent_debug_log(location: str, message: str, data: dict, hypothesis_id: str = "") -> None:
-    import json as _json
-
-    try:
-        _p = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "debug-4602d0.log"))
-        _payload = {
-            "sessionId": "4602d0",
-            "timestamp": int(time.time() * 1000),
-            "location": location,
-            "message": message,
-            "data": data,
-            "hypothesisId": hypothesis_id,
-        }
-        with open(_p, "a", encoding="utf-8") as _f:
-            _f.write(_json.dumps(_payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-
-
-# #endregion
-
-# ─── Matplotlib ────────────────────────────────────────────────────────────
-import numpy as np
-import matplotlib
+# ─── Matplotlib ────────────────────────────────────────────────────────────────────────────
+# These imports are intentionally placed AFTER the ``setup_logging`` call
+# above and BEFORE the matplotlib backend is selected via ``use("Agg")``.
+# Ruff cannot tell that ``matplotlib.use`` must run before the Tkagg backend
+# is imported, so we silence the false E402 here.
+import numpy as np  # noqa: E402
+import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # noqa: E402
+from matplotlib.figure import Figure  # noqa: E402
 
 # ════════════════════════════════════════════════════════════════════════════
 # COLOR PALETTE
@@ -215,7 +197,6 @@ class PlotFrame(ctk.CTkFrame):
         self._ax.plot(x_bg, y_bg, color=C["border"], linewidth=8, solid_capstyle="butt")
 
         # Draw arc fill
-        fill_angle = theta[min(int(score * len(theta)), len(theta) - 1)]
         x_fill = 0.5 + 0.4 * np.cos(theta[:len(theta) // 2 + int(score * (len(theta) // 2))])
         y_fill = 0.2 + 0.15 * np.sin(theta[:len(theta) // 2 + int(score * (len(theta) // 2))])
         fill_color = C["red"] if score > 0.7 else C["orange"] if score > 0.4 else C["green"]
@@ -1057,7 +1038,9 @@ class MainWindow(ctk.CTk):
         tree_frame = ctk.CTkFrame(results_card, fg_color=C["bg_dark"], corner_radius=6)
         tree_frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
-        columns = ("filename", "size", "entropy", "prob", "risk")
+        # NOTE: a ``columns`` tuple was previously declared here for a
+        # ttk.Treeview that was later replaced by a CTk scrollable frame.
+        # The variable is no longer needed; deleted to satisfy ruff F841.
         self._results_tree = ctk.CTkScrollableFrame(
             tree_frame, fg_color="transparent",
             scrollbar_button_color=C["border"],
@@ -2166,8 +2149,10 @@ class MainWindow(ctk.CTk):
         config.set("proxy.http_proxy", http)
         config.set("proxy.https_proxy", https)
         import os
-        if http: os.environ["HTTP_PROXY"] = http
-        if https: os.environ["HTTPS_PROXY"] = https
+        if http:
+            os.environ["HTTP_PROXY"] = http
+        if https:
+            os.environ["HTTPS_PROXY"] = https
         self._log("success", f"Đã cập nhật Proxy: HTTP={http or 'none'}, HTTPS={https or 'none'}")
         self._set_status("Đã lưu và áp dụng cài đặt Proxy", C["green"])
 
@@ -2291,7 +2276,12 @@ class MainWindow(ctk.CTk):
                 config.set("api.port", port)
                 uvicorn.run(app, host=host, port=port, log_level="info")
             except Exception as e:
-                self.after(0, lambda: self._on_api_error(str(e)))
+                # In Python 3 the ``except as e`` binding is deleted at the
+                # end of the except block, so capturing ``e`` directly inside
+                # the lambda would raise NameError when ``self.after`` later
+                # invokes it. Snapshot the message first.
+                err_msg = str(e)
+                self.after(0, lambda msg=err_msg: self._on_api_error(msg))
 
         self._api_server_thread = threading.Thread(target=run_server, daemon=True)
         self._api_server_thread.start()
@@ -2360,7 +2350,6 @@ class MainWindow(ctk.CTk):
             row = ctk.CTkFrame(card, fg_color="transparent")
             row.pack(fill="x", padx=8, pady=(0, 6))
 
-            qid = item["id"]
             ctk.CTkButton(
                 row, text="Khôi phục", height=24,
                 font=("Consolas", 8), text_color=C["green"],

@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      RANSOMWARE_JWT_SECRET: ci-only-secret-${{ github.run_id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        # Cover every package, not just core/api — gui and root scripts have
+        # caught real bugs in the past (e.g. lambda-NameError in main_window.py).
+        run: ruff check core api tests scripts gui main.py train_model.py
+
+      - name: Unit tests (pytest with coverage)
+        # Coverage gate prevents regressions in test depth. Threshold is
+        # intentionally modest (60%) given the GUI surface; raise as
+        # injection_detector / network_monitor / watchdog tests grow.
+        run: >-
+          pytest tests
+          --maxfail=10 --disable-warnings -q
+          --cov=core --cov=api
+          --cov-report=term-missing
+          --cov-fail-under=60
+
+      - name: Dependency vulnerability scan (pip-audit)
+        # Audit BOTH runtime and dev requirements so we catch CVEs in
+        # pytest/ruff toolchain too.
+        run: |
+          pip-audit -r requirements.txt --strict
+          pip-audit -r requirements-dev.txt --strict
+        continue-on-error: true

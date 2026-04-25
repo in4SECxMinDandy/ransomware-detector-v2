@@ -155,16 +155,18 @@ def export_report_png(
     explode  = [0.05 if k in ("CRITICAL", "HIGH") else 0 for k in labels]
 
     if sizes:
-        wedges, texts, autotexts = ax1.pie(
+        pie_result = ax1.pie(
             sizes, labels=None, colors=colors, explode=explode,
             autopct=lambda p: f"{p:.1f}%\n({int(p/100*sum(sizes))})",
             startangle=140, pctdistance=0.78,
             wedgeprops={"linewidth": 1.5, "edgecolor": THEME["bg"]}
         )
+        autotexts = pie_result[2]  # type: ignore[misc]
         for at in autotexts:
-            at.set_fontsize(8)
-            at.set_color(THEME["bg"])
-            at.set_fontweight("bold")
+            if hasattr(at, "set_fontsize"):
+                at.set_fontsize(8)  # type: ignore[attr-defined]
+                at.set_color(THEME["bg"])  # type: ignore[attr-defined]
+                at.set_fontweight("bold")  # type: ignore[attr-defined]
 
         legend_patches = [
             mpatches.Patch(color=RISK_COLORS[label], label=f"{label}: {risk_counts[label]}")
@@ -271,7 +273,7 @@ def export_report_png(
     safe_entropies = [r.entropy for r in results if r.label == 0 and r.entropy > 0]
     enc_entropies  = [r.entropy for r in results if r.label == 1 and r.entropy > 0]
 
-    bins = np.linspace(0, 8, 40)
+    bins = np.linspace(0, 8, 40).tolist()
     if safe_entropies:
         ax4.hist(safe_entropies, bins=bins, color=THEME["green"], alpha=0.65,
                  label=f"SAFE ({len(safe_entropies)})", edgecolor=THEME["bg"])

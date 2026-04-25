@@ -231,7 +231,7 @@ def test_retrain_with_feedback_no_data(temp_dir, monkeypatch):
     result = engine.retrain_with_feedback()
 
     # Either success=False or error about no data
-    assert result.get("success") == False or result.get("error") is not None
+    assert not result.get("success") or result.get("error") is not None
 
 
 def test_ml_feedback_stats_uses_cache_until_file_changes(temp_dir, monkeypatch):
@@ -401,7 +401,7 @@ def test_rollback_model_not_found(temp_dir, monkeypatch):
 
     # Should return False for non-existent version
     success = engine.rollback_model("nonexistent_version_xyz")
-    assert success == False
+    assert not success
 
 
 if __name__ == "__main__":

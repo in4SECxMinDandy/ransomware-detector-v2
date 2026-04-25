@@ -20,11 +20,11 @@ def test_virustotal_client_init():
     # Without API key
     vt = VirusTotalClient("")
     assert vt.api_key == ""
-    assert vt.is_configured() == False
+    assert not vt.is_configured()
 
     # With API key
     vt = VirusTotalClient("test_api_key_12345678901234567890")
-    assert vt.is_configured() == True
+    assert vt.is_configured()
 
 
 def test_rate_limiter():
@@ -55,9 +55,9 @@ def test_vt_file_report_dataclass():
         total_engines=72,
     )
 
-    assert report.is_malicious(threshold=10) == True
-    assert report.is_malicious(threshold=20) == False
-    assert report.is_suspicious(threshold=2) == True
+    assert report.is_malicious(threshold=10)
+    assert not report.is_malicious(threshold=20)
+    assert report.is_suspicious(threshold=2)
     assert "15/72" in report.get_badge()
     assert report.get_risk_color() == "red"  # 15 >= 10
 
@@ -98,7 +98,7 @@ def test_cache_entry_expiry():
         cached_at=datetime.now().isoformat(),
         expires_at=(datetime.now() + timedelta(hours=24)).isoformat(),
     )
-    assert entry.is_expired() == False
+    assert not entry.is_expired()
 
     # Expired
     entry2 = CacheEntry(
@@ -107,7 +107,7 @@ def test_cache_entry_expiry():
         cached_at=datetime.now().isoformat(),
         expires_at=(datetime.now() - timedelta(hours=1)).isoformat(),
     )
-    assert entry2.is_expired() == True
+    assert entry2.is_expired()
 
 
 def test_compute_sha256(temp_dir):

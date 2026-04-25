@@ -253,10 +253,20 @@ class EntropyWatchTab(ctk.CTkFrame):
         )
 
     def add_entropy_entry(self, file_path: str, entropy: float, timestamp: Optional[str] = None):
-        """Add an entropy reading from RealTimeMonitor. Called by main window."""
+        """Add an entropy reading from RealTimeMonitor. Called by main window.
+
+        Audit note: pre-fix the body of this method had been corrupted by
+        a partially-applied refactor — duplicated state-update blocks were
+        left at class-body indentation and a UI-row-building block
+        referenced an undefined ``row`` symbol. The whole method has been
+        restructured so it (a) updates internal state, (b) creates a row
+        in the "recent files" table, and (c) refreshes the burst alert
+        without ever raising NameError.
+        """
         if timestamp is None:
             timestamp = datetime.now().strftime("%H:%M:%S")
 
+        # ── State update ────────────────────────────────────────────────────
         self._entropy_data.append(entropy)
         self._entropy_timestamps.append(timestamp)
 
@@ -272,7 +282,7 @@ class EntropyWatchTab(ctk.CTkFrame):
             self._current_consecutive = max(0, self._current_consecutive - 1)
             self._danger_score = max(0, self._danger_score - 1)
 
-        # Add to recent files table
+        # Append to the recent-files history buffer.
         self._recent_files.insert(0, {
             "time": timestamp,
             "file": os.path.basename(file_path),
@@ -282,51 +292,56 @@ class EntropyWatchTab(ctk.CTkFrame):
         if len(self._recent_files) > 100:
             self._recent_files = self._recent_files[:100]
 
-        # Remove placeholder
+        # ── Build a row in the "recent files" table ─────────────────────────
+        # Drop the placeholder label the first time we actually have data.
         for w in self._recent_container.grid_slaves():
             if isinstance(w, ctk.CTkLabel) and "Chưa có tệp" in w.cget("text"):
                 w.destroy()
 
-        # Add row
-        row_idx = len(self._recent_rows)
-        e = entropy
-        risk = "HIGH" if e > 7.5 else "MEDIUM" if e > 6.0 else "LOW"
-        row_color = C["bg_card"]
-
-        row = ctk.CTkFrame(self._recent_container, fg_color=row_color,
-                          border_width=1, border_color=C["border"],
-                          height=28)
-        row.pack(fill="x", padx=4, pady=1)
-        row.pack_propagate(False)
-        row.grid_columnconfigure(0, weight=0)
-        row.grid_columnconfigure(1, weight=1)
-        row.grid_columnconfigure(2, weight=0)
-        row.grid_columnconfigure(3, weight=0)
-
+        risk = "HIGH" if entropy > 7.5 else "MEDIUM" if entropy > 6.0 else "LOW"
         risk_color_map = {"HIGH": C["red"], "MEDIUM": C["orange"], "LOW": C["green"]}
         risk_color = risk_color_map.get(risk, C["text_dim"])
-        ent_color = risk_color
 
-        ctk.CTkLabel(row, text=timestamp, font=("Consolas", 8),
-                    text_color=C["text_dim"]).grid(row=0, column=0, sticky="w", padx=6, pady=3)
-        ctk.CTkLabel(row, text=os.path.basename(file_path)[:40],
-                    font=("Consolas", 8), text_color=C["text"],
-                    anchor="w").grid(row=0, column=1, sticky="w", padx=6, pady=3)
-        ctk.CTkLabel(row, text=f"{e:.3f}", font=("Consolas", 8, "bold"),
-                    text_color=ent_color).grid(row=0, column=2, sticky="w", padx=6, pady=3)
-        ctk.CTkLabel(row, text=risk, font=("Consolas", 8, "bold"),
-                    text_color=risk_color).grid(row=0, column=3, sticky="w", padx=(6, 8), pady=3)
+        row = ctk.CTkFrame(
+            self._recent_container,
+            fg_color=C["bg_card"],
+            border_width=1,
+            border_color=C["border"],
+            height=28,
+        )
+        row.pack(fill="x", padx=4, pady=1)
+        row.pack_propagate(False)
+
+        ctk.CTkLabel(
+            row, text=timestamp, font=("Consolas", 8),
+            text_color=C["text_dim"], width=80,
+        ).pack(side="left", padx=6, pady=3)
+        ctk.CTkLabel(
+            row, text=os.path.basename(file_path)[:40],
+            font=("Consolas", 8), text_color=C["text"],
+            anchor="w", width=280,
+        ).pack(side="left", padx=6, pady=3, fill="x", expand=True)
+        ctk.CTkLabel(
+            row, text=f"{entropy:.3f}",
+            font=("Consolas", 8, "bold"),
+            text_color=risk_color, width=80,
+        ).pack(side="left", padx=6, pady=3)
+        ctk.CTkLabel(
+            row, text=risk, font=("Consolas", 8, "bold"),
+            text_color=risk_color, width=80,
+        ).pack(side="left", padx=(6, 8), pady=3)
 
         self._recent_rows.insert(0, row)
         if len(self._recent_rows) > 100:
             old = self._recent_rows.pop()
             old.destroy()
 
-        # Files/s
+        # ── Live status updates ─────────────────────────────────────────────
+        # Approximate "files/sec" using the last 10 timestamps.
         recent_count = len([t for t in self._entropy_timestamps[-10:] if t])
         self._fps_lbl.configure(text=f"Tệp/s: {recent_count}")
 
-        # Burst alert
+        # Burst alert when 5+ high-entropy events arrive in a row.
         if self._current_consecutive >= 5:
             self._show_burst_alert()
 

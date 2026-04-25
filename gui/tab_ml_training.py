@@ -531,8 +531,13 @@ class MLTrainingTab(ctk.CTkFrame):
             try:
                 result = self._ml_engine.retrain_with_auto_dataset()
                 self.after(0, lambda: self._on_auto_retrain_done(result))
-            except Exception as e:
-                self.after(0, lambda: self._on_retrain_error(str(e)))
+            except Exception as exc:
+                # Snapshot the message before the lambda runs on the Tk
+                # main thread — Python 3 deletes ``exc`` once we leave
+                # the except block, which would otherwise raise NameError
+                # inside the closure.
+                err_msg = str(exc)
+                self.after(0, lambda msg=err_msg: self._on_retrain_error(msg))
 
         threading.Thread(target=auto_retrain_worker, daemon=True).start()
 
@@ -599,8 +604,9 @@ class MLTrainingTab(ctk.CTkFrame):
                     )
                     self.after(0, lambda value=idx / total: self._retrain_progress.set(value))
                 self.after(0, lambda: self._on_source_prepare_done(results))
-            except Exception as e:
-                self.after(0, lambda: self._on_retrain_error(str(e)))
+            except Exception as exc:
+                err_msg = str(exc)
+                self.after(0, lambda msg=err_msg: self._on_retrain_error(msg))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -669,8 +675,9 @@ class MLTrainingTab(ctk.CTkFrame):
                 )
                 plan_text = render_training_plan(result.get("plan", self._source_plan))
                 self.after(0, lambda: self._on_source_train_done(result, plan_text))
-            except Exception as e:
-                self.after(0, lambda: self._on_retrain_error(str(e)))
+            except Exception as exc:
+                err_msg = str(exc)
+                self.after(0, lambda msg=err_msg: self._on_retrain_error(msg))
 
         threading.Thread(target=worker, daemon=True).start()
 

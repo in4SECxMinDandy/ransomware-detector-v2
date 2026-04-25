@@ -4,7 +4,6 @@ from pathlib import Path
 from core.training_source_planner import (
     build_training_source_plan,
     download_training_source,
-    get_training_layout,
     prepare_training_source,
     train_from_source_plan,
 )

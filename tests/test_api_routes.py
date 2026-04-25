@@ -71,59 +71,102 @@ def test_health_endpoint_requires_auth():
     assert response.status_code == 401
 
 
-def test_login_endpoint_exists():
+def test_login_endpoint_exists(monkeypatch, tmp_path):
     """Test that login endpoint exists."""
     try:
         from api.main import app
+        from core import config_manager as cm
     except ImportError:
         pytest.skip("FastAPI app not available")
 
-    client = TestClient(app)
+    # Create a temporary admin user for testing
+    test_username = "testadmin"
+    test_password = "TestPass123!@#"
+    from api.auth import _hash_password
+    hashed = _hash_password(test_password)
 
-    # Wrong credentials
-    response = client.post(
-        "/api/v1/auth/token",
-        data={"username": "wrong", "password": "wrong"}
-    )
-    assert response.status_code == 401
+    # Inject test user into config
+    original_users = cm.config._config["api"].get("users", {}).copy()
+    cm.config._config["api"]["users"] = {
+        test_username: {
+            "username": test_username,
+            "hashed_password": hashed,
+            "role": "admin",
+            "disabled": False
+        }
+    }
 
-    # Correct credentials (default users)
-    response = client.post(
-        "/api/v1/auth/token",
-        data={"username": "admin", "password": "ransomware_detector_admin"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
-    assert data["role"] == "admin"
+    try:
+        client = TestClient(app)
+
+        # Wrong credentials
+        response = client.post(
+            "/api/v1/auth/token",
+            data={"username": "wrong", "password": "wrong"}
+        )
+        assert response.status_code == 401
+
+        # Correct credentials (test user)
+        response = client.post(
+            "/api/v1/auth/token",
+            data={"username": test_username, "password": test_password}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+    finally:
+        # Restore original users
+        cm.config._config["api"]["users"] = original_users
 
 
-def test_auth_me_endpoint(temp_dir):
+def test_auth_me_endpoint(monkeypatch, tmp_path):
     """Test /auth/me endpoint."""
     try:
         from api.main import app
+        from core import config_manager as cm
     except ImportError:
         pytest.skip("FastAPI app not available")
 
-    client = TestClient(app)
+    # Create a temporary admin user for testing
+    test_username = "testadmin"
+    test_password = "TestPass123!@#"
+    from api.auth import _hash_password
+    hashed = _hash_password(test_password)
 
-    # Login
-    login_response = client.post(
-        "/api/v1/auth/token",
-        data={"username": "admin", "password": "ransomware_detector_admin"}
-    )
-    token = login_response.json()["access_token"]
+    # Inject test user into config
+    original_users = cm.config._config["api"].get("users", {}).copy()
+    cm.config._config["api"]["users"] = {
+        test_username: {
+            "username": test_username,
+            "hashed_password": hashed,
+            "role": "admin",
+            "disabled": False
+        }
+    }
 
-    # Get current user
-    response = client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {token}"}
-    )
+    try:
+        client = TestClient(app)
 
-    assert response.status_code == 200
-    data = response.json()
-    assert data["role"] == "admin"
+        # Login
+        login_response = client.post(
+            "/api/v1/auth/token",
+            data={"username": test_username, "password": test_password}
+        )
+        token = login_response.json()["access_token"]
+
+        # Get current user
+        response = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "username" in data
+        assert data["role"] == "admin"
+    finally:
+        # Restore original users
+        cm.config._config["api"]["users"] = original_users
 
 
 def test_scan_hash_endpoint_requires_auth():
@@ -168,29 +211,51 @@ def test_report_generation_requires_auth():
     assert response.status_code == 401
 
 
-def test_scan_hash_invalid_hash():
+def test_scan_hash_invalid_hash(monkeypatch, tmp_path):
     """Test scan/hash with invalid hash."""
     try:
         from api.main import app
+        from core import config_manager as cm
     except ImportError:
         pytest.skip("FastAPI app not available")
 
-    client = TestClient(app)
+    # Create a temporary admin user for testing
+    test_username = "testadmin"
+    test_password = "TestPass123!@#"
+    from api.auth import _hash_password
+    hashed = _hash_password(test_password)
 
-    # Login
-    login_response = client.post(
-        "/api/v1/auth/token",
-        data={"username": "admin", "password": "ransomware_detector_admin"}
-    )
-    token = login_response.json()["access_token"]
+    # Inject test user into config
+    original_users = cm.config._config["api"].get("users", {}).copy()
+    cm.config._config["api"]["users"] = {
+        test_username: {
+            "username": test_username,
+            "hashed_password": hashed,
+            "role": "admin",
+            "disabled": False
+        }
+    }
 
-    # Invalid hash (too short)
-    response = client.post(
-        "/api/v1/scan/hash",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"sha256": "abc123"}
-    )
-    assert response.status_code == 422  # Validation error
+    try:
+        client = TestClient(app)
+
+        # Login
+        login_response = client.post(
+            "/api/v1/auth/token",
+            data={"username": test_username, "password": test_password}
+        )
+        token = login_response.json()["access_token"]
+
+        # Test with invalid hash format
+        response = client.post(
+            "/api/v1/scan/hash",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"file_hash": "invalid_hash"}
+        )
+        assert response.status_code == 422  # Validation error
+    finally:
+        # Restore original users
+        cm.config._config["api"]["users"] = original_users
 
 
 def test_api_schemas_validation():

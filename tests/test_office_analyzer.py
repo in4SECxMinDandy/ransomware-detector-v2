@@ -69,14 +69,14 @@ def test_office_analyzer_is_supported():
 
     analyzer = OfficeDocAnalyzer()
 
-    assert analyzer.is_supported("test.doc") == True
-    assert analyzer.is_supported("test.docx") == True
-    assert analyzer.is_supported("test.pdf") == True
-    assert analyzer.is_supported("test.xlsx") == True
-    assert analyzer.is_supported("test.pptx") == True
-    assert analyzer.is_supported("test.rtf") == True
-    assert analyzer.is_supported("test.exe") == False
-    assert analyzer.is_supported("test.txt") == False
+    assert analyzer.is_supported("test.doc")
+    assert analyzer.is_supported("test.docx")
+    assert analyzer.is_supported("test.pdf")
+    assert analyzer.is_supported("test.xlsx")
+    assert analyzer.is_supported("test.pptx")
+    assert analyzer.is_supported("test.rtf")
+    assert not analyzer.is_supported("test.exe")
+    assert not analyzer.is_supported("test.txt")
 
 
 def test_office_scan_result_dataclass(temp_dir):
@@ -127,14 +127,14 @@ def test_detect_suspicious_vba():
 
     # Clean VBA code
     has_susp, keywords, risk = _detect_suspicious_vba("Sub Hello(): MsgBox 'Hello' : End Sub")
-    assert has_susp == False
+    assert not has_susp
     assert keywords == []
     assert risk == 0.0
 
     # Suspicious VBA code with Shell()
     suspicious_code = "Shell(\"cmd.exe /c calc\")"
     has_susp, keywords, risk = _detect_suspicious_vba(suspicious_code)
-    assert has_susp == True
+    assert has_susp
     assert len(keywords) > 0
     assert risk > 0
 
@@ -145,7 +145,7 @@ def test_detect_suspicious_vba():
     URLDownloadToFile
     """
     has_susp, keywords, risk = _detect_suspicious_vba(very_suspicious)
-    assert has_susp == True
+    assert has_susp
     assert risk >= 0.3  # Multiple keywords
 
 

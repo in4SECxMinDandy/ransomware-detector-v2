@@ -16,7 +16,7 @@ Root Cause FP (PNG screenshots bị flagged CRITICAL):
 """
 
 import os
-from typing import Dict, Tuple, Set
+from typing import Dict, Optional, Tuple, Set
 
 # ─────────────────────────────────────────────────────────────
 # TẦNG 1: Whitelist — Extensions không bao giờ bị scan
@@ -129,7 +129,7 @@ DEFAULT_EXTENSION_THRESHOLD = 0.65
 # ─────────────────────────────────────────────────────────────
 
 # Magic bytes signature DB (mở rộng)
-MAGIC_SIGNATURES: Dict[str, bytes] = {
+MAGIC_SIGNATURES: Dict[str, Optional[bytes]] = {
     ".png":  b"\x89PNG\r\n\x1a\n",
     ".jpg":  b"\xff\xd8\xff",
     ".jpeg": b"\xff\xd8\xff",
@@ -157,6 +157,27 @@ MAGIC_SIGNATURES: Dict[str, bytes] = {
 # Discount: nếu magic bytes hợp lệ → nhân probability với factor này
 # 0.7 = giảm 30% probability (giảm FP đáng kể)
 MAGIC_BYTES_DISCOUNT_FACTOR = 0.70
+
+# ── Audit P4-6: opt-out for magic-bytes discount ──────────────────────────
+# Feature 16 (``Is Known Benign Format``) already encodes the same magic-
+# bytes signal that ``MAGIC_BYTES_DISCOUNT_FACTOR`` re-applies in post-
+# process — that is double-counting and biases probability calibration.
+# Operators who want a *single* signal can flip the config flag
+# ``fp_reducer.disable_magic_bytes_discount`` to True, in which case the
+# discount is skipped (the model alone decides).
+#
+# We resolve the flag lazily so unit tests can monkeypatch the config
+# without re-importing the module.
+def _magic_bytes_discount_enabled() -> bool:
+    try:
+        from core.config_manager import config as _cfg
+        return not bool(
+            _cfg.get("fp_reducer.disable_magic_bytes_discount", False)
+        )
+    except Exception:
+        # Config unavailable (e.g. in early tests) — fall back to the
+        # historical behaviour so we never silently change semantics.
+        return True
 
 
 def check_path_whitelist(file_path: str) -> bool:
@@ -221,10 +242,21 @@ def check_magic_bytes(file_path: str) -> Tuple[bool, bool]:
 
 
 def _check_special_magic(file_path: str, ext: str) -> Tuple[bool, bool]:
-    """Kiểm tra magic bytes cho các format đặc biệt."""
+    r"""Kiểm tra magic bytes cho các format đặc biệt.
+
+    Audit P3-5: explicitly bound-check the header length before slicing so
+    a truncated file (\< 12 bytes) does not yield a misleading ``valid=False``
+    classification through silent empty-bytes comparisons.
+    """
     try:
         with open(file_path, "rb") as f:
             header = f.read(12)
+
+        if len(header) < 12:
+            # Too short to contain any of the multi-byte signatures we test
+            # for. Treat as "has signature, invalid" — the caller will
+            # neither apply the magic-bytes discount nor raise an alarm.
+            return True, False
 
         if ext == ".mp4" or ext == ".mov":
             # Bytes 4–7 phải là 'ftyp', 'moov', hoặc 'mdat'
@@ -274,9 +306,14 @@ def apply_fp_reduction(
     # Tầng 3: Magic bytes discount
     has_sig, magic_valid = check_magic_bytes(file_path)
     if has_sig and magic_valid:
-        # Magic bytes hợp lệ → giảm probability (file có cấu trúc đúng)
-        adjusted_prob = probability * MAGIC_BYTES_DISCOUNT_FACTOR
-        reasons.append(f"magic_ok→prob×{MAGIC_BYTES_DISCOUNT_FACTOR}")
+        if _magic_bytes_discount_enabled():
+            # Magic bytes hợp lệ → giảm probability (file có cấu trúc đúng).
+            adjusted_prob = probability * MAGIC_BYTES_DISCOUNT_FACTOR
+            reasons.append(f"magic_ok→prob×{MAGIC_BYTES_DISCOUNT_FACTOR}")
+        else:
+            # Audit P4-6: discount disabled — let the model's feature 16
+            # be the sole source of the magic-bytes signal.
+            reasons.append("magic_ok(discount_disabled)")
     elif has_sig and not magic_valid:
         # Magic bytes SAI → tăng nhẹ probability (suspicious)
         adjusted_prob = min(probability * 1.15, 0.99)

@@ -34,44 +34,66 @@ import os
 import re
 import logging
 import hashlib
-from typing import List, Dict, Optional, Any, Tuple
+from typing import TYPE_CHECKING, Callable, List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass, field, asdict
 
 logger = logging.getLogger(__name__)
 
 # ─── Try optional imports ────────────────────────────────────────────────────
 
-try:
-    import fitz  # PyMuPDF
+if TYPE_CHECKING:
+    import fitz  # type: ignore[import-not-found]
+    from oletools.olevba import VBA_Parser, decode_text  # type: ignore[import-not-found]  # noqa: F401
+    from oletools.mraptor import MacroRaptor  # type: ignore[import-not-found]
+    from oletools.rtfobj import rtfobj  # type: ignore[import-not-found]
+    from docx import Document as DocxDocument  # type: ignore[import-not-found]  # noqa: F401
+    import openpyxl  # type: ignore[import-not-found]  # noqa: F401
+    from pptx import Presentation  # type: ignore[import-not-found]  # noqa: F401
     PYMUPDF_AVAILABLE = True
-except ImportError:
-    PYMUPDF_AVAILABLE = False
-
-try:
-    from oletools.olevba import VBA_Parser, decode_text
-    from oletools.mraptor import MacroRaptor
-    from oletools.rtfobj import rtfobj
     OLETOOLS_AVAILABLE = True
-except ImportError:
-    OLETOOLS_AVAILABLE = False
-
-try:
-    from docx import Document as DocxDocument
     DOCX_AVAILABLE = True
-except ImportError:
-    DOCX_AVAILABLE = False
-
-try:
-    import openpyxl
     OPENPYXL_AVAILABLE = True
-except ImportError:
-    OPENPYXL_AVAILABLE = False
-
-try:
-    from pptx import Presentation
     PPTX_AVAILABLE = True
-except ImportError:
-    PPTX_AVAILABLE = False
+else:
+    try:
+        import fitz  # PyMuPDF
+        PYMUPDF_AVAILABLE = True
+    except ImportError:
+        fitz = None
+        PYMUPDF_AVAILABLE = False
+
+    try:
+        from oletools.olevba import VBA_Parser, decode_text  # noqa: F401
+        from oletools.mraptor import MacroRaptor
+        from oletools.rtfobj import rtfobj
+        OLETOOLS_AVAILABLE = True
+    except ImportError:
+        VBA_Parser = None
+        decode_text = None
+        MacroRaptor = None
+        rtfobj = None
+        OLETOOLS_AVAILABLE = False
+
+    try:
+        from docx import Document as DocxDocument  # noqa: F401
+        DOCX_AVAILABLE = True
+    except ImportError:
+        DocxDocument = None
+        DOCX_AVAILABLE = False
+
+    try:
+        import openpyxl  # noqa: F401
+        OPENPYXL_AVAILABLE = True
+    except ImportError:
+        openpyxl = None
+        OPENPYXL_AVAILABLE = False
+
+    try:
+        from pptx import Presentation  # noqa: F401
+        PPTX_AVAILABLE = True
+    except ImportError:
+        Presentation = None
+        PPTX_AVAILABLE = False
 
 
 # ─── YARA Engine (lazy import to avoid circular dependency) ─────────────────
@@ -316,7 +338,7 @@ class OfficeDocAnalyzer:
         return result
 
     def analyze_batch(self, file_paths: List[str],
-                      on_progress: Optional[callable] = None
+                      on_progress: Optional[Callable] = None
                       ) -> List[OfficeScanResult]:
         """
         Phan tich nhieu file.
@@ -435,9 +457,6 @@ class OfficeDocAnalyzer:
 
                 # Check for suspicious keywords
                 has_susp, keywords, risk = _detect_suspicious_vba(vba_code)
-
-                # Run mraptor if available
-                mraptor_result = self._run_mraptor(vba_code)
 
                 macros_found.append(MacroMatch(
                     module_name=module_name,

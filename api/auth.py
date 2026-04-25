@@ -8,13 +8,22 @@ Cung cap:
   - API Key authentication (X-API-Key header)
   - Role-based access control (RBAC): admin, reader
 
-Users/Keys are configured in data/config.json under "api" section.
+Security model (Phase 1 hardening):
+  - JWT secret is REQUIRED. Loaded from RANSOMWARE_JWT_SECRET env var, then
+    config["api.jwt_secret"]. If both are empty a 256-bit secret is generated
+    and persisted to config with a loud warning.
+  - No hard-coded default users. The admin must be created via the first-run
+    setup workflow (see scripts/init_admin.py). DEFAULT_USERS is intentionally
+    empty so an unconfigured installation cannot be authenticated against.
+  - PLAIN: password fallback has been removed. bcrypt failures now raise
+    RuntimeError so we never silently store plaintext credentials.
 """
 
-import secrets
+import hmac
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
@@ -24,51 +33,95 @@ logger = logging.getLogger(__name__)
 
 # ─── Password hashing (bcrypt direct — bypasses broken passlib/bcrypt compatibility) ─
 
+_PLAIN_PREFIX = "PLAIN:"  # legacy sentinel — read-only support for migration
+
+
 def _hash_password(password: str) -> str:
-    """Hash password with bcrypt directly (bypasses broken passlib/bcrypt compatibility)."""
+    """
+    Hash password with bcrypt.
+
+    Raises ``RuntimeError`` if bcrypt is unavailable. The previous
+    ``PLAIN:{password}`` fallback has been removed because it silently
+    stored credentials in plaintext on disk.
+    """
     try:
-        import bcrypt
+        import bcrypt  # noqa: WPS433 (lazy import is intentional)
+    except ImportError as exc:  # pragma: no cover — environment issue
+        raise RuntimeError(
+            "bcrypt is not installed. Install with: pip install bcrypt"
+        ) from exc
+
+    try:
         return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
-    except Exception as e:
-        logger.error(f"bcrypt hash failed: {e}. Using UNSAFE plaintext placeholder.")
-        return f"PLAIN:{password}"
+    except Exception as exc:  # pragma: no cover — bcrypt internal error
+        raise RuntimeError(
+            f"bcrypt hashing failed ({exc}); refusing to store plaintext password"
+        ) from exc
 
 
 def _verify_password(plain: str, hashed: str) -> bool:
-    """Verify password against a bcrypt (or plaintext sentinel) hash."""
-    if hashed.startswith("PLAIN:"):
-        return plain == hashed[6:]
+    """
+    Verify a password.
+
+    Legacy ``PLAIN:`` hashes are still accepted (read-only) so that any
+    config files written by the previous insecure version remain usable
+    until the operator re-creates them, but each successful comparison
+    triggers a warning so they get migrated.
+    """
+    if not hashed:
+        return False
+    if hashed.startswith(_PLAIN_PREFIX):
+        logger.warning(
+            "Detected legacy PLAIN: password hash. Re-create the user with "
+            "scripts/init_admin.py to migrate to bcrypt."
+        )
+        # Constant-time compare to avoid timing oracles even on the legacy path.
+        return hmac.compare_digest(plain, hashed[len(_PLAIN_PREFIX):])
     try:
         import bcrypt
         return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-    except Exception:
+    except Exception as exc:
+        logger.debug("bcrypt verification failed: %s", exc)
         return False
 
-# ─── Security configs (loaded from config) ────────────────────────────────────
+# ─── Security configs (loaded from config) ─────────────────────────────
 
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# ─── Default API Users (can be overridden in config) ─────────────────────────
-# NOTE: hashed_passwords are pre-computed bcrypt hashes so they are NOT
-# re-hashed at import time (avoids bcrypt/passlib version conflicts).
+_JWT_SECRET_ENV = "RANSOMWARE_JWT_SECRET"
+_JWT_SECRET_CONFIG_KEY = "api.jwt_secret"
 
-DEFAULT_USERS: Dict[str, Dict[str, Any]] = {
-    "admin": {
-        "username": "admin",
-        # bcrypt hash of "ransomware_detector_admin"
-        "hashed_password": "$2b$12$n6AJqOGEzWb1o5C9hThyW.7SHef2ADE9vtGvYYjYSJuxQDnHIT8UK",
-        "role": "admin",
-        "disabled": False,
-    },
-    "reader": {
-        "username": "reader",
-        # bcrypt hash of "ransomware_detector_reader"
-        "hashed_password": "$2b$12$YOv6tj7piJxBnTZFB49xJ.Rn5PNOu4V5dCrAX3boo2.u2a3Cy4YwG",
-        "role": "reader",
-        "disabled": False,
-    },
-}
+
+def _get_jwt_secret() -> str:
+    """
+    Resolve the JWT signing secret with strict precedence:
+
+      1. ``RANSOMWARE_JWT_SECRET`` environment variable (preferred)
+      2. ``config[api.jwt_secret]`` if non-empty
+      3. Generate a fresh 256-bit secret, persist to config, log a warning.
+
+    The fallback ensures a fresh checkout still authenticates correctly,
+    while still surfacing a loud signal that the operator should provision
+    a real secret. Returning an empty string is *not* allowed — that was
+    the root cause of CVE-class JWT forgery in the previous version.
+    """
+    from core.security_utils import load_or_generate_secret  # lazy import
+    secret = load_or_generate_secret(_JWT_SECRET_ENV, _JWT_SECRET_CONFIG_KEY)
+    if not secret:
+        raise RuntimeError(
+            "Failed to obtain a JWT secret. Set the "
+            f"{_JWT_SECRET_ENV} environment variable."
+        )
+    return secret
+
+# ─── Default API Users ─────────────────────────────────────────────
+# Empty by design. The previous version shipped well-known credentials
+# ("admin" / "ransomware_detector_admin") which were a critical security
+# liability. Operators must run ``python -m scripts.init_admin`` to create
+# the first administrator.
+
+DEFAULT_USERS: Dict[str, Dict[str, Any]] = {}
 
 # ─── API Keys store (also from config) ────────────────────────────────────────
 
@@ -188,14 +241,7 @@ def create_access_token(data: Dict[str, Any],
         "iat": datetime.now(timezone.utc),
     })
 
-    # Get JWT secret from config
-    try:
-        from core.config_manager import config
-        jwt_secret = config.get("api.jwt_secret", "ransomware_detector_jwt_secret_change_me")
-    except Exception:
-        jwt_secret = "ransomware_detector_jwt_secret_change_me"
-
-    encoded_jwt = jwt.encode(to_encode, jwt_secret, algorithm=JWT_ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, _get_jwt_secret(), algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
 
@@ -207,16 +253,14 @@ def verify_jwt(token: str) -> Optional[Dict[str, Any]]:
         Decoded payload dict or None if invalid
     """
     try:
-        from core.config_manager import config
-        jwt_secret = config.get("api.jwt_secret", "ransomware_detector_jwt_secret_change_me")
-    except Exception:
-        jwt_secret = "ransomware_detector_jwt_secret_change_me"
-
-    try:
-        payload = jwt.decode(token, jwt_secret, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, _get_jwt_secret(), algorithms=[JWT_ALGORITHM])
         return payload
     except JWTError as e:
         logger.debug(f"JWT verification failed: {e}")
+        return None
+    except RuntimeError as e:
+        # No secret configured — fail closed.
+        logger.error("JWT verification aborted: %s", e)
         return None
 
 

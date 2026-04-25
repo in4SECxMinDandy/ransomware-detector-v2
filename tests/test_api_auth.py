@@ -31,8 +31,8 @@ def test_password_hashing():
     hashed = get_password_hash(password)
 
     assert hashed != password
-    assert verify_password(password, hashed) == True
-    assert verify_password("wrong_password", hashed) == False
+    assert verify_password(password, hashed)
+    assert not verify_password("wrong_password", hashed)
 
 
 def test_authenticate_user_not_found():
@@ -86,11 +86,7 @@ def test_require_role_factory():
     """Test role requirement dependency factory."""
     from api.auth import require_role
 
-    checker = require_role("admin")
-
-    # Should accept admin user
-    admin_user = {"username": "admin", "role": "admin", "type": "jwt"}
-    # No exception means passed
+    require_role("admin")
 
     # Note: Full test requires FastAPI Depends which is harder to test in isolation
 

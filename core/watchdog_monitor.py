@@ -35,8 +35,6 @@ import logging
 from typing import Callable, Optional, List, Dict, Any
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
-
 from watchdog.observers import Observer
 from watchdog.events import (
     FileSystemEventHandler,
@@ -49,6 +47,8 @@ from core.process_monitor import (
     get_process_monitor, FileEvent, BehaviorAlert
 )
 from core.notifications import get_notifier
+
+logger = logging.getLogger(__name__)
 
 PID_LOOKUP_COOLDOWN_SECONDS = 1.0
 PID_LOOKUP_CACHE_TTL_SECONDS = 5.0
@@ -177,7 +177,7 @@ class RealTimeMonitor:
     """
 
     def __init__(self):
-        self._observer:   Optional[Observer]      = None
+        self._observer:   Optional[Any]            = None
         self._workers:    List[threading.Thread]  = []
         self._queue:      queue.Queue             = queue.Queue(maxsize=QUEUE_MAX_SIZE)
         self._debounce:   Dict[str, float]        = {}

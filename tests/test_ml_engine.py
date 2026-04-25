@@ -104,7 +104,6 @@ class TestOptimizeThreshold:
         detector = CalibratedMalwareDetector()
 
         # Create synthetic test data with clear separation
-        rng = np.random.default_rng(42)
         y_true = np.array([0]*100 + [1]*100)
         y_proba = np.array([0.1]*100 + [0.9]*100)
 
@@ -138,14 +137,30 @@ class TestConstants:
         """MIN_PRECISION should be 0.95."""
         assert MIN_PRECISION == 0.95
 
-    def test_class_weights(self):
-        """Class weights should be SAFE=3.0, ENC=1.0."""
-        assert CLASS_WEIGHT_SAFE == 3.0
-        assert CLASS_WEIGHT_ENC == 1.0
+    def test_class_weights_match_cost_matrix(self):
+        """class_weight must be derived from COST_FP/COST_FN (audit P1-9).
 
-    def test_safe_weight_higher_than_enc(self):
-        """SAFE class weight should be higher to penalize FP."""
-        assert CLASS_WEIGHT_SAFE > CLASS_WEIGHT_ENC
+        Pre-fix the constants drifted: COST_FN=10 said FN was 3.3× costlier
+        than FP=3, but class_weight={0:3, 1:1} actually penalised FP 3× more
+        than FN. The fix wires CLASS_WEIGHT_SAFE = COST_FP and
+        CLASS_WEIGHT_ENC = COST_FN so they cannot disagree.
+        """
+        from core.ml_engine import COST_FP, COST_FN
+        assert CLASS_WEIGHT_SAFE == COST_FP, (
+            f"SAFE weight ({CLASS_WEIGHT_SAFE}) must equal COST_FP ({COST_FP})"
+        )
+        assert CLASS_WEIGHT_ENC == COST_FN, (
+            f"ENC weight ({CLASS_WEIGHT_ENC}) must equal COST_FN ({COST_FN})"
+        )
+
+    def test_enc_weight_higher_than_safe(self):
+        """ENC class weight must be higher (FN-averse model).
+
+        Missing ransomware (FN) is more costly than a false alarm (FP);
+        FPs are reined in by the threshold optimizer + FP_REDUCER, not by
+        class weighting.
+        """
+        assert CLASS_WEIGHT_ENC > CLASS_WEIGHT_SAFE
 
 
 class TestSingleton:
@@ -153,6 +168,81 @@ class TestSingleton:
         """get_engine should return CalibratedMalwareDetector."""
         engine = get_engine()
         assert isinstance(engine, CalibratedMalwareDetector)
+
+
+class TestSmoteLeakageRegression:
+    """Regression tests for audit P1-8 — SMOTE must not leak into val/test."""
+
+    def _make_imbalanced(self, n_safe: int = 200, n_enc: int = 50, seed: int = 0):
+        """Two well-separated Gaussians so a small RF can fit quickly."""
+        rng = np.random.default_rng(seed)
+        n_features = 16
+        X_safe = rng.normal(loc=0.0, scale=1.0, size=(n_safe, n_features))
+        X_enc  = rng.normal(loc=3.0, scale=1.0, size=(n_enc,  n_features))
+        X = np.vstack([X_safe, X_enc]).astype(np.float32)
+        y = np.concatenate([np.zeros(n_safe, dtype=int),
+                            np.ones(n_enc,  dtype=int)])
+        # Shuffle so the split isn't trivially ordered.
+        order = rng.permutation(len(y))
+        return X[order], y[order]
+
+    def test_smote_does_not_inflate_test_set(self, tmp_path, monkeypatch):
+        """The test fold must contain ~20% of the *original* rows.
+
+        Pre-fix the SMOTE step ran before ``train_test_split`` so the test
+        fold inherited synthetic neighbours of training rows. We expose
+        this by spying on ``train_test_split`` and checking the input it
+        receives is the un-resampled vector.
+        """
+        from core import ml_engine
+
+        X, y = self._make_imbalanced()
+        n_total = len(y)
+
+        captured = {}
+        real_split = ml_engine.train_test_split
+
+        def spy_split(X_in, y_in, *args, **kwargs):
+            # Record only the FIRST call (the outer 80/20 split).
+            captured.setdefault("first_n", len(y_in))
+            return real_split(X_in, y_in, *args, **kwargs)
+
+        monkeypatch.setattr(ml_engine, "train_test_split", spy_split)
+
+        detector = ml_engine.CalibratedMalwareDetector()
+        detector.train(
+            X, y,
+            model_path=str(tmp_path / "model.joblib"),
+            verbose=False,
+            smote_strategy="smote_tomek",
+        )
+
+        # If SMOTE ran before the split, this would be > n_total.
+        assert captured["first_n"] == n_total, (
+            f"train_test_split saw {captured['first_n']} rows but the "
+            f"original dataset only has {n_total} — SMOTE leaked into the "
+            "split (audit P1-8)."
+        )
+
+    def test_smote_only_active_on_imbalanced_training_fold(self, tmp_path):
+        """Smoke test: a perfectly balanced dataset should NOT trigger SMOTE.
+
+        Implicitly proves the imbalance check operates on the training
+        fold post-split, not the full dataset.
+        """
+        from core import ml_engine
+
+        X, y = self._make_imbalanced(n_safe=120, n_enc=120)  # balanced
+
+        detector = ml_engine.CalibratedMalwareDetector()
+        # Just assert it runs end-to-end without exploding.
+        detector.train(
+            X, y,
+            model_path=str(tmp_path / "balanced.joblib"),
+            verbose=False,
+            smote_strategy="smote_tomek",
+        )
+        assert detector.pipeline is not None
 
 
 if __name__ == "__main__":

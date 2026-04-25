@@ -105,7 +105,7 @@
   },
   "network_monitor": {
     "enabled": true,
-    "dga_entropy_threshold": 3.5,
+    "dga_entropy_threshold": 0.60,
     "beacon_cov_max": 0.1,
     "connection_history_max": 100
   },

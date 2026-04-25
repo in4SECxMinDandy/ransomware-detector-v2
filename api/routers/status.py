@@ -50,7 +50,6 @@ async def get_status(
     Get system status including monitor state, ML model info, and entropy stats.
     """
     try:
-        from core.watchdog_monitor import RealTimeMonitor
         from core.ml_engine import get_engine
         from core.yara_engine import get_yara_engine
         from core.honeypot_manager import get_honeypot_manager
@@ -68,8 +67,6 @@ async def get_status(
 
     # Monitor status
     try:
-        from core.logger_setup import get_logger
-        logger = get_logger("api")
         # Try to get the singleton monitor
         # (In practice, this would be injected at app startup)
         monitor_stats = {

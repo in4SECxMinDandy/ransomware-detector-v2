@@ -1,0 +1,91 @@
+# Build context exclusions (audit P3 — DevOps)
+# Keep the image small AND avoid leaking sensitive / dev-only artefacts.
+
+# ─── VCS ─────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.github/
+.windsurf/
+
+# ─── Python build artefacts ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# ─── Virtual envs ────────────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ─── IDE / OS noise ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.bak
+~$*
+.DS_Store
+
+# ─── Tests, dev scripts, fixtures ────────────────────────────────────────────
+tests/
+test_injection.py
+_api_test.py
+_api_test2.py
+_check_config.py
+_check_git.py
+_run_pytest.py
+_run_tests.cmd
+debug_gui.py
+
+# ─── Datasets / external samples / real malware (NEVER ship) ────────────────
+datasets/
+external_pe/
+ransomeware/
+Malware/
+quarantine/
+*.elf
+*.quarantined
+
+# ─── Logs / debug traces ─────────────────────────────────────────────────────
+logs/
+debug-*.log
+debug_err.txt
+debug_out.txt
+*.log
+
+# ─── User-local config & caches ──────────────────────────────────────────────
+data/config.json
+data/honeypot_registry.json
+data/ti_cache.json
+data/vt_cache.json
+data/_prep_out/
+data/_prep_src/
+data/_tmp_encrypted/
+data/_tmp_safe/
+data/*.csv
+data/*.jsonl
+
+# ─── Reports / generated docs ────────────────────────────────────────────────
+reports/
+docs/
+*.md
+!README.md
+!SECURITY.md
+
+# ─── GUI binaries (server image only) ────────────────────────────────────────
+gui/
+ui/
+assets/
+*.docx
+
+# ─── Tooling helper scripts ──────────────────────────────────────────────────
+*.cmd
+Dockerfile
+.dockerignore

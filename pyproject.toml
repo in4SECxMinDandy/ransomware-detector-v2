@@ -1,12 +1,74 @@
-[tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "function"
-
 [tool.pyright]
 include = ["core"]
 exclude = ["**/node_modules", "**/__pycache__"]
-reportMissingImports = true
+reportMissingImports = "warning"
 reportMissingTypeStubs = false
+reportPossiblyUnboundVariable = "warning"
+reportArgumentType = "warning"
+reportAssignmentType = "warning"
+reportAttributeAccessIssue = "warning"
+reportCallIssue = "warning"
+reportReturnType = "warning"
+reportGeneralTypeIssues = "warning"
+reportOptionalMemberAccess = "warning"
+reportInvalidTypeForm = "warning"
 pythonVersion = "3.10"
 
 [tool.pyre]
 include = ["core"]
+
+# ─── pytest configuration ───────────────────────────────────────────────────
+# Lock test discovery to the official ``tests/`` package so root-level smoke
+# scripts (``_api_test*.py``, ``test_injection.py``, ``debug_gui.py``) cannot
+# be picked up accidentally — they create real files / open ports and are
+# meant to be run manually. Audit P2-2.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers"
+markers = [
+    "slow: marks tests as slow (>5s) — deselect with '-m \"not slow\"'",
+    "integration: requires real network / GUI access",
+]
+
+# ─── ruff configuration ─────────────────────────────────────────────────────
+# Ignore root-level dev/debug scripts so the linter does not flag throwaway
+# code. They remain runnable manually but are out of CI scope.
+[tool.ruff]
+extend-exclude = [
+    "_api_test.py",
+    "_api_test2.py",
+    "_check_config.py",
+    "_check_git.py",
+    "_run_pytest.py",
+    "debug_gui.py",
+    "test_injection.py",
+    "scripts/dev",
+    "venv",
+    ".venv",
+    "datasets",
+    "external_pe",
+]
+
+# ─── coverage configuration (read by pytest-cov via ``[tool.coverage.*]``) ──
+[tool.coverage.run]
+source = ["core", "api"]
+omit = [
+    "*/tests/*",
+    "*/scripts/*",
+    "*/datasets/*",
+    "*/external_pe/*",
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false

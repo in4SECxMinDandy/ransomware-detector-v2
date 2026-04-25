@@ -171,7 +171,7 @@ def _collect_external_dataset(
 
     feature_parts = [np.asarray(row["_features"], dtype=np.float32) for row in rows]
     X = np.vstack(feature_parts) if feature_parts else np.empty((0, N_FEATURES), dtype=np.float32)
-    y = np.array([int(row["label"]) for row in rows], dtype=np.int32)
+    y = np.array([int(row["label"]) for row in rows], dtype=np.int32)  # type: ignore[arg-type]
 
     safe_count = len(safe_rows)
     encrypted_count = len(enc_rows)
@@ -230,8 +230,8 @@ def build_external_dataset(
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    csv_columns = FEATURE_NAMES + ["label", "label_name", "path", "sha256", "extension"]
-    df = pd.DataFrame(dataset["rows"], columns=csv_columns)
+    csv_columns = list(FEATURE_NAMES) + ["label", "label_name", "path", "sha256", "extension"]
+    df = pd.DataFrame(dataset["rows"], columns=csv_columns)  # type: ignore[arg-type]
     df.to_csv(output_csv, index=False)
     dataset["output_csv"] = output_csv
     return dataset

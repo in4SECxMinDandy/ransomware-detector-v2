@@ -5,6 +5,7 @@ Report generation and download endpoints.
 """
 
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import Dict, Any
@@ -14,6 +15,17 @@ from fastapi.responses import FileResponse
 
 from api.auth import get_current_user
 from api.schemas import ReportGenerateRequest, ReportResponse
+from core.security_utils import PathSafetyError, resolve_safe_path
+
+# Allow only formats we actually generate. Anything else is rejected before
+# touching the filesystem so format= cannot be abused as a path component.
+_ALLOWED_FORMATS = {"pdf", "csv", "json"}
+
+# report_id is generated server-side as ``report_<8-hex>`` (see
+# generate_report below) so we only ever need to accept that exact shape on
+# download. Reject anything else outright — defends against path traversal
+# (``../``), absolute paths, NUL bytes, UNC injection, etc.
+_REPORT_ID_RE = re.compile(r"^report_[0-9a-f]{8}$")
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -109,21 +121,41 @@ async def download_report(
 ):
     """
     Download a previously generated report.
-    """
-    filename = f"{report_id}.{format}"
-    file_path = os.path.join(_REPORT_DIR, filename)
 
-    if not os.path.isfile(file_path):
+    Security: ``report_id`` and ``format`` are both *user-controlled*. We
+    validate them against strict allowlists before constructing any path,
+    then run :func:`resolve_safe_path` as a defence-in-depth check that
+    confirms the resolved file lives under ``_REPORT_DIR`` (so symlinks or
+    OS-level path tricks cannot escape the report directory either).
+    """
+    fmt = format.lower()
+    if fmt not in _ALLOWED_FORMATS:
+        raise HTTPException(status_code=400, detail="Unsupported report format")
+    if not _REPORT_ID_RE.match(report_id):
+        # Use 404 rather than 400 to avoid leaking which IDs exist.
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    filename = f"{report_id}.{fmt}"
+    candidate = os.path.join(_REPORT_DIR, filename)
+
+    try:
+        safe_path = resolve_safe_path(candidate, [_REPORT_DIR])
+    except PathSafetyError:
+        # Path resolution escaped the reports/ root — treat as not-found
+        # rather than disclosing the safety failure.
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    if not safe_path.is_file():
         raise HTTPException(status_code=404, detail="Report not found")
 
     media_type = {
         "pdf": "application/pdf",
         "csv": "text/csv",
         "json": "application/json",
-    }.get(format, "application/octet-stream")
+    }[fmt]
 
     return FileResponse(
-        path=file_path,
+        path=str(safe_path),
         filename=filename,
         media_type=media_type,
     )

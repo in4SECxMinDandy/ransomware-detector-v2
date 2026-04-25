@@ -27,16 +27,21 @@ import time
 import threading
 import collections
 import logging
-from typing import Dict, List, Optional, Callable, Any
+from typing import TYPE_CHECKING, Dict, List, Optional, Callable, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 
-try:
+if TYPE_CHECKING:
     import psutil
     PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
+else:
+    try:
+        import psutil
+        PSUTIL_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        psutil = None
+        PSUTIL_AVAILABLE = False
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -650,7 +655,7 @@ class ProcessMonitor:
         files: List[str],
         severity: str,
         description: str,
-        metadata: Dict[str, Any] = None
+        metadata: Optional[Dict[str, Any]] = None
     ):
         """Tạo alert mới."""
         # Prevent duplicate alerts for same process in short time

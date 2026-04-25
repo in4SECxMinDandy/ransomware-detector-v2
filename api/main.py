@@ -28,13 +28,17 @@ Run:
 
 import os
 import sys
+import time
 import logging
-from datetime import datetime, timedelta
+import threading
+import collections
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
-from typing import Dict, Any
+from typing import Dict, Any, Deque
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 # ─── Add project root to path ──────────────────────────────────────────────────
@@ -43,22 +47,22 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# ─── Logging ─────────────────────────────────────────────────────────────────
-
-logger = logging.getLogger("api.main")
-
 # ─── API Routers ──────────────────────────────────────────────────────────────
 
-from starlette import status as http_status
-from api.routers import scan, status as status_router, honeypots, reports
-from api.auth import (
+from starlette import status as http_status  # noqa: E402
+from api.routers import scan, status as status_router, honeypots, reports  # noqa: E402
+from api.auth import (  # noqa: E402
     authenticate_user, create_access_token, get_current_user, require_admin,
 )
-from api.schemas import (
+from api.schemas import (  # noqa: E402
     TokenResponse,
     APIKeyCreate,
     APIKeyResponse,
 )
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+
+logger = logging.getLogger("api.main")
 
 
 # ─── Lifespan (startup/shutdown) ─────────────────────────────────────────────
@@ -103,14 +107,61 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
+# CORS middleware — allowed_origins configured via data/config.json[api.allowed_origins]
+# IMPORTANT: never combine allow_origins=["*"] with allow_credentials=True (browser
+# enforcement will reject the response anyway, and any subdomain XSS becomes a CSRF).
+try:
+    from core.config_manager import config as _config
+    _allowed_origins = _config.get("api.allowed_origins", ["http://localhost:3000"]) or []
+except Exception:
+    _allowed_origins = ["http://localhost:3000"]
+
+if not _allowed_origins or _allowed_origins == ["*"]:
+    logger.warning(
+        "api.allowed_origins is empty or '*'; refusing wildcard CORS — "
+        "falling back to http://localhost:3000."
+    )
+    _allowed_origins = ["http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
+
+# ─── Rate limiter for /auth/token (defends against credential stuffing) ───────
+_AUTH_RATE_LIMIT_LOCK = threading.Lock()
+_AUTH_RATE_LIMIT_HITS: Dict[str, Deque[float]] = collections.defaultdict(collections.deque)
+_AUTH_RATE_LIMIT_WINDOW_S = 60.0
+
+
+def _enforce_auth_rate_limit(request: Request) -> None:
+    """Sliding-window per-IP rate limiter for the auth endpoint."""
+    try:
+        from core.config_manager import config as _cfg
+        per_minute = int(_cfg.get("api.auth_rate_limit_per_minute", 10))
+    except Exception:
+        per_minute = 10
+    if per_minute <= 0:
+        return  # disabled
+    client_ip = (request.client.host if request.client else "unknown")
+    now = time.monotonic()
+    with _AUTH_RATE_LIMIT_LOCK:
+        bucket = _AUTH_RATE_LIMIT_HITS[client_ip]
+        # Drop expired hits
+        cutoff = now - _AUTH_RATE_LIMIT_WINDOW_S
+        while bucket and bucket[0] < cutoff:
+            bucket.popleft()
+        if len(bucket) >= per_minute:
+            retry_after = int(_AUTH_RATE_LIMIT_WINDOW_S - (now - bucket[0])) + 1
+            raise HTTPException(
+                status_code=429,
+                detail="Too many authentication attempts; slow down.",
+                headers={"Retry-After": str(retry_after)},
+            )
+        bucket.append(now)
 
 # Include routers
 app.include_router(scan.router, prefix="/api/v1")
@@ -123,11 +174,16 @@ app.include_router(reports.router, prefix="/api/v1")
 
 @app.post("/api/v1/auth/token", response_model=TokenResponse, tags=["Auth"])
 async def login_for_access_token(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
     """
     Authenticate with username/password and get JWT access token.
+
+    Rate limited per-IP (default 10 attempts/minute, configurable via
+    ``api.auth_rate_limit_per_minute``).
     """
+    _enforce_auth_rate_limit(request)
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -165,17 +221,35 @@ async def create_api_key(
     """
     Create a new API key.
 
-    Requires admin role.
+    Persists the key to ``data/config.json`` under ``api.api_keys`` so that
+    the value can be used for subsequent requests via the ``X-API-Key``
+    header. Requires admin role.
     """
-    import secrets
+    import secrets as _secrets
+    from core.config_manager import config as _cfg
 
-    key = secrets.token_urlsafe(32)
+    key = _secrets.token_urlsafe(32)
+    role_value = request.role.value if hasattr(request.role, "value") else str(request.role)
+    name = request.name or f"key-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    created_at = datetime.now(timezone.utc).isoformat()
+
+    keys = _cfg.get("api.api_keys", {}) or {}
+    keys[name] = {
+        "key": key,
+        "name": name,
+        "role": role_value,
+        "created_at": created_at,
+        "disabled": False,
+    }
+    if not _cfg.set("api.api_keys", keys, persist=True):
+        logger.error("Failed to persist API key %r to config", name)
+        raise HTTPException(status_code=500, detail="Failed to persist API key")
 
     return APIKeyResponse(
         key=key,
-        name=request.name,
-        role=request.role.value,
-        created_at=datetime.now().isoformat(),
+        name=name,
+        role=role_value,
+        created_at=created_at,
     )
 
 
@@ -216,14 +290,28 @@ async def ping():
 # ─── Global Exception Handler ────────────────────────────────────────────────
 
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    """Catch-all exception handler."""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    return {
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all exception handler that returns a proper JSON 500 response.
+
+    Stacktraces and exception messages may leak filesystem paths or secrets,
+    so by default the client only sees a generic message. Set
+    ``api.expose_internal_errors=true`` (and only in dev) to include
+    ``detail``.
+    """
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    try:
+        from core.config_manager import config as _cfg
+        expose = bool(_cfg.get("api.expose_internal_errors", False))
+    except Exception:
+        expose = False
+    body: Dict[str, Any] = {
         "success": False,
-        "error": str(exc),
-        "timestamp": datetime.now().isoformat(),
+        "error": "Internal server error",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+    if expose:
+        body["detail"] = str(exc)
+    return JSONResponse(status_code=500, content=body)
 
 
 # ─── CLI runner ───────────────────────────────────────────────────────────────

@@ -41,8 +41,27 @@ models/model_metadata*.json
 
 # Malware/Decoy files
 Malware/
+ransomeware/
+*.elf
+*.quarantined
+
+# Quarantine artefacts (live attack data — never commit)
+quarantine/
+!quarantine/.gitkeep
+
+# Local agent / debug traces
+debug-*.log
+debug_err.txt
+debug_out.txt
 
 # Tooling
 .windsurf/
 datasets/
 external_pe/
+
+# Local report exports
+reports/*.csv
+reports/*.png
+reports/*.pdf
+reports/*.json
+!reports/.gitkeep

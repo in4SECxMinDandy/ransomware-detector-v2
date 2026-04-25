@@ -24,12 +24,12 @@ import logging
 import shutil
 import csv
 import base64
+import threading as _threading
 import numpy as np
+import pandas as pd
 import joblib
 from datetime import datetime, timezone
-from typing import Tuple, Optional, Dict, List, Any, Iterable
-
-logger = logging.getLogger("core.ml_engine")
+from typing import TYPE_CHECKING, Tuple, Optional, Dict, List, Any, Iterable
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.calibration import CalibratedClassifierCV
@@ -42,11 +42,16 @@ from sklearn.metrics import (
 from sklearn.pipeline import Pipeline
 
 # ─── SMOTE integration (optional) ───
-try:
+if TYPE_CHECKING:
     from core.smote_trainer import SMOTETrainer
     SMOTE_AVAILABLE = True
-except ImportError:
-    SMOTE_AVAILABLE = False
+else:
+    try:
+        from core.smote_trainer import SMOTETrainer
+        SMOTE_AVAILABLE = True
+    except ImportError:  # pragma: no cover
+        SMOTETrainer = None
+        SMOTE_AVAILABLE = False
 
 from core.feedback_csv import (
     FEEDBACK_COLUMNS,
@@ -56,8 +61,99 @@ from core.feedback_csv import (
     normalize_feedback_type,
     write_feedback_rows,
 )
+from core.security_utils import compute_sha256
 
+logger = logging.getLogger("core.ml_engine")
 warnings.filterwarnings("ignore")
+
+
+# ─── Model integrity verification ────────────────────────────────────────────
+#
+# ``joblib.load`` deserialises pickles, so loading a tampered model file is
+# equivalent to remote code execution. We therefore verify the file hash
+# against a pinned value before deserialising:
+#
+#   1. ``RANSOMWARE_MODEL_SHA256`` env var  (highest precedence; ops-friendly)
+#   2. ``<model_path>.sha256`` sidecar file (written by ``train()``)
+#
+# If neither source is available we run in "trust on first use" mode: the
+# load proceeds with a WARNING. Operators can opt into strict mode by
+# setting ``RANSOMWARE_REQUIRE_MODEL_INTEGRITY=1``, which makes a missing
+# pin fatal.
+
+class ModelIntegrityError(RuntimeError):
+    """Raised when a model's SHA256 does not match the pinned value."""
+
+
+def _read_pinned_model_hash(model_path: str) -> Optional[str]:
+    env_hash = (os.environ.get("RANSOMWARE_MODEL_SHA256") or "").strip().lower()
+    if env_hash:
+        return env_hash
+    sidecar = model_path + ".sha256"
+    if os.path.isfile(sidecar):
+        try:
+            with open(sidecar, "r", encoding="utf-8") as f:
+                # Accept either "<hash>" or "<hash>  filename" (sha256sum format)
+                first_token = f.read().strip().split()
+                if first_token:
+                    return first_token[0].lower()
+        except OSError:
+            return None
+    return None
+
+
+def _write_model_hash_sidecar(model_path: str) -> Optional[str]:
+    """Compute and persist SHA256 of *model_path* to ``<path>.sha256``."""
+    digest = compute_sha256(model_path)
+    if not digest:
+        return None
+    sidecar = model_path + ".sha256"
+    try:
+        with open(sidecar, "w", encoding="utf-8") as f:
+            f.write(digest + "\n")
+        return digest
+    except OSError as exc:
+        logger.warning("Failed to write model hash sidecar %s: %s", sidecar, exc)
+        return digest
+
+
+def _verify_model_integrity(model_path: str) -> str:
+    """
+    Verify *model_path* against the pinned SHA256.
+
+    Returns the actual digest on success. Raises :class:`ModelIntegrityError`
+    on mismatch, or when strict mode is enabled and no pin is available.
+    """
+    actual = compute_sha256(model_path)
+    if not actual:
+        raise ModelIntegrityError(f"Cannot read model file: {model_path}")
+
+    expected = _read_pinned_model_hash(model_path)
+    strict = os.environ.get("RANSOMWARE_REQUIRE_MODEL_INTEGRITY", "").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+
+    if expected:
+        if actual.lower() != expected.lower():
+            raise ModelIntegrityError(
+                f"Model SHA256 mismatch for {model_path}: "
+                f"expected={expected} actual={actual}"
+            )
+        return actual
+
+    # No pin available.
+    if strict:
+        raise ModelIntegrityError(
+            f"No pinned SHA256 for {model_path} and "
+            "RANSOMWARE_REQUIRE_MODEL_INTEGRITY is set. Refusing to load."
+        )
+
+    logger.warning(
+        "Loading model without integrity pin (TOFU mode). "
+        "actual_sha256=%s — set RANSOMWARE_MODEL_SHA256 or create %s.sha256 "
+        "to enable verification.", actual, model_path,
+    )
+    return actual
 
 def _normalize_windows_path(path: str) -> str:
     normalized = os.path.normpath(path)
@@ -88,13 +184,30 @@ except ImportError:
         "Is Known Benign Format",
     ]
 
-# ─── Tham số chống FP ───
-DEFAULT_THRESHOLD  = 0.65   # Ngưỡng mặc định (cao hơn 0.5 để giảm FP)
-MIN_PRECISION      = 0.95   # Mục tiêu precision tối thiểu
-COST_FP            = 3.0    # Chi phí False Positive (quan trọng: tránh cảnh báo nhầm)
-COST_FN            = 10.0   # Chi phí False Negative (bỏ sót ransomware)
-CLASS_WEIGHT_SAFE  = 3.0    # Trọng số class SAFE (tăng penalty khi mis-classify SAFE)
-CLASS_WEIGHT_ENC   = 1.0    # Trọng số class ENCRYPTED
+# ─── Tham số cost-aware ───
+#
+# Triết lý: cho mô hình học theo cost (FN >> FP) để bắt được ransomware,
+# rồi dùng threshold optimizer (MIN_PRECISION ≥ 0.95) + FP_REDUCER
+# (whitelist + per-extension threshold) làm hàng rào chống FP ở post-process.
+#
+# Trước v2.4 hai bộ trọng số sau bị mâu thuẫn:
+#   COST_FN=10, COST_FP=3   → comment nói FN nặng gấp 3.3× FP
+#   class_weight={0:3,1:1}  → nhưng training lại phạt FP gấp 3× FN
+# (xem audit-report-v2.md mục P1-9). Fix: dẫn class_weight TRỰC TIẾP từ
+# COST_FP / COST_FN nên không thể lệch nhau nữa.
+
+DEFAULT_THRESHOLD  = 0.65   # Ngưỡng mặc định (cao hơn 0.5 để giảm FP ở runtime)
+MIN_PRECISION      = 0.95   # Mục tiêu precision tối thiểu (threshold optimizer)
+COST_FP            = 3.0    # Chi phí False Positive (cảnh báo nhầm file an toàn)
+COST_FN            = 10.0   # Chi phí False Negative (bỏ sót ransomware — nguy hiểm hơn)
+
+# Single source of truth for class weighting. Class 0 = SAFE, class 1 = ENCRYPTED.
+# In sklearn, class_weight[c] is the loss multiplier applied when a sample
+# of class ``c`` is misclassified — i.e. it IS the cost of that error type.
+#   weight[0] = cost of misclassifying SAFE   → FP cost
+#   weight[1] = cost of misclassifying ENCRYPTED → FN cost
+CLASS_WEIGHT_SAFE  = COST_FP   # 3.0 — was 3.0 (kept)
+CLASS_WEIGHT_ENC   = COST_FN   # 10.0 — was 1.0 (FIXED: now matches FN-averse cost matrix)
 
 
 def _safe_parallel_jobs() -> int:
@@ -178,8 +291,21 @@ class CalibratedMalwareDetector:
         return tuple(snapshot)
 
     def load_model(self, model_path: str = MODEL_PATH) -> bool:
-        """Load pipeline từ file .joblib. Falls back to retraining on failure."""
+        """Load pipeline từ file .joblib. Falls back to retraining on failure.
+
+        Security: ``joblib.load`` deserialises pickles, so a tampered model
+        file = arbitrary code execution. We verify the SHA256 against a
+        pinned value (env var or ``.sha256`` sidecar) before deserialising.
+        On mismatch we refuse to load **and do not retrain** — silently
+        rebuilding a synthetic model on tamper would mask the attack.
+        """
         if os.path.isfile(model_path):
+            try:
+                _verify_model_integrity(model_path)
+            except ModelIntegrityError as exc:
+                logger.error("Refusing to load model: %s", exc)
+                self._loaded = False
+                return False
             try:
                 data = joblib.load(model_path)
                 if isinstance(data, dict):
@@ -248,19 +374,15 @@ class CalibratedMalwareDetector:
             print(f"[MLEngine] Input shape: {X.shape} (N_FEATURES={n_features})")
             print(f"[MLEngine] Class distribution: SAFE={np.sum(y==0)}, ENCRYPTED={np.sum(y==1)}")
 
-        # ── v2.1: SMOTE Oversampling (trước khi chia train/val/test) ──
-        if smote_strategy and smote_strategy != "none" and SMOTE_AVAILABLE:
-            smote = SMOTETrainer(strategy=smote_strategy)
-            n0, n1 = int(np.sum(y==0)), int(np.sum(y==1))
-            imbalance = min(n0, n1) / max(n0, n1, 1)
-            if imbalance < 0.9:  # chỉ áp dụng khi có imbalance
-                if verbose:
-                    print(f"[MLEngine] SMOTE strategy='{smote_strategy}' (imbalance={imbalance:.2f})")
-                X, y = smote.resample(X, y, verbose=verbose)
-            elif verbose:
-                print(f"[MLEngine] Dataset đủ cân bằng (imbalance={imbalance:.2f}) — bỏ qua SMOTE")
+        # Keep references to the *original* (pre-SMOTE) dataset for cross-
+        # validation later — passing the resampled set to ``cross_val_score``
+        # leaks synthetic samples across folds (audit P1-8).
+        X_orig, y_orig = X, y
 
-        # ── Chia 3 tập: train/val/test ──
+        # ── Chia 3 tập: train/val/test (TRƯỚC khi SMOTE để tránh leakage) ──
+        # Pre-fix v2.1 ran SMOTE on the full X,y *before* the split, which
+        # contaminated val/test with synthetic neighbours of training rows
+        # — every published metric was therefore over-optimistic.
         X_temp, X_test, y_temp, y_test = train_test_split(
             X, y, test_size=0.20, random_state=42, stratify=y
         )
@@ -268,17 +390,47 @@ class CalibratedMalwareDetector:
             X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp
         )  # 0.25 * 0.80 = 0.20 → tổng train=60%, val=20%, test=20%
 
-        if verbose:
-            print(f"[MLEngine] Train: {len(X_train)} | Val: {len(X_val)} | Test: {len(X_test)}")
+        # ── v2.4: SMOTE chỉ áp dụng trên training fold ──
+        # Validation và test set giữ nguyên phân bố thực để metrics phản
+        # ánh hiệu suất production thật.
+        smote_active = (
+            smote_strategy and smote_strategy != "none" and SMOTE_AVAILABLE
+        )
+        X_train_fit, y_train_fit = X_train, y_train
+        if smote_active:
+            n0_tr, n1_tr = int(np.sum(y_train == 0)), int(np.sum(y_train == 1))
+            imbalance = min(n0_tr, n1_tr) / max(n0_tr, n1_tr, 1)
+            if imbalance < 0.9:
+                if verbose:
+                    print(
+                        f"[MLEngine] SMOTE strategy='{smote_strategy}' on training fold only "
+                        f"(imbalance={imbalance:.2f})"
+                    )
+                smote = SMOTETrainer(strategy=smote_strategy)
+                X_train_fit, y_train_fit = smote.resample(
+                    np.asarray(X_train), np.asarray(y_train), verbose=verbose,
+                )
+            elif verbose:
+                print(
+                    f"[MLEngine] Training fold đủ cân bằng (imbalance={imbalance:.2f}) — bỏ qua SMOTE"
+                )
 
-        # ── Scaler ──
+        if verbose:
+            print(
+                f"[MLEngine] Train(fit)={len(X_train_fit)} | Train(real)={len(X_train)} | "
+                f"Val={len(X_val)} | Test={len(X_test)}"
+            )
+
+        # ── Scaler — fit only on the (resampled) training fold ──
         scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
+        X_train_scaled = scaler.fit_transform(X_train_fit)
         X_val_scaled   = scaler.transform(X_val)
         X_test_scaled  = scaler.transform(X_test)
 
         # ── RandomForest với cost-aware class weights ──
-        # class_weight={0:3.0, 1:1.0} → mô hình bị phạt nặng hơn khi gán SAFE nhầm là ENCRYPTED
+        # class_weight = {0: COST_FP, 1: COST_FN} (xem khối hằng số phía trên).
+        # FN nặng hơn FP nên mô hình ưu tiên bắt ransomware; FPs được kiểm
+        # soát ở post-process (threshold optimizer + FP_REDUCER).
         rf = RandomForestClassifier(
             n_estimators=300,
             max_depth=None,
@@ -299,14 +451,19 @@ class CalibratedMalwareDetector:
         )
 
         if verbose:
-            print(f"[MLEngine] Training với class_weight={{0:{CLASS_WEIGHT_SAFE}, 1:{CLASS_WEIGHT_ENC}}}...")
+            print(
+                f"[MLEngine] Training với class_weight={{0:{CLASS_WEIGHT_SAFE}, "
+                f"1:{CLASS_WEIGHT_ENC}}} (cost-aware, FN-averse)..."
+            )
 
-        calibrated_rf.fit(X_train_scaled, y_train)
+        # X_train_scaled was derived from X_train_fit (post-SMOTE if active),
+        # so y_train_fit is its matching label vector.
+        calibrated_rf.fit(X_train_scaled, y_train_fit)
 
         # ── Tìm Optimal Threshold trên Validation set ──
         y_val_proba = calibrated_rf.predict_proba(X_val_scaled)[:, 1]
         opt_threshold, threshold_report = self._optimize_threshold(
-            y_val, y_val_proba, min_precision=MIN_PRECISION
+            np.asarray(y_val), y_val_proba, min_precision=MIN_PRECISION
         )
 
         if verbose:
@@ -320,14 +477,27 @@ class CalibratedMalwareDetector:
         self.threshold = opt_threshold
 
         # ── Pipeline chính: scaler + calibrated model ──
-        # CRITICAL FIX: fit scaler on full train+val BEFORE creating pipeline,
-        # otherwise pipeline.fit() would refit scaler on train-only data (data leak)
+        # We refit on the (train + val) fold to maximise data efficiency for
+        # the final model. The *test* fold is still untouched.
+        # SMOTE (if active) is reapplied to this combined fold so the model
+        # sees a balanced training set — but only the training portion gets
+        # synthesised, not the held-out test rows.
         X_trainval = np.vstack([X_train, X_val])
         y_trainval = np.concatenate([y_train, y_val])
+
+        if smote_active:
+            n0_tv, n1_tv = int(np.sum(y_trainval == 0)), int(np.sum(y_trainval == 1))
+            tv_imbalance = min(n0_tv, n1_tv) / max(n0_tv, n1_tv, 1)
+            if tv_imbalance < 0.9:
+                smote_full = SMOTETrainer(strategy=smote_strategy)
+                X_trainval, y_trainval = smote_full.resample(
+                    X_trainval, y_trainval, verbose=False,
+                )
+
         scaler_full = StandardScaler()
         X_trainval_scaled = scaler_full.fit_transform(X_trainval)
 
-        # Refit calibrated RF on full train+val
+        # Refit calibrated RF on the (resampled) train+val fold.
         calibrated_rf.fit(X_trainval_scaled, y_trainval)
 
         # Build pipeline with scaler already fit on trainval (no data leak)
@@ -341,9 +511,9 @@ class CalibratedMalwareDetector:
         y_test_pred   = (y_test_proba >= opt_threshold).astype(int)
 
         acc   = accuracy_score(y_test, y_test_pred)
-        prec  = precision_score(y_test, y_test_pred, zero_division=0)
-        rec   = recall_score(y_test, y_test_pred, zero_division=0)
-        f1    = f1_score(y_test, y_test_pred, zero_division=0)
+        prec  = precision_score(y_test, y_test_pred, zero_division=0)  # type: ignore[arg-type]
+        rec   = recall_score(y_test, y_test_pred, zero_division=0)  # type: ignore[arg-type]
+        f1    = f1_score(y_test, y_test_pred, zero_division=0)  # type: ignore[arg-type]
         auc   = roc_auc_score(y_test, y_test_proba)
         cm    = confusion_matrix(y_test, y_test_pred).tolist()
 
@@ -351,8 +521,10 @@ class CalibratedMalwareDetector:
         tn, fp, fn, tp = confusion_matrix(y_test, y_test_pred).ravel()
         fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
 
-        # ── Cross-validation ──
-        # Tạo pipeline mới cho CV (đảm bảo không data leak)
+        # ── Cross-validation on REAL (pre-SMOTE) data ──
+        # Pre-fix this used the SMOTE-resampled X,y which leaks synthetic
+        # neighbours across folds. We now evaluate on the original rows so
+        # CV F1 reflects production conditions (imbalanced, real samples).
         cv_pipeline = Pipeline([
             ("scaler", StandardScaler()),
             ("clf", RandomForestClassifier(
@@ -362,7 +534,10 @@ class CalibratedMalwareDetector:
             ))
         ])
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        cv_scores = cross_val_score(cv_pipeline, X, y, cv=cv, scoring="f1", n_jobs=_safe_parallel_jobs())
+        cv_scores = cross_val_score(
+            cv_pipeline, X_orig, y_orig,
+            cv=cv, scoring="f1", n_jobs=_safe_parallel_jobs(),
+        )
 
         if verbose:
             print(f"\n{'='*60}")
@@ -426,8 +601,14 @@ class CalibratedMalwareDetector:
             "pr_curve":          self._pr_curve_data,
         }
         joblib.dump(save_data, model_path)
+        # Persist a SHA256 sidecar so subsequent loads can verify integrity.
+        # This pins the freshly-trained model; tampering after this point
+        # will be detected at load time.
+        sidecar_hash = _write_model_hash_sidecar(model_path)
         if verbose:
             print(f"[MLEngine] Model đã lưu: {model_path}")
+            if sidecar_hash:
+                print(f"[MLEngine] Integrity pin: {sidecar_hash}  → {model_path}.sha256")
 
         # ── Lưu metadata ──
         metrics = {
@@ -437,8 +618,8 @@ class CalibratedMalwareDetector:
             "precision":          round(prec, 6),
             "recall":             round(rec, 6),
             "f1_score":           round(f1, 6),
-            "auc_roc":            round(auc, 6),
-            "false_positive_rate": round(fpr, 6),
+            "auc_roc":            round(float(auc), 6),
+            "false_positive_rate": round(float(fpr), 6),
             "cv_mean":            round(float(cv_scores.mean()), 6),
             "cv_std":             round(float(cv_scores.std()), 6),
             "confusion_matrix":   cm,
@@ -812,7 +993,6 @@ class CalibratedMalwareDetector:
 
         # Load existing dataset
         try:
-            import pandas as pd
             existing_csv = self._get_synthetic_dataset_path()
             if os.path.isfile(existing_csv):
                 existing_df = pd.read_csv(existing_csv)
@@ -845,8 +1025,8 @@ class CalibratedMalwareDetector:
 
                 # Combine with existing data if available
                 if len(existing_df) > 0:
-                    X_existing = existing_df.iloc[:, :N_FEATURES].values
-                    y_existing = existing_df["label"].values
+                    X_existing = np.asarray(existing_df.iloc[:, :N_FEATURES].values)
+                    y_existing = np.asarray(existing_df["label"].values)
                     X_combined = np.vstack([X_existing, feedback_X])
                     y_combined = np.concatenate([y_existing, feedback_y])
                 else:
@@ -937,13 +1117,11 @@ class CalibratedMalwareDetector:
             }
 
         try:
-            import pandas as pd
-
             existing_csv = self._get_synthetic_dataset_path()
             if os.path.isfile(existing_csv):
                 existing_df = pd.read_csv(existing_csv)
-                X_existing = existing_df.iloc[:, :N_FEATURES].values
-                y_existing = existing_df["label"].values
+                X_existing = np.asarray(existing_df.iloc[:, :N_FEATURES].values)
+                y_existing = np.asarray(existing_df["label"].values)
             else:
                 X_existing = np.empty((0, N_FEATURES), dtype=np.float32)
                 y_existing = np.empty((0,), dtype=np.int32)
@@ -1062,6 +1240,9 @@ class CalibratedMalwareDetector:
 
             # Restore
             shutil.copy2(backup_path, MODEL_PATH)
+            # Re-pin integrity hash for the restored binary (the prior
+            # pin belongs to the model we just replaced).
+            _write_model_hash_sidecar(MODEL_PATH)
 
             version_match = re.search(r"(\d{8,14})", os.path.basename(backup_path))
             if version_match:
@@ -1086,13 +1267,50 @@ class RansomwareMLEngine(CalibratedMalwareDetector):
     pass
 
 
-# ─── Global singleton ───
+# ─── Global singleton (thread-safe, auto-loads model) ───
+
 _engine_instance: Optional[CalibratedMalwareDetector] = None
+_engine_lock = _threading.Lock()
 
 
-def get_engine() -> CalibratedMalwareDetector:
-    """Lấy singleton instance của ML Engine."""
+def get_engine(*, auto_load: bool = True) -> CalibratedMalwareDetector:
+    """
+    Return the singleton :class:`CalibratedMalwareDetector`.
+
+    The previous implementation returned an *unloaded* engine, causing every
+    ``predict()`` call to silently return ``(0, 0.0)`` and the API to mark
+    every file SAFE. This version:
+
+      - serialises construction with a lock (Scanner uses 8 worker threads),
+      - eagerly calls :meth:`load_model` exactly once,
+      - falls back to ``_train_default_model()`` when no checkpoint exists.
+
+    Pass ``auto_load=False`` only in tests where the caller wants to inject
+    a fixture model.
+    """
     global _engine_instance
-    if _engine_instance is None:
-        _engine_instance = CalibratedMalwareDetector()
+    if _engine_instance is not None:
+        return _engine_instance
+
+    with _engine_lock:
+        if _engine_instance is None:
+            instance = CalibratedMalwareDetector()
+            if auto_load:
+                try:
+                    loaded = instance.load_model()
+                    if not loaded:
+                        logger.warning(
+                            "No model checkpoint at %s — using untrained engine",
+                            MODEL_PATH,
+                        )
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.error("ML engine auto-load failed: %s", exc)
+            _engine_instance = instance
     return _engine_instance
+
+
+def reset_engine() -> None:
+    """Reset the cached engine. Intended for tests only."""
+    global _engine_instance
+    with _engine_lock:
+        _engine_instance = None

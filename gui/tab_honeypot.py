@@ -234,8 +234,9 @@ class HoneypotTab(ctk.CTkFrame):
             try:
                 deployed = self._honeypot_manager.deploy(folder, max_per_location=5)
                 self.after(0, lambda: self._on_deploy_done(deployed))
-            except Exception as e:
-                self.after(0, lambda: self._on_deploy_error(str(e)))
+            except Exception as exc:
+                err_msg = str(exc)
+                self.after(0, lambda msg=err_msg: self._on_deploy_error(msg))
 
         threading.Thread(target=deploy_worker, daemon=True).start()
 
@@ -265,8 +266,9 @@ class HoneypotTab(ctk.CTkFrame):
             try:
                 removed = self._honeypot_manager.remove_all()
                 self.after(0, lambda: self._on_remove_done(removed))
-            except Exception as e:
-                self.after(0, lambda: self._on_remove_error(str(e)))
+            except Exception as exc:
+                err_msg = str(exc)
+                self.after(0, lambda msg=err_msg: self._on_remove_error(msg))
 
         threading.Thread(target=remove_worker, daemon=True).start()
 

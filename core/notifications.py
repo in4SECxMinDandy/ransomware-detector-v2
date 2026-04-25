@@ -22,24 +22,32 @@ Usage:
 
 import threading
 import platform
-from typing import Optional, Callable, List, Dict, Any
+from typing import TYPE_CHECKING, Optional, Callable, List, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
 # Try to import win10toast, fallback gracefully
-try:
-    from win10toast import ToastNotifier
+if TYPE_CHECKING:
+    from win10toast import ToastNotifier  # type: ignore[import-not-found]
+    from plyer import notification as plyer_notification  # type: ignore[import-not-found]
     WIN10TOAST_AVAILABLE = True
-except ImportError:
-    WIN10TOAST_AVAILABLE = False
-
-# Fallback: try plyer
-try:
-    from plyer import notification
     PLYER_AVAILABLE = True
-except ImportError:
-    PLYER_AVAILABLE = False
+else:
+    try:
+        from win10toast import ToastNotifier
+        WIN10TOAST_AVAILABLE = True
+    except ImportError:
+        ToastNotifier = None
+        WIN10TOAST_AVAILABLE = False
+
+    # Fallback: try plyer
+    try:
+        from plyer import notification as plyer_notification  # noqa: F401
+        PLYER_AVAILABLE = True
+    except ImportError:
+        plyer_notification = None
+        PLYER_AVAILABLE = False
 
 
 class Severity(Enum):
@@ -221,7 +229,7 @@ class NotificationManager:
         message = notification.message
 
         # Method 1: win10toast
-        if self._toaster and isinstance(self._toaster, ToastNotifier):
+        if WIN10TOAST_AVAILABLE and self._toaster and isinstance(self._toaster, ToastNotifier):
             try:
                 # win10toast doesn't support custom duration well on all systems
                 self._toaster.show_toast(
@@ -237,7 +245,7 @@ class NotificationManager:
         # Method 2: plyer
         elif self._toaster == "plyer":
             try:
-                notification.notify(
+                plyer_notification.notify(  # type: ignore[union-attr]
                     title=title,
                     message=message,
                     app_name="Ransomware Detector",

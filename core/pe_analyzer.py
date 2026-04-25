@@ -469,21 +469,20 @@ def _analyze_imports_manual(file_path: str, pe_offset: int, optional_header: byt
     dangerous_imports = []
     
     try:
-        with open(file_path, "rb") as f:
-            # Get import directory RVA
-            if len(optional_header) >= 108:  # PE32
-                import_rva = struct.unpack("<I", optional_header[104:108])[0]
-            elif len(optional_header) >= 112:  # PE32+
-                import_rva = struct.unpack("<I", optional_header[112:116])[0]
-            else:
-                return imports, dangerous_imports
-            
-            if import_rva == 0:
-                return imports, dangerous_imports
-            
-            # Read import directory
-            # This is a simplified parser - for full implementation use pefile
-            
+        # Get import directory RVA
+        if len(optional_header) >= 108:  # PE32
+            import_rva = struct.unpack("<I", optional_header[104:108])[0]
+        elif len(optional_header) >= 112:  # PE32+
+            import_rva = struct.unpack("<I", optional_header[112:116])[0]
+        else:
+            return imports, dangerous_imports
+
+        if import_rva == 0:
+            return imports, dangerous_imports
+
+        # Read import directory
+        # This is a simplified parser - for full implementation use pefile
+
     except Exception:
         pass
     
@@ -493,14 +492,6 @@ def _analyze_imports_manual(file_path: str, pe_offset: int, optional_header: byt
 def _detect_overlay(result: PEAnalysisResult, file_path: str, sections: List[SectionInfo], file_size: int):
     """Detect overlay data (data appended after sections)."""
     try:
-        # Calculate end of last section
-        max_offset = 0
-        for section in sections:
-            if hasattr(section, 'raw_size') and hasattr(section, 'virtual_address'):
-                # Rough calculation
-                section_end = section.virtual_address + section.virtual_size
-                # Find raw offset in PE (simplified)
-        
         # Simple heuristic: check if there's significant data after section headers
         with open(file_path, "rb") as f:
             # Read last 64KB
@@ -629,7 +620,7 @@ def _assess_threat(result: PEAnalysisResult):
         result.threat_level = ThreatLevel.BENIGN
 
 
-def compare_pe_with_memory(exe_path: str, process_handle: int = None) -> Dict:
+def compare_pe_with_memory(exe_path: str, process_handle: Optional[int] = None) -> Dict:
     """
     So sánh PE header trên disk với in-memory (Process Hollowing detection).
     
@@ -666,11 +657,6 @@ def compare_pe_with_memory(exe_path: str, process_handle: int = None) -> Dict:
     try:
         import ctypes
         from ctypes import wintypes
-        
-        kernel32 = ctypes.windll.kernel32
-        
-        PROCESS_QUERY_INFORMATION = 0x0400
-        PROCESS_VM_READ = 0x0010
         
         # Read DOS header from memory
         class MEMORY_BASIC_INFORMATION(ctypes.Structure):

@@ -18,10 +18,10 @@ def test_entropy_stats_initial_state():
     monitor = RealTimeMonitor()
     stats = monitor.get_entropy_stats()
 
-    assert stats["enabled"] == True
+    assert stats["enabled"]
     assert stats["consecutive_count"] == 0
-    assert stats["is_above_threshold"] == False
-    assert stats["alert_triggered"] == False
+    assert not stats["is_above_threshold"]
+    assert not stats["alert_triggered"]
     assert stats["threshold"] == 7.5
 
 
@@ -73,7 +73,7 @@ def test_check_entropy_burst_not_triggered(temp_dir):
 
     stats = monitor.get_entropy_stats()
     assert stats["consecutive_count"] == 0  # Low entropy not counted
-    assert stats["is_above_threshold"] == False
+    assert not stats["is_above_threshold"]
 
 
 def test_check_entropy_burst_triggered(temp_dir):
@@ -93,7 +93,7 @@ def test_check_entropy_burst_triggered(temp_dir):
 
     stats = monitor.get_entropy_stats()
     assert stats["consecutive_count"] == 5
-    assert stats["is_above_threshold"] == True
+    assert stats["is_above_threshold"]
 
 
 def test_reset_entropy_state(temp_dir):
