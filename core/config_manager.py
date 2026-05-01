@@ -264,7 +264,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "threat_intel": {
         "malwarebazaar": {
             "api_key":        "",
-            "enabled":        False,
+            "enabled":        True,   # No API key required for basic hash lookups
             "cache_ttl_hours": 24,
         },
         "threatfox": {
