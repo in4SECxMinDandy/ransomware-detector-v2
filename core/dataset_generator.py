@@ -1,6 +1,17 @@
 """
-dataset_generator.py — v2.0 (Anti-FP Edition)
-===============================================
+dataset_generator.py — v2.0 (DEPRECATED)
+=========================================
+MODULE NÀY ĐÃ BỊ VÔ HIỆU HÓA.
+
+Dữ liệu synthetic (giả) đã bị loại bỏ khỏi pipeline training.
+Sử dụng dữ liệu thật thay thế:
+  - SAFE: collect_safe_samples.py (Windows system PE files)
+  - ENCRYPTED: collect_malware_samples.py (MalwareBazaar API)
+  - Training: python train_model.py --safe-dir <dir> --malware-dir <dir>
+
+Xem DATA_COLLECTION.md để biết chi tiết.
+
+--- Nội dung gốc (chỉ để tham khảo, KHÔNG được dùng để train) ---
 Dataset mở rộng với các benign samples giống file thực tế nhất có thể
 để mô hình học cách phân biệt:
   - PNG/JPEG/ZIP thật  vs  file bị mã hóa giả vờ có extension .png
@@ -258,6 +269,13 @@ def generate_synthetic_dataset(
     verbose: bool = True
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
+    [DEPRECATED] Hàm này đã bị vô hiệu hóa.
+
+    Dữ liệu synthetic không còn được dùng để train model.
+    Sử dụng collect_safe_samples.py và collect_malware_samples.py
+    để thu thập dữ liệu thật, sau đó chạy train_model.py với
+    --safe-dir và --malware-dir.
+
     Tạo dataset tổng hợp v2 với các benign samples đa dạng.
     
     Phân phối SAFE (7 loại):
@@ -268,7 +286,16 @@ def generate_synthetic_dataset(
       35% full_aes, 25% intermittent, 15% header_only, 
       15% disguised_png, 10% disguised_zip
     """
-    if output_dir is None:
+    raise RuntimeError(
+        "[DEPRECATED] generate_synthetic_dataset() đã bị vô hiệu hóa.\n"
+        "Dữ liệu synthetic không còn được dùng để train model.\n"
+        "Chạy: python collect_safe_samples.py   (thu thập SAFE PE files)\n"
+        "      python collect_malware_samples.py (tải malware từ MalwareBazaar)\n"
+        "      python train_model.py --safe-dir datasets/prepared/external_pe/safe "
+        "--malware-dir datasets/prepared/external_pe/encrypted\n"
+        "Xem DATA_COLLECTION.md để biết chi tiết."
+    )
+    if output_dir is None:  # unreachable — kept for reference only
         output_dir = os.path.join(os.path.dirname(__file__), "..", "data")
 
     samples_dir = os.path.join(output_dir, "samples")
@@ -288,7 +315,7 @@ def generate_synthetic_dataset(
     ]
 
     if verbose:
-        print(f"[DatasetGen v2] SAFE: {n_safe} mẫu | ENCRYPTED: {n_encrypted} mẫu")
+        print(f"[DatasetGen v2] SAFE: {n_safe} samples | ENCRYPTED: {n_encrypted} samples")
 
     for gen_name, gen_fn, count, ext in generators_safe:
         for i in range(count):
@@ -308,7 +335,7 @@ def generate_synthetic_dataset(
                 if not save_files and os.path.exists(tmp_path):
                     os.remove(tmp_path)
         if verbose:
-            print(f"  ✓ SAFE [{gen_name:18s}] {count:4d} mẫu  ext={ext}")
+            print(f"  OK SAFE [{gen_name:18s}] {count:4d} samples  ext={ext}")
 
     # ── ENCRYPTED samples ──
     generators_enc = [
@@ -337,7 +364,7 @@ def generate_synthetic_dataset(
                 if not save_files and os.path.exists(tmp_path):
                     os.remove(tmp_path)
         if verbose:
-            print(f"  ✓ ENCRYPTED [{gen_name:15s}] {count:4d} mẫu  ext={ext}")
+            print(f"  OK ENCRYPTED [{gen_name:15s}] {count:4d} samples  ext={ext}")
 
     X = np.array(all_features, dtype=np.float32)
     y = np.array(all_labels, dtype=np.int32)
