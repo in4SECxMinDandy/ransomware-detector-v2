@@ -74,6 +74,15 @@ Script `collect_malware_samples.py` tải malware thật từ **MalwareBazaar** 
 > - Các file tải về là malware thực, Windows Defender có thể xóa chúng
 > - Cần tạm thời tắt AV hoặc thêm exclusion cho thư mục `datasets/`
 
+### Bước 2.0: Lấy Auth-Key (miễn phí, bắt buộc)
+
+MalwareBazaar yêu cầu Auth-Key kể từ 2025:
+
+1. Vào **https://bazaar.abuse.ch/**
+2. Bấm **Login** → đăng ký tài khoản mới (chỉ cần email + password)
+3. Xác nhận email
+4. Đăng nhập → vào **Profile** → copy **Auth-Key**
+
 ### Yêu cầu
 
 ```bash
@@ -83,11 +92,10 @@ pip install requests
 ### Chạy cơ bản
 
 ```bash
-python collect_malware_samples.py
+python collect_malware_samples.py --api-key YOUR_AUTH_KEY
 ```
 
 Tải tối đa **2000 mẫu** từ 40+ tags (ransomware + trojans).
-- Không cần API key (anonymous, rate limit ~15 req/min)
 - Tự động giải nén ZIP với password `infected`
 - Chỉ lưu PE files có MZ header hợp lệ
 
@@ -96,19 +104,17 @@ Tải tối đa **2000 mẫu** từ 40+ tags (ransomware + trojans).
 ```bash
 # Chỉ tải ransomware (không trojan)
 python collect_malware_samples.py \
+  --api-key YOUR_AUTH_KEY \
   --tags lockbit blackcat alphv ransomware wannacry ryuk conti \
          revil hive blackbasta maze clop babuk dharma phobos stop \
   --max-per-tag 100 \
   --max-total 1500
 
 # Tải ít hơn để test nhanh
-python collect_malware_samples.py --max-total 100 --max-per-tag 10
+python collect_malware_samples.py --api-key YOUR_AUTH_KEY --max-total 100 --max-per-tag 10
 
-# Dùng API key để tăng rate limit (đăng ký tại bazaar.abuse.ch)
-python collect_malware_samples.py --api-key YOUR_KEY
-
-# Tiếp tục từ lần tải trước
-python collect_malware_samples.py --resume
+# Tiếp tục từ lần tải trước (nếu bị gián đoạn)
+python collect_malware_samples.py --api-key YOUR_AUTH_KEY --resume
 ```
 
 ### Kết quả mong đợi
