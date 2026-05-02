@@ -68,6 +68,7 @@ pydantic-settings>=2.0,<3          # Settings management
 # ─── HTTP Clients ────────────────────────────────────────────────────────────
 httpx>=0.27,<1           # HTTP client for threat intelligence integrations
 requests>=2.31,<3        # HTTP client (VirusTotal and related APIs)
+pyzipper>=0.3.6          # AES-256 ZIP support for MalwareBazaar downloads
 
 # Testing dependencies have been moved to requirements-dev.txt.
 # Production deployments must NOT install pytest / coverage tooling.
