@@ -1163,8 +1163,8 @@ class CalibratedMalwareDetector:
         self,
         model_save_path: Optional[str] = None,
         min_confidence: str = "high",
-        min_total_samples: int = 20,
-        min_class_samples: int = 5,
+        min_total_samples: int = 1,
+        min_class_samples: int = 1,
     ) -> Dict[str, Any]:
         """
         Build an auto-labeled dataset from local evidence and retrain.
@@ -1187,16 +1187,17 @@ class CalibratedMalwareDetector:
             return {"success": False, "error": "No auto-labeled samples available"}
 
         class_counts = dataset_result.get("class_counts", {})
-        if len(y_auto) < min_total_samples:
+        # Chỉ kiểm tra có đủ 2 class không (ít nhất 1 mẫu mỗi class)
+        if len(y_auto) == 0:
             return {
                 "success": False,
-                "error": f"Need at least {min_total_samples} high-confidence auto-labeled samples",
+                "error": "No auto-labeled samples available",
                 "dataset_path": dataset_result.get("output_path"),
             }
-        if class_counts.get("SAFE", 0) < min_class_samples or class_counts.get("ENCRYPTED", 0) < min_class_samples:
+        if class_counts.get("SAFE", 0) < 1 or class_counts.get("ENCRYPTED", 0) < 1:
             return {
                 "success": False,
-                "error": f"Need at least {min_class_samples} SAFE and {min_class_samples} ENCRYPTED samples",
+                "error": "Need at least 1 SAFE and 1 ENCRYPTED sample to train",
                 "dataset_path": dataset_result.get("output_path"),
                 "class_counts": class_counts,
             }

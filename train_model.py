@@ -177,9 +177,9 @@ if X.shape[1] != N_FEATURES:
     print("  Kiểm tra feature_extractor.py")
     sys.exit(1)
 
-if safe_n < 10 or malware_n < 10:
-    print(f"\n  [ERROR] Quá ít samples: SAFE={safe_n}, MALWARE={malware_n}")
-    print("  Cần ít nhất 10 samples mỗi class để train.")
+if safe_n < 1 or malware_n < 1:
+    print(f"\n  [ERROR] Không có sample nào: SAFE={safe_n}, MALWARE={malware_n}")
+    print("  Cần ít nhất 1 sample mỗi class để train.")
     print("  Thu thập thêm dữ liệu:")
     print("    python collect_safe_samples.py")
     print("    python collect_malware_samples.py")

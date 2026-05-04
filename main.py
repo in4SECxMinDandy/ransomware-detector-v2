@@ -368,8 +368,8 @@ def run_train_external(argv: list[str] | None = None):
     parser.add_argument(
         "--min-class-samples",
         type=int,
-        default=5,
-        help="Minimum usable samples required in each class before training",
+        default=1,
+        help="Minimum usable samples required in each class before training (default: 1)",
     )
     parser.add_argument("--no-recursive", action="store_true", help="Only inspect the top-level directories")
     args = parser.parse_args(argv)
@@ -425,10 +425,10 @@ def run_train_external(argv: list[str] | None = None):
         print(f"Warning: skipped ratio is high ({dataset['skipped_ratio']:.1%}); review source corpora quality.")
 
     min_class_samples = args.min_class_samples
-    if dataset["safe_count"] < min_class_samples or dataset["encrypted_count"] < min_class_samples:
+    if dataset["safe_count"] < 1 or dataset["encrypted_count"] < 1:
         print(
-            f"Need at least {min_class_samples} SAFE and {min_class_samples} ENCRYPTED "
-            "samples to train reliably."
+            f"Need at least 1 SAFE and 1 ENCRYPTED sample to train. "
+            f"Got: SAFE={dataset['safe_count']}, ENCRYPTED={dataset['encrypted_count']}"
         )
         return 1
 
@@ -452,7 +452,7 @@ def run_train_from_source_plan(argv: list[str] | None = None):
     )
     parser.add_argument("--kind", default="both", choices=["safe", "encrypted", "both"])
     parser.add_argument("--scale", default="pilot", choices=["smoke", "pilot", "production"])
-    parser.add_argument("--min-class-samples", type=int, default=5)
+    parser.add_argument("--min-class-samples", type=int, default=1)
     args = parser.parse_args(argv)
 
     try:

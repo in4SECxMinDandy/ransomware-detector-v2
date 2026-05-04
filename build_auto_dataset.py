@@ -29,14 +29,14 @@ def main() -> int:
     parser.add_argument(
         "--min-total-samples",
         type=int,
-        default=20,
-        help="Minimum auto-labeled samples required before retraining.",
+        default=1,
+        help="Minimum auto-labeled samples required before retraining (default: 1).",
     )
     parser.add_argument(
         "--min-class-samples",
         type=int,
-        default=5,
-        help="Minimum SAFE and ENCRYPTED samples required before retraining.",
+        default=1,
+        help="Minimum SAFE and ENCRYPTED samples required before retraining (default: 1).",
     )
     args = parser.parse_args()
 

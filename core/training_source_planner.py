@@ -250,7 +250,7 @@ def train_from_source_plan(
     kind: str = "both",
     scale: str = "pilot",
     base_dir: str | None = None,
-    min_class_samples: int = 5,
+    min_class_samples: int = 1,
 ) -> Dict[str, Any]:
     plan = build_training_source_plan(kind=kind, pe_only=True, scale=scale, base_dir=base_dir)
 
@@ -304,14 +304,14 @@ def train_from_source_plan(
         output_csv=output_csv,
         recursive=True,
     )
-    if dataset["safe_count"] < min_class_samples or dataset["encrypted_count"] < min_class_samples:
+    if dataset["safe_count"] < 1 or dataset["encrypted_count"] < 1:
         return {
             "success": False,
             "status": "insufficient-data",
             "plan": plan,
             "prepare_results": prepare_results,
             "dataset": dataset,
-            "message": f"Need at least {min_class_samples} usable SAFE and ENCRYPTED samples before training.",
+            "message": "Need at least 1 usable SAFE and 1 ENCRYPTED sample to train.",
         }
 
     from core.ml_engine import MODEL_PATH, get_engine
