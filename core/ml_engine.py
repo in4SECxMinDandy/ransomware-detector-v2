@@ -318,8 +318,12 @@ class CalibratedMalwareDetector:
                 data = joblib.load(model_path)
                 if isinstance(data, dict):
                     self.pipeline          = data.get("pipeline")
-                    self._optimal_threshold = data.get("optimal_threshold", DEFAULT_THRESHOLD)
-                    self.threshold         = self._optimal_threshold
+                    raw_t = float(data.get("optimal_threshold", DEFAULT_THRESHOLD))
+                    # Cap: threshold > 0.95 là dấu hiệu overfit trên dataset nhỏ
+                    if raw_t > 0.95:
+                        raw_t = DEFAULT_THRESHOLD
+                    self._optimal_threshold = raw_t
+                    self.threshold         = raw_t
                     self._pr_curve_data    = data.get("pr_curve", {})
                 else:
                     self.pipeline = data
@@ -332,8 +336,15 @@ class CalibratedMalwareDetector:
                         with open(META_PATH, "r") as f:
                             self.metadata = json.load(f)
                         if "optimal_threshold" in self.metadata:
-                            self._optimal_threshold = self.metadata["optimal_threshold"]
-                            self.threshold = self._optimal_threshold
+                            raw_t = float(self.metadata["optimal_threshold"])
+                            # Cap threshold: nếu model overfit (threshold = 1.0
+                            # trên dataset nhỏ), dùng DEFAULT_THRESHOLD thay thế.
+                            # Threshold > 0.95 thực tế vô nghĩa vì không file
+                            # nào đạt CRITICAL/HIGH/MEDIUM dù xác suất 99%.
+                            if raw_t > 0.95:
+                                raw_t = DEFAULT_THRESHOLD
+                            self._optimal_threshold = raw_t
+                            self.threshold = raw_t
                     except (json.JSONDecodeError, IOError):
                         pass  # corrupt metadata file
 

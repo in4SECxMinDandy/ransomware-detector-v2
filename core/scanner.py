@@ -989,6 +989,21 @@ class Scanner:
                         result.label = 1 if result.probability >= result.effective_threshold else 0
                     result.fp_reason += fusion_note
 
+                # VT đồng thuận sạch (0 malicious, đủ engine) với file đang LOW/MEDIUM
+                # → hạ về SAFE để đồng bộ xác suất cao nhưng VT xác nhận an toàn.
+                # Trường hợp này xảy ra khi model overfit (threshold gần 1.0 → risk LOW
+                # dù xác suất 99%) và VT xác nhận file sạch rõ ràng.
+                if (not vt_err
+                        and vt_mal == 0
+                        and vt_susp == 0
+                        and vt_total >= self._vt_fusion_min_engines
+                        and not result.yara_boosted
+                        and not injection_found
+                        and result.risk_level in ("LOW", "MEDIUM")):
+                    result.risk_level = "SAFE"
+                    result.label      = 0
+                    result.fp_reason += f" | VT_clean({vt_total}_engines)→SAFE"
+
                 # Khi VT không tìm thấy file (404) VÀ là non-PE có magic bytes hợp lệ
                 # → risk do entropy/ML cho compressed/media — hạ xuống MEDIUM để tránh FP.
                 # (PE binary không có trong VT thường là suspicious → giữ nguyên.)
