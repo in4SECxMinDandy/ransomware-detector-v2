@@ -709,6 +709,17 @@ class Scanner:
             compression_est = float(features[12]) if len(features) > 12 else 0.0
             structural_consistency = float(features[13]) if len(features) > 13 else 0.0
             suspicious_ext = ext in SUSPICIOUS_EXTENSIONS
+
+            # Extensions có entropy cao TỰ NHIÊN — không boost heuristic chỉ vì entropy
+            # (PNG/ZIP/JPG/MP4/PDF đều có entropy >7.5 khi bình thường)
+            _KNOWN_HIGH_ENTROPY_EXT = {
+                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp",
+                ".mp3", ".mp4", ".mkv", ".avi", ".mov", ".wav", ".flac", ".aac",
+                ".zip", ".gz", ".bz2", ".7z", ".rar", ".xz", ".zst",
+                ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp",
+                ".pdf", ".apk", ".jar", ".epub",
+            }
+            is_known_high_entropy = ext in _KNOWN_HIGH_ENTROPY_EXT
             
             # ── PE structural analysis (v2.1) ──
             injection_found = False
@@ -719,12 +730,16 @@ class Scanner:
                     injection_found = True
                     result.fp_reason += f" | PE_INJECTION({','.join(pe_res.rwx_sections + pe_res.suspicious_sections)})"
 
-            heuristic_hit = (
+            # Heuristic chỉ fire khi ĐỒNG THỜI entropy cao BẤT THƯỜNG (z-score cao)
+            # VÀ không phải loại file nén/media có entropy cao tự nhiên
+            entropy_anomaly = (
+                not is_known_high_entropy and
                 entropy_z >= profile["entropy_z"] and
                 features[0] >= profile["entropy_high"] and
                 compression_est <= profile["low_compress"] and
                 structural_consistency <= profile["low_struct"]
-            ) or suspicious_ext or injection_found
+            )
+            heuristic_hit = entropy_anomaly or suspicious_ext or injection_found
 
             # ── Bước 4: FP Reduction ──
             adjusted_proba, eff_threshold, reduction_reason = apply_fp_reduction(
@@ -733,7 +748,19 @@ class Scanner:
             # Sensitivity profile: hạ threshold hiệu dụng (không thấp hơn 0.35)
             eff_threshold = max(0.35, eff_threshold + profile["threshold_delta"])
 
+            # Magic bytes discount bổ sung cho non-PE files có entropy cao tự nhiên.
+            # Model được train chủ yếu trên PE files → probability cao cho compressed/media
+            # là FP. Áp dụng discount 30% khi file có magic bytes hợp lệ VÀ là loại
+            # có entropy cao tự nhiên (không phải PE binary).
+            if is_known_high_entropy and ext not in {".exe", ".dll", ".sys", ".msi", ".scr"}:
+                from core.fp_reducer import check_magic_bytes as _cmb
+                _has_sig, _magic_valid = _cmb(file_path)
+                if _has_sig and _magic_valid:
+                    adjusted_proba = adjusted_proba * 0.65
+                    reduction_reason += " | known_format_discount(0.65)"
+
             # Heuristic boost (không vượt quá 0.95, không ghi đè FP reducer)
+            # Chỉ boost khi có entropy anomaly thực sự (đã loại trừ compressed/media)
             if heuristic_hit:
                 boost_val = profile["heuristic_boost"]
                 if injection_found:
@@ -862,6 +889,21 @@ class Scanner:
                     if new_risk == "MEDIUM":
                         result.label = 1 if result.probability >= result.effective_threshold else 0
                     result.fp_reason += fusion_note
+
+                # Khi VT không tìm thấy file (404) VÀ là non-PE có magic bytes hợp lệ
+                # → risk do entropy/ML cho compressed/media — hạ xuống MEDIUM để tránh FP.
+                # (PE binary không có trong VT thường là suspicious → giữ nguyên.)
+                if (vt_err == "Not found in VT"
+                        and is_known_high_entropy
+                        and not result.yara_boosted
+                        and not injection_found
+                        and result.risk_level in ("HIGH", "CRITICAL")):
+                    from core.fp_reducer import check_magic_bytes as _cmb2
+                    _has_sig2, _mv2 = _cmb2(file_path)
+                    if _has_sig2 and _mv2:
+                        result.risk_level = "MEDIUM"
+                        result.label = 1 if result.probability >= result.effective_threshold else 0
+                        result.fp_reason += " | VT_not_found+known_format→MEDIUM"
 
             # ── Bước 8: Threat Intelligence Correlation (v3.5) ──
             self._query_threat_intel(result)
