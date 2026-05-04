@@ -775,6 +775,25 @@ class CalibratedMalwareDetector:
     def _get_synthetic_dataset_path(self) -> str:
         return os.path.join(os.path.dirname(MODEL_DIR), "data", "synthetic_dataset_v2.csv")
 
+    def _get_real_dataset_path(self) -> str:
+        """Path tới real_dataset.csv — dataset chính được dùng cho training."""
+        return os.path.join(os.path.dirname(MODEL_DIR), "data", "real_dataset.csv")
+
+    def _load_base_dataset(self) -> pd.DataFrame:
+        """
+        Load dataset gốc theo thứ tự ưu tiên:
+          1. real_dataset.csv  (dữ liệu thật từ collect_safe/malware_samples)
+          2. synthetic_dataset_v2.csv (legacy fallback)
+        Trả về DataFrame rỗng nếu không có file nào.
+        """
+        for csv_path in (self._get_real_dataset_path(), self._get_synthetic_dataset_path()):
+            if os.path.isfile(csv_path):
+                try:
+                    return pd.read_csv(csv_path)
+                except Exception:
+                    continue
+        return pd.DataFrame()
+
     def _normalize_feedback_label(self, label: Optional[str]) -> Optional[str]:
         return normalize_feedback_label(label)
 
@@ -820,6 +839,61 @@ class CalibratedMalwareDetector:
 
     def _feedback_csv_has_canonical_header(self, feedback_csv: str) -> bool:
         return feedback_csv_has_canonical_header(feedback_csv)
+
+    def _merge_feedback_into_dataset(
+        self,
+        feedback_X: "np.ndarray",
+        feedback_y: "np.ndarray",
+        feedback_hashes: list,
+        dataset_csv_path: str,
+    ) -> int:
+        """
+        Ghi feedback features vào real_dataset.csv để tái sử dụng cho lần train sau.
+
+        Quan trọng: features đã được serialize base64 trong feedback_samples.csv nên
+        KHÔNG CẦN file gốc khi retrain. Sau khi merge vào real_dataset.csv, ngay cả
+        khi xóa file PE gốc lẫn feedback_samples.csv, dữ liệu vẫn được giữ nguyên.
+
+        Returns:
+            Số rows mới được thêm vào dataset.
+        """
+        from core.external_dataset_builder import FEATURE_NAMES
+
+        # Load dataset hiện tại hoặc tạo mới
+        if os.path.isfile(dataset_csv_path):
+            existing_df = pd.read_csv(dataset_csv_path)
+            existing_hashes = set(existing_df.get("sha256", pd.Series(dtype=str)).dropna())
+        else:
+            existing_df = pd.DataFrame()
+            existing_hashes = set()
+
+        new_rows = []
+        for i, (features, label, sha256) in enumerate(
+            zip(feedback_X, feedback_y, feedback_hashes)
+        ):
+            # Bỏ qua nếu hash đã có trong dataset
+            if sha256 and sha256 in existing_hashes:
+                continue
+
+            row = dict(zip(FEATURE_NAMES, features.tolist()))
+            row["label"] = int(label)
+            row["label_name"] = "ENCRYPTED" if label == 1 else "SAFE"
+            row["path"] = ""          # file gốc không cần thiết nữa
+            row["sha256"] = sha256 or ""
+            row["extension"] = ""
+            row["source"] = "feedback"  # đánh dấu nguồn gốc
+            new_rows.append(row)
+
+        if not new_rows:
+            return 0
+
+        new_df = pd.DataFrame(new_rows)
+        merged_df = pd.concat([existing_df, new_df], ignore_index=True) \
+            if len(existing_df) > 0 else new_df
+
+        os.makedirs(os.path.dirname(dataset_csv_path), exist_ok=True)
+        merged_df.to_csv(dataset_csv_path, index=False)
+        return len(new_rows)
 
     def _backup_current_model(self) -> Optional[str]:
         if not os.path.isfile(MODEL_PATH):
@@ -991,19 +1065,14 @@ class CalibratedMalwareDetector:
 
         fb_csv = feedback_csv or self._get_feedback_csv_path()
 
-        # Load existing dataset
-        try:
-            existing_csv = self._get_synthetic_dataset_path()
-            if os.path.isfile(existing_csv):
-                existing_df = pd.read_csv(existing_csv)
-            else:
-                existing_df = pd.DataFrame()
-        except Exception:
-            existing_df = pd.DataFrame()
+        # Load base dataset (real_dataset.csv ưu tiên, fallback synthetic)
+        existing_df = self._load_base_dataset()
+        base_csv_path = self._get_real_dataset_path()
 
-        # Load feedback samples
+        # Load feedback samples — features đã lưu trong CSV nên KHÔNG cần file gốc
         feedback_features = []
         feedback_labels = []
+        feedback_hashes = []
         if os.path.isfile(fb_csv):
             try:
                 for row in self._iter_feedback_rows(fb_csv):
@@ -1016,6 +1085,7 @@ class CalibratedMalwareDetector:
                         continue
                     feedback_features.append(features)
                     feedback_labels.append(1 if feedback_label == "ENCRYPTED" else 0)
+                    feedback_hashes.append(row.get("hash", ""))
 
                 if not feedback_features:
                     return {"success": False, "error": "No valid feedback samples found"}
@@ -1023,10 +1093,10 @@ class CalibratedMalwareDetector:
                 feedback_X = np.array(feedback_features, dtype=np.float32)
                 feedback_y = np.array(feedback_labels, dtype=np.int32)
 
-                # Combine with existing data if available
+                # Combine base dataset + feedback samples
                 if len(existing_df) > 0:
-                    X_existing = np.asarray(existing_df.iloc[:, :N_FEATURES].values)
-                    y_existing = np.asarray(existing_df["label"].values)
+                    X_existing = np.asarray(existing_df.iloc[:, :N_FEATURES].values, dtype=np.float32)
+                    y_existing = np.asarray(existing_df["label"].values, dtype=np.int32)
                     X_combined = np.vstack([X_existing, feedback_X])
                     y_combined = np.concatenate([y_existing, feedback_y])
                 else:
@@ -1055,6 +1125,19 @@ class CalibratedMalwareDetector:
 
                 training_time = time.time() - start_time
 
+                # ── Persist feedback vào real_dataset.csv để tái sử dụng ──────
+                # Features đã được lưu trong CSV nên dù file gốc bị xóa,
+                # các lần retrain sau vẫn có đầy đủ dữ liệu.
+                try:
+                    self._merge_feedback_into_dataset(
+                        feedback_X, feedback_y, feedback_hashes, base_csv_path
+                    )
+                    logger.info(
+                        f"Merged {len(feedback_features)} feedback samples into {base_csv_path}"
+                    )
+                except Exception as merge_err:
+                    logger.warning(f"Could not merge feedback into dataset: {merge_err}")
+
                 return {
                     "success": True,
                     "new_model_version": datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"),
@@ -1066,6 +1149,8 @@ class CalibratedMalwareDetector:
                     "new_accuracy": metrics.get("accuracy"),
                     "new_precision": metrics.get("precision"),
                     "new_recall": metrics.get("recall"),
+                    "base_dataset_path": base_csv_path,
+                    "merged_into_dataset": True,
                 }
 
             except Exception as e:
