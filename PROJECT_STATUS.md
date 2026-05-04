@@ -138,7 +138,6 @@
 | # | Vấn đề | File | Mô tả |
 |---|--------|------|-------|
 | M1 | **`ml_engine.py` 1,402 dòng** | `core/ml_engine.py` | Training + prediction + feedback + versioning trong 1 file |
-| M2 | **Web dashboard `index.html` 529 dòng** single file | `web/index.html` | Không tách components, thiếu CSRF, thiếu a11y |
 | M3 | **`debug_csv.py`, `debug_gui.py`** ở root | root | Debug scripts chưa được classify/move |
 | M4 | **ADR (Architecture Decision Records)** chưa có | `docs/` | Không có documentation cho các quyết định thiết kế quan trọng |
 | M5 | **scan_history.jsonl hiện tại** vẫn chứa PII cũ | `data/scan_history.jsonl` | Fix chỉ áp dụng cho records mới. Records cũ vẫn có full path |
@@ -158,7 +157,6 @@
 | L7 | `build_auto_dataset.py`, `prepare_dataset.py`, `quick_start_pipeline.py`, `train_model.py` ở root | Nên move vào `scripts/` |
 | L8 | CD (Continuous Deployment) chưa có | CI có, nhưng chưa auto-release |
 | L9 | OpenAPI schema chưa có versioning strategy | `/api/v1/*` hardcoded |
-| L10 | Không có E2E tests cho web dashboard | `web/index.html` |
 
 ---
 

@@ -94,9 +94,7 @@ ransomware-detector-v2/
 │   ├── config.json.template  # Template for fresh installs
 │   ├── malware_hashes.db     # 159 MB SQLite hash store (LFS)
 │   └── yara_rules.json       # 3.5 MB compiled YARA rules
-├── models/             # ML model files (LFS)
-└── web/                # Single-page web dashboard
-    └── index.html
+└── models/             # ML model files (LFS)
 ```
 
 ---

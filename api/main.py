@@ -118,7 +118,7 @@ try:
 except Exception:
     _allowed_origins = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
 
-# Append safe localhost origins used by the bundled web dashboard.
+# Append safe localhost origins for API clients (GUI, CLI tools, dev front-ends).
 # The "null" origin (file:// protocol) is only permitted in dev/debug mode
 # (api.cors_allow_null_origin=true in config) to avoid exposing the API to
 # crafted pages that can synthesise a null Origin header.
