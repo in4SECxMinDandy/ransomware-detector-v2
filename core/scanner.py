@@ -635,6 +635,22 @@ class Scanner:
                 result.probability  = 1.0
                 result.risk_level   = "CRITICAL"
                 result.fp_reason    = "local_hash_match"
+                # Vẫn gọi VT để enrich thông tin (malware families, engines)
+                ext = os.path.splitext(file_path)[1].lower()
+                binary_vt = ext in VT_BINARY_EXTENSIONS and self._vt_check_binaries
+                if self._vt_enabled and (self._vt_auto_check or binary_vt) and result.sha256:
+                    result.vt_pending = True
+                    vt_mal, vt_susp, vt_total, vt_ratio, vt_perma, vt_cache, vt_err = \
+                        self._query_virustotal(result.sha256)
+                    result.vt_pending = False
+                    result.vt_malicious_count    = vt_mal
+                    result.vt_suspicious_count   = vt_susp
+                    result.vt_total_engines      = vt_total
+                    result.vt_detection_ratio    = vt_ratio
+                    result.vt_permalink          = vt_perma
+                    result.vt_from_cache         = vt_cache
+                    result.vt_error              = vt_err
+                    result.vt_available = bool(vt_total > 0 and not vt_err)
                 result.scan_time_ms = (time.perf_counter() - t_start) * 1000
                 return result
 

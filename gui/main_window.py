@@ -1661,7 +1661,7 @@ class MainWindow(ctk.CTk):
 
         def _run():
             # VirusTotal: dùng cùng cài đặt Settings (virustotal.enabled / auto_check)
-            vt_on = bool(config.get("virustotal.enabled", False))
+            vt_on = bool(config.get("virustotal.enabled", True))
             vt_all = bool(config.get("virustotal.auto_check", False))
             self._scanner.scan(
                 directory=path,
@@ -1702,6 +1702,21 @@ class MainWindow(ctk.CTk):
         self.after(0, lambda: self._progress_bar.set_progress(current, total, elapsed))
         self.after(0, lambda: self._update_scan_stats())
         self.after(0, lambda: self._add_result_row(result))
+
+        # ── Log VirusTotal result khi có ──────────────────────────────────
+        if result.vt_available:
+            vt_msg = (
+                f"[VT] {result.filename}: {result.vt_detection_ratio} engines phát hiện"
+                + (f"  → {result.vt_permalink}" if result.vt_permalink else "")
+                + (" [cache]" if result.vt_from_cache else "")
+            )
+            if result.vt_malicious_count > 0:
+                self.after(0, lambda m=vt_msg: self._log("danger", m))
+            else:
+                self.after(0, lambda m=vt_msg: self._log("info", m))
+        elif result.vt_error and result.vt_error not in ("VT not configured", "Not found in VT"):
+            self.after(0, lambda e=result.vt_error, f=result.filename:
+                       self._log("warning", f"[VT] {f}: {e}"))
 
         # ── Route HIGH/CRITICAL results to Alerts tab ──────────────────────
         if result.risk_level in ("CRITICAL", "HIGH") and not result.error:
@@ -1810,12 +1825,73 @@ class MainWindow(ctk.CTk):
             f.pack_propagate(False)
             lbl = ctk.CTkLabel(f, text=text, font=("Consolas", 8), text_color=color, anchor="w")
             lbl.pack(pady=2, padx=4)
-            # Bind right click
+            # Bind right click (context menu) và double-click (chi tiết VT)
             lbl.bind("<Button-3>", lambda e, r=result: self._show_feedback_menu(e, r))
+            lbl.bind("<Double-Button-1>", lambda e, r=result: self._show_vt_detail(r))
             f.bind("<Button-3>", lambda e, r=result: self._show_feedback_menu(e, r))
+            f.bind("<Double-Button-1>", lambda e, r=result: self._show_vt_detail(r))
 
         row.bind("<Button-3>", lambda e, r=result: self._show_feedback_menu(e, r))
+        row.bind("<Double-Button-1>", lambda e, r=result: self._show_vt_detail(r))
         self._results_rows.append(row)
+
+    def _show_vt_detail(self, result: ScanResult):
+        """Hiển thị popup chi tiết kết quả VirusTotal cho một file."""
+        import tkinter as tk
+        win = tk.Toplevel(self)
+        win.title(f"Chi tiết VirusTotal — {result.filename}")
+        win.configure(bg=C["bg_dark"])
+        win.resizable(False, False)
+        win.geometry("520x380")
+
+        def lbl(parent, text, bold=False, color=None, size=9):
+            font = ("Consolas", size, "bold" if bold else "normal")
+            tk.Label(parent, text=text, font=font,
+                     bg=C["bg_dark"], fg=color or C["text"],
+                     anchor="w", wraplength=480).pack(anchor="w", padx=12, pady=1)
+
+        lbl(win, f"File: {result.filename}", bold=True, size=10)
+        lbl(win, f"SHA256: {result.sha256 or 'N/A'}", color=C["text_dim"], size=8)
+        tk.Frame(win, bg=C.get("border", "#333"), height=1).pack(fill="x", padx=12, pady=6)
+
+        if result.vt_available:
+            mal = result.vt_malicious_count
+            total = result.vt_total_engines
+            ratio_color = "#EF4444" if mal > 0 else C.get("green", "#22C55E")
+            lbl(win, f"Tỷ lệ phát hiện:  {result.vt_detection_ratio}  engines",
+                bold=True, color=ratio_color, size=11)
+            lbl(win, f"  • Malicious:    {mal}")
+            lbl(win, f"  • Suspicious:   {result.vt_suspicious_count}")
+            lbl(win, f"  • Từ cache:     {'Có' if result.vt_from_cache else 'Không'}", color=C["text_dim"])
+            tk.Frame(win, bg=C.get("border", "#333"), height=1).pack(fill="x", padx=12, pady=6)
+            if result.vt_permalink:
+                lbl(win, "Link VirusTotal:", bold=True)
+                link_lbl = tk.Label(win, text=result.vt_permalink,
+                                    font=("Consolas", 8), bg=C["bg_dark"],
+                                    fg="#3B82F6", cursor="hand2",
+                                    anchor="w", wraplength=490)
+                link_lbl.pack(anchor="w", padx=12)
+                link_lbl.bind("<Button-1>", lambda e, url=result.vt_permalink: __import__("webbrowser").open(url))
+        elif result.vt_error == "Not found in VT":
+            lbl(win, "Không tìm thấy trong cơ sở dữ liệu VirusTotal.", color="#F59E0B")
+            lbl(win, "(File chưa từng được upload lên VT)", color=C["text_dim"])
+        elif result.vt_error == "VT not configured":
+            lbl(win, "VirusTotal chưa được cấu hình.", color="#F59E0B")
+            lbl(win, "Vào Settings → Tích hợp VirusTotal → nhập API Key.", color=C["text_dim"])
+        elif result.vt_error:
+            lbl(win, f"Lỗi VirusTotal: {result.vt_error}", color="#EF4444")
+        else:
+            lbl(win, "VirusTotal chưa được truy vấn cho file này.", color=C["text_dim"])
+
+        tk.Frame(win, bg=C.get("border", "#333"), height=1).pack(fill="x", padx=12, pady=6)
+        lbl(win, f"Risk Level:  {result.risk_level}", bold=True,
+            color=RISK_COLORS.get(result.risk_level, C["text"]))
+        lbl(win, f"ML Score:    {result.probability * 100:.1f}%", color=C["text_dim"])
+        lbl(win, f"Entropy:     {result.entropy:.4f}", color=C["text_dim"])
+
+        tk.Button(win, text="Đóng", command=win.destroy,
+                  bg=C.get("accent", "#3B82F6"), fg="white",
+                  font=("Consolas", 9), relief="flat", padx=16, pady=4).pack(pady=12)
 
     def _show_feedback_menu(self, event, result: ScanResult):
         import tkinter as tk
