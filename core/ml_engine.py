@@ -667,38 +667,53 @@ class CalibratedMalwareDetector:
         min_precision: float = MIN_PRECISION
     ) -> Tuple[float, Dict]:
         """
-        Tìm threshold tối thiểu sao cho Precision ≥ min_precision.
+        Tìm threshold TỐI THIỂU sao cho Precision ≥ min_precision.
 
         Chiến lược:
         1. Tính Precision-Recall curve
-        2. Tìm threshold nhỏ nhất có Precision ≥ 0.95 (để tối đa hóa Recall)
-        3. Fallback về 0.65 nếu không tìm được
+        2. Tìm threshold NHỎ NHẤT (đầu tiên trong PR curve) có Precision ≥ 0.95
+           → tối đa hóa Recall tại mức precision chấp nhận được
+        3. Fallback về F1-max nếu không tìm được (precision thấp hơn target)
+        4. Không bao giờ thấp hơn DEFAULT_THRESHOLD (0.65)
+        5. Không bao giờ cao hơn 0.95 (threshold > 0.95 là dấu hiệu overfit)
+
+        Bug cũ: vòng lặp dùng `if f > best_f1` nên liên tục update khi model
+        overfit (precision=1.0, recall=1.0 ở mọi threshold) → chọn threshold
+        CAO NHẤT thay vì thấp nhất, dẫn đến optimal_threshold = 1.0.
 
         Returns: (optimal_threshold, {precision, recall, f1})
         """
         precisions, recalls, thresholds = precision_recall_curve(y_true, y_proba)
 
         # precisions[i] = precision khi threshold = thresholds[i]
-        # precisions có len = len(thresholds) + 1 (phần tử cuối = 1.0)
-        best_threshold = DEFAULT_THRESHOLD
-        best_f1        = 0.0
-        best_prec      = 0.0
-        best_rec       = 0.0
+        # precisions có len = len(thresholds) + 1 (phần tử cuối = 1.0, không có threshold tương ứng)
+        # sklearn trả về thresholds theo thứ tự TĂNG DẦN → index nhỏ = threshold thấp.
+        # Ta muốn threshold NHỎ NHẤT thỏa precision >= min_precision, nên dừng ngay khi tìm thấy lần đầu.
+        found_threshold = None
+        found_prec      = 0.0
+        found_rec       = 0.0
+        found_f1        = 0.0
 
         for i, t in enumerate(thresholds):
             p = precisions[i]
             r = recalls[i]
             if p >= min_precision and r > 0:
                 f = 2 * p * r / (p + r)
-                if f > best_f1:
-                    best_f1        = f
-                    best_threshold = float(t)
-                    best_prec      = float(p)
-                    best_rec       = float(r)
+                # Lấy threshold ĐẦU TIÊN (nhỏ nhất) thỏa điều kiện
+                found_threshold = float(t)
+                found_prec      = float(p)
+                found_rec       = float(r)
+                found_f1        = f
+                break  # dừng ngay — đây là threshold tối thiểu
 
-        # Nếu không tìm được threshold thỏa điều kiện → dùng default
-        if best_f1 == 0.0:
-            # Tìm threshold cho F1 max (thay thế)
+        if found_threshold is not None:
+            best_threshold = found_threshold
+            best_prec      = found_prec
+            best_rec       = found_rec
+            best_f1        = found_f1
+        else:
+            # Không tìm được threshold thỏa precision >= min_precision
+            # → fallback: chọn threshold cho F1-max
             f1_scores = np.where(
                 (precisions[:-1] + recalls[:-1]) > 0,
                 2 * precisions[:-1] * recalls[:-1] / (precisions[:-1] + recalls[:-1] + 1e-9),
@@ -709,7 +724,10 @@ class CalibratedMalwareDetector:
             best_prec      = float(precisions[best_idx])
             best_rec       = float(recalls[best_idx])
             best_f1        = float(f1_scores[best_idx])
-            best_threshold = max(best_threshold, DEFAULT_THRESHOLD)  # không thấp hơn default
+
+        # Clamp: không thấp hơn default, không cao hơn 0.95
+        # Threshold > 0.95 thực tế = overfit (không file nào đạt CRITICAL/HIGH).
+        best_threshold = float(np.clip(best_threshold, DEFAULT_THRESHOLD, 0.95))
 
         report = {
             "precision": round(best_prec, 4),
@@ -928,6 +946,89 @@ class CalibratedMalwareDetector:
 
         self._invalidate_model_versions_cache()
         return version
+
+    def train_from_csv(
+        self,
+        csv_path: str = "",
+        smote_strategy: str = "smote_tomek",
+        verbose: bool = True,
+    ) -> Dict:
+        """
+        Load features từ CSV rồi train model.
+
+        Ưu tiên:
+          1. ``csv_path`` nếu được truyền vào
+          2. ``data/real_dataset.csv`` (default)
+          3. ``data/synthetic_dataset_v2.csv`` (legacy fallback)
+
+        CSV phải có các cột features + cột ``label`` (0=SAFE, 1=ENCRYPTED).
+        Cột không phải feature/label được bỏ qua tự động.
+
+        Lý do tồn tại: ``train_model.py`` đã re-extract features từ PE files
+        thật vào CSV. Method này cho phép retrain nhanh từ CSV mà không cần
+        PE files gốc — hữu ích khi có ``real_dataset.csv`` sẵn có (4000+ rows)
+        nhưng không muốn chờ re-extract hàng giờ.
+
+        Returns: metrics dict (giống ``train()``).
+        Raises: ValueError nếu CSV không tìm thấy hoặc dataset rỗng.
+        """
+        # ── Tìm CSV ──
+        candidates = []
+        if csv_path:
+            candidates.append(csv_path)
+        candidates += [self._get_real_dataset_path(), self._get_synthetic_dataset_path()]
+
+        df: Optional[pd.DataFrame] = None
+        used_path = ""
+        for candidate in candidates:
+            if os.path.isfile(candidate):
+                try:
+                    df = pd.read_csv(candidate)
+                    used_path = candidate
+                    break
+                except Exception as exc:
+                    logger.warning("Cannot read CSV %s: %s", candidate, exc)
+
+        if df is None or df.empty:
+            raise ValueError(
+                f"Không tìm thấy CSV hợp lệ. Đã thử: {candidates}"
+            )
+
+        if verbose:
+            print(f"[MLEngine] train_from_csv: loaded {len(df)} rows from {used_path}")
+
+        # ── Tách X, y ──
+        if "label" not in df.columns:
+            raise ValueError(f"CSV '{used_path}' thiếu cột 'label'.")
+
+        # Chỉ lấy các feature columns đúng tên (theo FEATURE_NAMES)
+        feature_cols = [c for c in FEATURE_NAMES if c in df.columns]
+        if len(feature_cols) != N_FEATURES:
+            raise ValueError(
+                f"CSV có {len(feature_cols)}/{N_FEATURES} feature columns hợp lệ. "
+                f"Thiếu: {set(FEATURE_NAMES) - set(feature_cols)}"
+            )
+
+        X = df[feature_cols].values.astype(np.float32)
+        y = df["label"].values.astype(np.int32)
+
+        # Bỏ rows có NaN
+        valid_mask = ~np.any(np.isnan(X), axis=1)
+        X, y = X[valid_mask], y[valid_mask]
+
+        n_safe = int(np.sum(y == 0))
+        n_enc  = int(np.sum(y == 1))
+
+        if verbose:
+            print(f"[MLEngine] Dataset: {len(X)} samples (SAFE={n_safe}, ENCRYPTED={n_enc})")
+
+        if n_safe < 2 or n_enc < 2:
+            raise ValueError(
+                f"Dataset quá nhỏ hoặc mất cân bằng cực đoan: SAFE={n_safe}, ENCRYPTED={n_enc}. "
+                "Cần ít nhất 2 samples mỗi class."
+            )
+
+        return self.train(X, y, verbose=verbose, smote_strategy=smote_strategy)
 
 
 # ─── Feedback Loop Methods (v2.4) ─────────────────────────────────────────────
