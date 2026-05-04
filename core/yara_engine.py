@@ -29,7 +29,7 @@ Cài đặt yara-python (tùy chọn, hiệu năng tốt hơn):
 """
 
 import os
-from typing import TYPE_CHECKING, List, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, List, Dict, Optional, Tuple, Any
 import numpy as np
 
 # ─── Try import yara-python (optional) ───
@@ -817,6 +817,63 @@ class YaraEngine:
             }
             for sig in self._signatures
         ]
+
+    def load_external_rules_metadata(self, json_path: str = "data/yara_rules.json") -> Dict[str, Any]:
+        """
+        Load metadata của YARA rules từ file JSON bên ngoài.
+
+        File JSON có dạng: {"1": [{...}], "2": [{...}], ...}
+        Mỗi entry chứa: yara_rule_name, yara_rule_author, yara_rule_description, sample_cnt, last_hit_utc
+
+        Args:
+            json_path: Đường dẫn đến file JSON
+
+        Returns:
+            Dict với thông tin đã load và số lượng rules
+        """
+        import json
+        if not os.path.isfile(json_path):
+            return {"loaded": False, "error": f"File not found: {json_path}", "rules": []}
+
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            rules_metadata = []
+            for key, entries in data.items():
+                if entries and isinstance(entries, list):
+                    entry = entries[0]  # Mỗi key là list có 1 dict
+                    rules_metadata.append({
+                        "name": entry.get("yara_rule_name", "Unknown"),
+                        "author": entry.get("yara_rule_author") or "Unknown",
+                        "description": entry.get("yara_rule_description") or "No description",
+                        "sample_count": entry.get("sample_cnt", 0),
+                        "last_hit": entry.get("last_hit_utc", "Unknown"),
+                    })
+
+            # Lưu metadata để sử dụng sau
+            self._external_rules_metadata = rules_metadata
+            self._external_rules_count = len(rules_metadata)
+
+            return {
+                "loaded": True,
+                "count": len(rules_metadata),
+                "rules": rules_metadata[:10]  # Trả về 10 rules đầu làm preview
+            }
+        except Exception as e:
+            return {"loaded": False, "error": str(e), "rules": []}
+
+    def get_external_rules_info(self) -> List[Dict]:
+        """Trả về metadata của external YARA rules đã load."""
+        if hasattr(self, '_external_rules_metadata'):
+            return self._external_rules_metadata
+        return []
+
+    def get_external_rules_count(self) -> int:
+        """Trả về số lượng external rules đã load."""
+        if hasattr(self, '_external_rules_count'):
+            return self._external_rules_count
+        return 0
 
 
 # ─── Global singleton ───

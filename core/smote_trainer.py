@@ -127,15 +127,15 @@ class SMOTETrainer:
 
         if self.strategy == "none" or not IMBLEARN_AVAILABLE:
             if not IMBLEARN_AVAILABLE and self.strategy != "none":
-                print("[SMOTE] ⚠️  imbalanced-learn không khả dụng — bỏ qua SMOTE")
-                print("[SMOTE]    Cài đặt: pip install imbalanced-learn")
+                print("[SMOTE] [!] imbalanced-learn not available -- skipping SMOTE")
+                print("[SMOTE]     Install: pip install imbalanced-learn")
             return X, y
 
         # Chỉ áp dụng SMOTE nếu có imbalance đáng kể
         imbalance_ratio = min(n_safe, n_enc) / max(n_safe, n_enc)
         if imbalance_ratio > 0.9:
             if verbose:
-                print(f"[SMOTE] Dataset gần cân bằng (ratio={imbalance_ratio:.2f}) — bỏ qua")
+                print(f"[SMOTE] Dataset near balanced (ratio={imbalance_ratio:.2f}) -- skipping")
             return X, y
 
         # Tính số k_neighbors phù hợp (không vượt quá minority class size)
@@ -161,12 +161,12 @@ class SMOTETrainer:
             if verbose:
                 print(f"[SMOTE] After:  SAFE={n_safe_after}, ENCRYPTED={n_enc_after} "
                       f"(+{len(y_res)-total} synthetic samples)")
-                print("[SMOTE] ✅ Resampling hoàn tất")
+                print("[SMOTE] [OK] Resampling complete")
 
             return np.asarray(X_res), np.asarray(y_res)
 
         except Exception as e:
-            print(f"[SMOTE] ❌ Lỗi: {e} — trả về dataset gốc")
+            print(f"[SMOTE] [ERROR] {e} -- returning original dataset")
             return X, y
 
     def _build_sampler(self, k: int):

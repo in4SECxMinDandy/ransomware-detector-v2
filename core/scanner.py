@@ -24,6 +24,7 @@ import time
 import threading
 import json
 import base64
+import sqlite3
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List, Dict, Optional, Any
@@ -40,6 +41,22 @@ from core.logger_setup import get_logger
 from core.security_utils import atomic_write_json, compute_sha256, safe_read_json
 
 logger = get_logger("scanner")
+
+def _check_local_hash(sha256: str) -> bool:
+    """Tra cứu nhanh hash trong CSDL cục bộ O(1)."""
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data/malware_hashes.db")
+    if not os.path.exists(db_path):
+        return False
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM malicious_hashes WHERE hash = ?", (sha256.lower(),))
+        row = cursor.fetchone()
+        conn.close()
+        return bool(row)
+    except Exception:
+        return False
+
 
 # ─── Incremental Scan Cache ─────────────────────────────────────────────────
 
@@ -612,11 +629,50 @@ class Scanner:
                 result.scan_time_ms = (time.perf_counter() - t_start) * 1000
                 return result
 
+            # ── Bước 1.5: Local Hash DB Check (Siêu tốc O(1)) ──
+            if _check_local_hash(result.sha256):
+                result.label        = 1
+                result.probability  = 1.0
+                result.risk_level   = "CRITICAL"
+                result.fp_reason    = "local_hash_match"
+                result.scan_time_ms = (time.perf_counter() - t_start) * 1000
+                return result
+
             # ── Bước 2: Feature Extraction ──
             features = extract_features(file_path)
             if features is None:
                 result.error      = "Không thể trích xuất features"
                 result.risk_level = "UNKNOWN"
+                
+                # --- NEW: Fallback to VirusTotal if ML fails ---
+                if self._vt_enabled and result.sha256:
+                    result.vt_pending = True
+                    vt_mal, vt_susp, vt_total, vt_ratio, vt_perma, vt_cache, vt_err = \
+                        self._query_virustotal(result.sha256)
+                    result.vt_pending = False
+                    result.vt_malicious_count    = vt_mal
+                    result.vt_suspicious_count   = vt_susp
+                    result.vt_total_engines      = vt_total
+                    result.vt_detection_ratio    = vt_ratio
+                    result.vt_permalink          = vt_perma
+                    result.vt_from_cache         = vt_cache
+                    result.vt_error              = vt_err
+                    result.vt_available = bool(vt_total > 0 and not vt_err)
+
+                    if vt_mal >= self._vt_malicious_threshold:
+                        result.risk_level = "CRITICAL"
+                        result.label      = 1
+                        result.fp_reason = f"VT_fallback({vt_mal}/{vt_total})"
+                    elif vt_mal >= 1:
+                        result.risk_level = "HIGH"
+                        result.label      = 1
+                        result.fp_reason = f"VT_fallback_suspicious({vt_mal}/{vt_total})"
+                    elif vt_total > 0:
+                        result.risk_level = "SAFE"
+                        result.label      = 0
+                        result.fp_reason = f"VT_fallback_safe(0/{vt_total})"
+                
+                self._query_threat_intel(result)
                 result.scan_time_ms = (time.perf_counter() - t_start) * 1000
                 return result
             result.features_b64 = base64.b64encode(

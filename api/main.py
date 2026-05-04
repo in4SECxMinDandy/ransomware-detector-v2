@@ -38,9 +38,8 @@ from typing import Dict, Any, Deque
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
-
 # ─── Add project root to path ──────────────────────────────────────────────────
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -112,15 +111,25 @@ app = FastAPI(
 # enforcement will reject the response anyway, and any subdomain XSS becomes a CSRF).
 try:
     from core.config_manager import config as _config
-    _allowed_origins = _config.get("api.allowed_origins", ["http://localhost:3000"]) or []
+    _allowed_origins = _config.get(
+        "api.allowed_origins",
+        ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
+    ) or []
 except Exception:
-    _allowed_origins = ["http://localhost:3000"]
+    _allowed_origins = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
 
-if not _allowed_origins or _allowed_origins == ["*"]:
-    logger.warning(
-        "api.allowed_origins is empty or '*'; refusing wildcard CORS — "
-        "falling back to http://localhost:3000."
-    )
+# Allow 'null' origin so the UI can be opened directly as a local file (file://)
+_WEB_ORIGINS_EXTRA = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "null",  # file:// origin (local HTML open)
+]
+for _o in _WEB_ORIGINS_EXTRA:
+    if _o not in _allowed_origins:
+        _allowed_origins.append(_o)
+
+if not _allowed_origins:
+    logger.warning("api.allowed_origins is empty; falling back to localhost only.")
     _allowed_origins = ["http://localhost:3000"]
 
 app.add_middleware(
@@ -130,6 +139,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
+
+
+
 
 # ─── Rate limiter for /auth/token (defends against credential stuffing) ───────
 _AUTH_RATE_LIMIT_LOCK = threading.Lock()

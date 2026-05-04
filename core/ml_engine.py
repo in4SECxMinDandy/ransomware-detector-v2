@@ -333,7 +333,7 @@ class CalibratedMalwareDetector:
                 self._invalidate_model_versions_cache()
                 return True
             except Exception as e:
-                print(f"[MLEngine] Load model thất bại ({e}), sẽ retrain...")
+                print(f"[MLEngine] Load model failed ({e}), will retrain...")
                 self._train_default_model()
                 return False
         return False
@@ -412,7 +412,7 @@ class CalibratedMalwareDetector:
                 )
             elif verbose:
                 print(
-                    f"[MLEngine] Training fold đủ cân bằng (imbalance={imbalance:.2f}) — bỏ qua SMOTE"
+                    f"[MLEngine] Training fold balanced (imbalance={imbalance:.2f}) -- skipping SMOTE"
                 )
 
         if verbose:
@@ -452,7 +452,7 @@ class CalibratedMalwareDetector:
 
         if verbose:
             print(
-                f"[MLEngine] Training với class_weight={{0:{CLASS_WEIGHT_SAFE}, "
+                f"[MLEngine] Training with class_weight={{0:{CLASS_WEIGHT_SAFE}, "
                 f"1:{CLASS_WEIGHT_ENC}}} (cost-aware, FN-averse)..."
             )
 
@@ -541,13 +541,13 @@ class CalibratedMalwareDetector:
 
         if verbose:
             print(f"\n{'='*60}")
-            print(f"  [Test Set với threshold={opt_threshold:.3f}]")
+            print(f"  [Test Set with threshold={opt_threshold:.3f}]")
             print(f"  Accuracy     : {acc*100:.2f}%")
-            print(f"  Precision    : {prec*100:.2f}%  ← Mục tiêu ≥ 95%")
+            print(f"  Precision    : {prec*100:.2f}%  <- Target >= 95%")
             print(f"  Recall       : {rec*100:.2f}%")
             print(f"  F1-Score     : {f1*100:.2f}%")
             print(f"  AUC-ROC      : {auc*100:.2f}%")
-            print(f"  False Pos.Rate: {fpr*100:.2f}%  ← Mục tiêu < 5%")
+            print(f"  False Pos.Rate: {fpr*100:.2f}%  <- Target < 5%")
             print(f"  CV F1 5-fold : {cv_scores.mean()*100:.2f}% ± {cv_scores.std()*100:.2f}%")
             print("  Confusion Matrix:")
             print(f"    TN={tn}  FP={fp}")
@@ -606,7 +606,7 @@ class CalibratedMalwareDetector:
         # will be detected at load time.
         sidecar_hash = _write_model_hash_sidecar(model_path)
         if verbose:
-            print(f"[MLEngine] Model đã lưu: {model_path}")
+            print(f"[MLEngine] Model saved: {model_path}")
             if sidecar_hash:
                 print(f"[MLEngine] Integrity pin: {sidecar_hash}  → {model_path}.sha256")
 
