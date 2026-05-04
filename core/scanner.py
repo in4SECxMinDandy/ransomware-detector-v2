@@ -188,13 +188,27 @@ def apply_vt_risk_fusion(
     fusion_downgrade: bool,
     yara_boosted: bool,
     injection_found: bool,
+    yara_match_names: Optional[List[str]] = None,
 ) -> tuple[str, str]:
     """
     Khi VirusTotal có đủ engine và 0 malicious (đồng thuận sạch), hạ mức HIGH/CRITICAL
     do ML/heuristic để tránh FP kiểu installer hợp lệ bị CRITICAL.
 
-    Không hạ nếu có YARA boost hoặc PE injection — tín hiệu cục bộ mạnh hơn VT crowd.
+    Logic downgrade:
+    - Nếu VT hoàn toàn sạch (0 malicious, >= fusion_min_engines):
+      * YARA chỉ match Process_Injection (generic) → VT consensus mạnh hơn → DOWNGRADE
+      * YARA match ransomware-specific rules → GIỮ NGUYÊN (tin YARA hơn)
+    - injection_found (PE analysis) + VT sạch → vẫn DOWNGRADE về MEDIUM
+      (injection thông thường trong installer hợp lệ)
     """
+    # Các YARA rules đặc trưng ransomware — VT không thể override
+    _RANSOMWARE_SPECIFIC_RULES = {
+        "WannaCry_Magic", "LockBit_3_Marker", "BlackCat_ALPHV", "Ryuk_Marker",
+        "Clop_Marker", "REvil_Sodinokibi", "Conti_Marker", "Play_Marker",
+        "Rhysida_Marker", "Akira_Marker", "BianLian_Marker", "Medusa_Marker",
+        "Qilin_Marker", "Generic_RansomNote",
+    }
+
     if not fusion_downgrade:
         return risk_level, ""
     if risk_level not in ("HIGH", "CRITICAL"):
@@ -207,8 +221,17 @@ def apply_vt_risk_fusion(
         return risk_level, ""
     if vt_suspicious > fusion_max_suspicious:
         return risk_level, ""
-    if yara_boosted or injection_found:
-        return risk_level, ""
+
+    # Nếu YARA match rule ransomware-specific → không downgrade dù VT sạch
+    if yara_boosted and yara_match_names:
+        matched_ransomware = set(yara_match_names) & _RANSOMWARE_SPECIFIC_RULES
+        if matched_ransomware:
+            return risk_level, ""
+        # Chỉ match generic/injection rules + VT sạch → downgrade
+        return "MEDIUM", f" | VT_consensus_clean+generic_yara_only(downgrade)"
+
+    # injection_found nhưng VT sạch → downgrade (installer hợp lệ thường inject)
+    # yara_boosted=False, injection=False → downgrade bình thường
     return "MEDIUM", " | VT_consensus_clean(downgrade)"
 
 
@@ -705,6 +728,21 @@ class Scanner:
 
             # ── Heuristic signal (fast) ──
             ext = os.path.splitext(file_path)[1].lower()
+
+            # Model train trên PE files → score cao cho text/script là vô nghĩa.
+            # Cap probability cho các loại file không thể là ransomware payload.
+            _TEXT_LIKE_EXT = {
+                ".txt", ".md", ".csv", ".log", ".ini", ".cfg", ".conf",
+                ".json", ".xml", ".yaml", ".yml", ".toml", ".rst",
+                ".py", ".js", ".ts", ".html", ".css", ".sh", ".bat",
+                ".ps1", ".vbs", ".java", ".cpp", ".c", ".h", ".cs",
+                ".go", ".rb", ".php", ".pl", ".r", ".sql",
+            }
+            if ext in _TEXT_LIKE_EXT:
+                # Cap tại 0.45 (dưới threshold 0.65) trừ khi extension nghi ngờ
+                if ext not in SUSPICIOUS_EXTENSIONS:
+                    raw_proba = min(raw_proba, 0.45)
+                    result.raw_probability = raw_proba
             entropy_z = float(features[10]) if len(features) > 10 else 0.0
             compression_est = float(features[12]) if len(features) > 12 else 0.0
             structural_consistency = float(features[13]) if len(features) > 13 else 0.0
@@ -872,6 +910,7 @@ class Scanner:
                         result.fp_reason += f" | VT_suspicious({vt_mal}/{vt_total})"
 
                 # Gộp VT + ML: đồng thuận sạch → hạ CRITICAL/HIGH (tránh FP installer)
+                _yara_names = [m.rule_name for m in (result.yara_matches or [])]
                 new_risk, fusion_note = apply_vt_risk_fusion(
                     result.risk_level,
                     vt_malicious=vt_mal,
@@ -883,6 +922,7 @@ class Scanner:
                     fusion_downgrade=self._vt_fusion_downgrade,
                     yara_boosted=result.yara_boosted,
                     injection_found=injection_found,
+                    yara_match_names=_yara_names,
                 )
                 if fusion_note:
                     result.risk_level = new_risk

@@ -365,16 +365,24 @@ rule Process_Injection_Indicators
         family      = "Injection"
 
     strings:
+        // High-specificity injection APIs (not commonly used by legitimate installers)
         $api1 = "VirtualAllocEx" nocase
         $api2 = "WriteProcessMemory" nocase
         $api3 = "CreateRemoteThread" nocase
         $api4 = "NtCreateThreadEx" nocase
         $api5 = "SetThreadContext" nocase
-        $api6 = "ResumeThread" nocase
-        $api7 = "QueueUserAPC" nocase
+        $api6 = "QueueUserAPC" nocase
+        // Combination with hollow process pattern
+        $hollow1 = "NtUnmapViewOfSection" nocase
+        $hollow2 = "ZwUnmapViewOfSection" nocase
 
     condition:
-        uint16(0) == 0x5A4D and 3 of them
+        // Require MZ header AND 4+ APIs (raised from 3 to reduce FP on legit installers),
+        // OR at least 2 APIs + a hollow-process pattern
+        uint16(0) == 0x5A4D and (
+            4 of ($api*) or
+            (2 of ($api*) and 1 of ($hollow*))
+        )
 }
 """
 
