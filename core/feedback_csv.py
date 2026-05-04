@@ -28,6 +28,12 @@ FEEDBACK_TYPE_ALIASES = {
     "fp": "false_positive",
     "false_negative": "false_negative",
     "fn": "false_negative",
+    # Người dùng xác nhận thủ công từ kết quả quét → luôn là false_negative
+    # (model có thể đã nhận đúng, nhưng ta muốn reinforcement thêm vào training)
+    "confirmed_critical": "false_negative",
+    "confirmed_malware": "false_negative",
+    "confirmed_encrypted": "false_negative",
+    "user_confirmed": "false_negative",
 }
 
 LABEL_ALIASES = {

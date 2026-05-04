@@ -1030,9 +1030,33 @@ class MainWindow(ctk.CTk):
         results_card = ctk.CTkFrame(page, fg_color=C["bg_card"], corner_radius=8)
         results_card.pack(fill="both", expand=True, padx=8, pady=(4, 8))
 
-        ctk.CTkLabel(results_card, text="KẾT QUẢ QUÉT",
+        results_header = ctk.CTkFrame(results_card, fg_color="transparent")
+        results_header.pack(fill="x", padx=12, pady=(10, 0))
+
+        ctk.CTkLabel(results_header, text="KẾT QUẢ QUÉT",
                      font=("Consolas", 11, "bold"), text_color=C["accent"]
-                     ).pack(anchor="w", padx=12, pady=(10, 4))
+                     ).pack(side="left")
+
+        # Badge: số mẫu CRITICAL đã thêm vào training
+        self._training_count_var = ctk.StringVar(value="")
+        self._training_badge = ctk.CTkLabel(
+            results_header, textvariable=self._training_count_var,
+            font=("Consolas", 9, "bold"), text_color="#EF4444",
+            fg_color="#3F1010", corner_radius=6
+        )
+        self._training_badge.pack(side="left", padx=(10, 0))
+
+        # Nút Retrain ngay (hiện ra khi có mẫu mới)
+        self._btn_quick_retrain = ctk.CTkButton(
+            results_header, text="⚡ Retrain ngay",
+            font=("Consolas", 9, "bold"), height=26,
+            fg_color="#7C3AED", hover_color="#6D28D9",
+            command=self._quick_retrain_from_feedback
+        )
+        self._btn_quick_retrain.pack(side="right")
+        self._btn_quick_retrain.pack_forget()  # ẩn cho đến khi có mẫu
+
+        self._critical_training_count = 0  # counter nội bộ
 
         # Results treeview
         tree_frame = ctk.CTkFrame(results_card, fg_color=C["bg_dark"], corner_radius=6)
@@ -1889,19 +1913,37 @@ class MainWindow(ctk.CTk):
         lbl(win, f"ML Score:    {result.probability * 100:.1f}%", color=C["text_dim"])
         lbl(win, f"Entropy:     {result.entropy:.4f}", color=C["text_dim"])
 
-        tk.Button(win, text="Đóng", command=win.destroy,
+        btn_row = tk.Frame(win, bg=C["bg_dark"])
+        btn_row.pack(pady=12)
+        tk.Button(btn_row, text="🔴  Xác nhận CRITICAL + Training",
+                  command=lambda: [win.destroy(), self._mark_as_critical_training(result)],
+                  bg="#7F1D1D", fg="white",
+                  font=("Consolas", 9, "bold"), relief="flat", padx=14, pady=4
+                  ).pack(side="left", padx=(0, 8))
+        tk.Button(btn_row, text="Đóng", command=win.destroy,
                   bg=C.get("accent", "#3B82F6"), fg="white",
-                  font=("Consolas", 9), relief="flat", padx=16, pady=4).pack(pady=12)
+                  font=("Consolas", 9), relief="flat", padx=16, pady=4).pack(side="left")
 
     def _show_feedback_menu(self, event, result: ScanResult):
         import tkinter as tk
-        menu = tk.Menu(self, tearoff=0, bg=C["bg_dark"], fg=C["text"], activebackground=C["accent"])
+        menu = tk.Menu(self, tearoff=0, bg=C["bg_dark"], fg=C["text"],
+                       activebackground=C["accent"], font=("Consolas", 9))
+        # ── Xác nhận CRITICAL → đưa vào Training (ưu tiên hiển thị đầu) ──
+        menu.add_command(
+            label="🔴  Xác nhận CRITICAL — Thêm vào Training",
+            command=lambda: self._mark_as_critical_training(result),
+            foreground="#EF4444",
+        )
+        menu.add_separator()
         if result.label == 1:
             menu.add_command(label="Báo False Positive (đánh dấu SAFE)",
                              command=lambda: self._report_feedback(result, "SAFE"))
         else:
             menu.add_command(label="Báo False Negative (đánh dấu ENCRYPTED)",
                              command=lambda: self._report_feedback(result, "ENCRYPTED"))
+        menu.add_separator()
+        menu.add_command(label="Xem chi tiết VirusTotal (double-click)",
+                         command=lambda: self._show_vt_detail(result))
         menu.add_separator()
         menu.add_command(label="Hủy")
         menu.tk_popup(event.x_root, event.y_root)
@@ -1932,6 +1974,162 @@ class MainWindow(ctk.CTk):
             result.sha256, features, pred, correct_label, fb_type
         )
         messagebox.showinfo("Đã nhận feedback", f"Tệp '{result.filename}' đã được đánh dấu là {correct_label}.\nFeedback đã được gửi sang tab ML Training.")
+
+    # ─── CRITICAL Training Pipeline ─────────────────────────────────────────
+
+    def _mark_as_critical_training(self, result: ScanResult):
+        """
+        Xác nhận file là CRITICAL và thêm vào training dataset.
+
+        Thực hiện 3 bước:
+          1. Copy file PE vào datasets/prepared/external_pe/encrypted/ (nếu chưa có)
+          2. Add feedback sample ENCRYPTED vào feedback CSV
+          3. Cập nhật badge + hiện nút Retrain
+        """
+        import shutil
+        from pathlib import Path
+
+        if not result.path or not os.path.isfile(result.path):
+            messagebox.showerror(
+                "Lỗi", f"Không tìm thấy file:\n{result.path}"
+            )
+            return
+
+        # ── Bước 1: Extract features ──
+        features = None
+        if result.features_b64:
+            try:
+                features = get_engine().decode_serialized_features(result.features_b64)
+            except Exception:
+                pass
+        if features is None:
+            from core.feature_extractor import extract_features
+            features = extract_features(result.path)
+        if features is None:
+            messagebox.showerror(
+                "Lỗi Features",
+                f"Không thể trích xuất features từ:\n{result.filename}\n\n"
+                "File có thể bị hỏng hoặc không phải PE hợp lệ."
+            )
+            return
+
+        # ── Bước 2: Copy file vào encrypted/ dataset ──
+        malware_dir = Path(__file__).resolve().parent.parent / \
+            "datasets" / "prepared" / "external_pe" / "encrypted"
+        malware_dir.mkdir(parents=True, exist_ok=True)
+
+        sha256 = result.sha256 or ""
+        dest_name = f"{sha256}.exe" if sha256 else result.filename
+        dest_path = malware_dir / dest_name
+        copied = False
+        if not dest_path.exists():
+            try:
+                shutil.copy2(result.path, dest_path)
+                copied = True
+            except Exception as e:
+                self._log("warning", f"[Training] Không copy được file: {e}")
+
+        # ── Bước 3: Add feedback sample ENCRYPTED ──
+        if hasattr(self, "_ml_training_tab") and self._ml_training_tab:
+            self._ml_training_tab.add_feedback(
+                sha256 or result.filename,
+                features,
+                "ENCRYPTED" if result.label == 1 else "SAFE",
+                "ENCRYPTED",
+                "confirmed_critical",
+            )
+        else:
+            # Fallback: ghi thẳng vào engine
+            try:
+                get_engine().add_feedback_sample(
+                    file_hash=sha256 or result.filename,
+                    features=features,
+                    predicted_label="ENCRYPTED" if result.label == 1 else "SAFE",
+                    feedback_label="ENCRYPTED",
+                    feedback_type="confirmed_critical",
+                )
+            except Exception as e:
+                self._log("warning", f"[Training] Lưu feedback thất bại: {e}")
+
+        # ── Bước 4: Cập nhật UI counter + nút Retrain ──
+        self._critical_training_count += 1
+        self._training_count_var.set(
+            f"  +{self._critical_training_count} mẫu CRITICAL  "
+        )
+        self._training_badge.pack(side="left", padx=(10, 0))
+        self._btn_quick_retrain.pack(side="right")
+
+        # Log
+        status = "đã copy" if copied else "đã có trong dataset"
+        self._log(
+            "danger",
+            f"[Training] CRITICAL xác nhận: {result.filename} "
+            f"({status}) — tổng {self._critical_training_count} mẫu mới"
+        )
+
+        # Thông báo nhỏ không chặn UI
+        self.after(0, lambda: messagebox.showinfo(
+            "Đã thêm vào Training",
+            f"✅  File '{result.filename}' đã được xác nhận CRITICAL.\n\n"
+            f"{'📁  Đã copy vào encrypted/ dataset.' + chr(10) if copied else ''}"
+            f"📊  Feedback ENCRYPTED đã lưu vào CSV.\n\n"
+            f"Tổng mẫu mới trong phiên này: {self._critical_training_count}\n\n"
+            f"Nhấn  ⚡ Retrain ngay  để cập nhật model.",
+        ))
+
+    def _quick_retrain_from_feedback(self):
+        """Retrain model ngay lập tức với feedback samples đã tích lũy."""
+        if self._critical_training_count == 0:
+            messagebox.showinfo("Thông báo", "Chưa có mẫu CRITICAL mới nào được thêm.")
+            return
+
+        if not messagebox.askyesno(
+            "Xác nhận Retrain",
+            f"Bắt đầu retrain model với {self._critical_training_count} mẫu CRITICAL mới?\n\n"
+            "Model hiện tại sẽ được backup trước khi retrain.\n"
+            "Quá trình này có thể mất 1-3 phút.",
+            icon="warning",
+        ):
+            return
+
+        self._btn_quick_retrain.configure(state="disabled", text="⏳ Đang retrain...")
+        self._log("info", f"[Retrain] Bắt đầu retrain với {self._critical_training_count} mẫu mới...")
+
+        def _run_retrain():
+            try:
+                result = get_engine().retrain_with_feedback()
+                if result.get("success"):
+                    acc = result.get("new_accuracy", 0)
+                    prev = result.get("previous_accuracy", 0)
+                    n = result.get("total_training_samples", 0)
+                    msg = (
+                        f"✅  Retrain thành công!\n\n"
+                        f"Accuracy mới:      {acc*100:.2f}%\n"
+                        f"Accuracy trước:    {prev*100:.2f}%\n"
+                        f"Tổng mẫu train:    {n}\n"
+                        f"Thời gian:         {result.get('training_time_seconds', 0):.1f}s"
+                    )
+                    self._log("success", f"[Retrain] Hoàn tất — Accuracy: {acc*100:.2f}%")
+                    self.after(0, lambda: messagebox.showinfo("Retrain xong", msg))
+                    # Reset counter
+                    self._critical_training_count = 0
+                    self.after(0, lambda: self._training_count_var.set(""))
+                    self.after(0, lambda: self._training_badge.pack_forget())
+                    self.after(0, lambda: self._btn_quick_retrain.pack_forget())
+                else:
+                    err = result.get("error", "Không rõ lỗi")
+                    self._log("danger", f"[Retrain] Thất bại: {err}")
+                    self.after(0, lambda: messagebox.showerror("Retrain thất bại", err))
+            except Exception as e:
+                self._log("danger", f"[Retrain] Exception: {e}")
+                self.after(0, lambda: messagebox.showerror("Lỗi Retrain", str(e)))
+            finally:
+                self.after(0, lambda: self._btn_quick_retrain.configure(
+                    state="normal", text="⚡ Retrain ngay"
+                ))
+
+        import threading
+        threading.Thread(target=_run_retrain, daemon=True).start()
 
     def _update_scatter_chart(self):
         if not self._scan_entropy_data:
