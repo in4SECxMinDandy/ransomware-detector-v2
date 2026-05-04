@@ -1,23 +1,17 @@
 """
 core.logging_setup
 ==================
-Centralised logging configuration with optional structured JSON output
-(audit P3 — DevOps & Observability).
+Centralised logging configuration with optional structured JSON output.
 
-Why
----
-Plain-text logs are fine for local development but they make SIEM ingestion
-(Elastic, Splunk, Loki) painful: every parser needs custom regex per line
-format.  Setting ``RANSOMWARE_LOG_FORMAT=json`` switches the root handler to
-emit one JSON object per line with fixed keys, keeping all existing
-``logging.getLogger(__name__)`` calls unchanged.
+.. deprecated::
+    The canonical import surface is now ``core.logger_setup`` which re-exports
+    everything from this module. New code should use::
 
-Usage
------
-At application startup (``main.py``, ``api/main.py``, ``train_model.py``)::
+        from core.logger_setup import configure_logging, JsonFormatter
 
-    from core.logging_setup import configure_logging
-    configure_logging()
+    This module is kept for backward compatibility (``tests/test_logging_setup.py``
+    and any external code that imports from here directly). It will not be removed
+    but will receive no new features.
 
 Environment variables
 ---------------------
@@ -25,12 +19,6 @@ Environment variables
 ``RANSOMWARE_LOG_FORMAT``  — ``json`` or ``text`` (default: text).
 ``RANSOMWARE_LOG_FILE``    — optional path; when set, logs are also written
                               to that file with rotation.
-
-Notes
------
-Implemented purely with the stdlib so we do not pull in another runtime
-dependency. ``structlog`` would be a richer alternative but adds 1.5 MiB to
-the install footprint for a feature most users will never enable.
 """
 
 from __future__ import annotations

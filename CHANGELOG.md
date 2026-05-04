@@ -8,6 +8,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `.gitattributes` with Git LFS tracking rules for binary files
+  (`.joblib`, `.db`, `.quarantined`, `.mp4`, `.msi`, `.elf`).
+  `models/rf_ransomware_detector.joblib` converted to LFS pointer.
+- `AGENTS.md` — project build/test/lint commands and conventions for
+  AI coding assistants.
+- Global per-IP sliding-window rate limiter for all API endpoints
+  (`api.global_rate_limit_per_minute`, default 120/min). Health and
+  ping probes are excluded.
+- `api.cors_allow_null_origin` config flag (default `false`) — the
+  `"null"` CORS origin (file:// protocol) is now opt-in, not always
+  present.
+- `core.scanner.TEXT_FILE_PROB_CAP`, `KNOWN_FORMAT_DISCOUNT`,
+  `INJECTION_BOOST` named constants replace inline magic numbers.
+- `Scanner._apply_vt_results()` helper eliminates three identical
+  ~12-line VT assignment blocks in `_scan_single_file`.
+- Thread-local SQLite connection pool in `core/scanner.py` for the
+  malware hash DB lookup — each worker thread opens one connection
+  and reuses it for the entire scan instead of open/close per file.
+- `_sanitize_record_paths()` in `training_dataset_builder.py` — paths
+  stored in `scan_history.jsonl` are now basename-only (no user home
+  directory or username in the file).
+- `scripts/cmd/` directory: root-level `.cmd`/`.bat` wrapper scripts
+  moved here for a cleaner root.
+- `scripts/dev/manual_tests/` directory: root-level ad-hoc test
+  scripts moved here (excluded from pytest discovery).
+
+### Changed
+- `core/logger_setup.py` now re-exports `configure_logging` and
+  `JsonFormatter` from `core/logging_setup.py`. All new code can
+  import from a single surface (`core.logger_setup`).
+- `core/logging_setup.py` docstring updated to mark `logger_setup` as
+  the canonical import path; module kept for backward compatibility.
+- `core/ml_engine.py`: replaced blanket `warnings.filterwarnings("ignore")`
+  with targeted filters for sklearn `UserWarning` / `ConvergenceWarning`.
+- `core/smote_trainer.py`: replaced blanket suppress with targeted
+  imblearn `UserWarning` filters.
+- `data/config.json.template`: fixed `default_threshold`
+  floating-point artifact (`0.6000000000000001` → `0.65`), corrected
+  `class_weight_enc` to `10.0` (was `1.0`, inconsistent with code).
+- `data/config.json`: `class_weight_enc` corrected to `10.0`.
+- `core/__init__.py`: `__version__` bumped to `2.0.0`.
+- Moved `malware_analysis.json` and `pkg_list.txt` from repo root into
+  `data/` directory.
+
+### Removed
+- Untracked `Malware/`, `quarantine/`, and `ransomeware/` directories
+  from the git index (contained live malware and quarantined
+  executables that must never be committed).
+- `files_to_delete.txt` (stale 3 453-line list) deleted from repo.
+- Root-level `.cmd`/`.bat` scripts removed from root (moved to
+  `scripts/cmd/`).
+- Root-level `test_*.py` smoke scripts removed from root (moved to
+  `scripts/dev/manual_tests/`).
+
+### Fixed
+- `api/main.py`: `"null"` CORS origin no longer unconditionally added
+  (set `api.cors_allow_null_origin=true` for local file:// dev use).
+
+---
+
+### Added (previous sprint — preserved)
 - `scripts/dev/` package with curated diagnostic helpers:
   `probe_threat_intel.py`, `check_config.py`, `check_git_tracking.py`,
   `run_pytest_capture.py`, `gui_diagnostic.py`. All probes load API

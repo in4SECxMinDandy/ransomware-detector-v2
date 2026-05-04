@@ -107,8 +107,30 @@ def _extract_features_with_original_name(file_path: str, original_name: str) -> 
                 pass
 
 
+def _sanitize_record_paths(record: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Redact personally-identifiable filesystem paths from a scan record before
+    persisting it to disk.
+
+    The ``path`` field is replaced with just the filename (basename) so the
+    JSONL file can be shared without leaking home-directory structure or user
+    names. The original SHA-256 is kept for deduplication; the ``filename``
+    field is unchanged because it contains no directory component.
+    """
+    sanitized = dict(record)
+    raw_path: str = sanitized.get("path", "")
+    if raw_path:
+        # Keep only the final filename component — strip all directory info.
+        sanitized["path"] = os.path.basename(raw_path)
+    return sanitized
+
+
 def record_scan_history(results: List[Any], scan_mode: str, target_count: int = 0, history_path: str = SCAN_HISTORY_PATH) -> int:
-    """Persist scan results to JSONL for future auto-labeling."""
+    """Persist scan results to JSONL for future auto-labeling.
+
+    Paths are sanitized (basename only) before writing so the history file
+    does not leak personal directory structure or user names.
+    """
     path = resolve_path(history_path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     scan_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
@@ -122,7 +144,7 @@ def record_scan_history(results: List[Any], scan_mode: str, target_count: int = 
                 "source": "scan_history",
                 "scan_mode": scan_mode,
                 "target_count": target_count,
-                "record": record,
+                "record": _sanitize_record_paths(record),
             }
             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
             count += 1

@@ -39,7 +39,7 @@ models/*.joblib
 models/model_metadata*.json
 !models/rf_ransomware_detector.joblib
 
-# Malware/Decoy files
+# Malware/Decoy files (untracked — kept local only)
 Malware/
 ransomeware/
 *.elf
@@ -65,3 +65,14 @@ reports/*.png
 reports/*.pdf
 reports/*.json
 !reports/.gitkeep
+
+# Root-level data files that have been moved to data/
+# (keep rules here so old paths are still ignored if they reappear)
+malware_analysis.json
+pkg_list.txt
+full.csv
+ransomware_files.txt
+
+# scripts/cmd — batch scripts (tracked but not needed in CI artefacts)
+# scripts/dev/manual_tests — manual smoke tests, not part of pytest suite
+

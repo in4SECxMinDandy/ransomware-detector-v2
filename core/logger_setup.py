@@ -7,8 +7,15 @@ Replaces all ad-hoc `print()` statements across the codebase.
 Provides:
   - Console handler (WARNING+)
   - File handler with rotation (DEBUG+, 5MB × 3 backups)
-  - Per-module loggers
-  - Color-coded console output (when attached to TTY)
+  - Per-module loggers (``get_logger``)
+  - Color-coded console output (when attached to a TTY)
+  - JSON SIEM output when ``RANSOMWARE_LOG_FORMAT=json`` (via ``JsonFormatter``
+    and ``configure_logging`` from the companion ``logging_setup`` module which
+    this module fully absorbs for a single import surface).
+
+Unified API — callers can import everything from *either* module:
+    from core.logger_setup import get_logger, setup_logging
+    from core.logger_setup import configure_logging, JsonFormatter  # SIEM helpers
 
 Usage:
     from core.logger_setup import get_logger
@@ -195,3 +202,35 @@ def install_excepthook():
         sys.__excepthook__(type_, value, tb)
 
     sys.excepthook = hook
+
+
+# ─── Unified surface: re-export SIEM helpers from logging_setup ──────────────
+# This makes ``core.logger_setup`` the single import point for all logging
+# needs. Callers that previously imported from ``core.logging_setup`` can
+# switch to ``core.logger_setup`` without any behaviour change.
+
+try:
+    from core.logging_setup import JsonFormatter, configure_logging  # noqa: F401 (re-export)
+except Exception:
+    # Fallback stubs so the rest of the codebase never sees an ImportError
+    # even if logging_setup has a dependency problem in certain environments.
+    class JsonFormatter(logging.Formatter):  # type: ignore[no-redef]
+        """Stub JSON formatter (logging_setup unavailable)."""
+
+    def configure_logging(**kwargs) -> None:  # type: ignore[misc]
+        """Stub configure_logging (logging_setup unavailable)."""
+        setup_logging()
+
+
+__all__ = [
+    "get_logger",
+    "setup_logging",
+    "install_excepthook",
+    "configure_logging",
+    "JsonFormatter",
+    "info",
+    "warning",
+    "error",
+    "debug",
+    "critical",
+]

@@ -118,12 +118,20 @@ try:
 except Exception:
     _allowed_origins = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
 
-# Allow 'null' origin so the UI can be opened directly as a local file (file://)
+# Append safe localhost origins used by the bundled web dashboard.
+# The "null" origin (file:// protocol) is only permitted in dev/debug mode
+# (api.cors_allow_null_origin=true in config) to avoid exposing the API to
+# crafted pages that can synthesise a null Origin header.
 _WEB_ORIGINS_EXTRA = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "null",  # file:// origin (local HTML open)
 ]
+try:
+    _allow_null = bool(_config.get("api.cors_allow_null_origin", False))
+except Exception:
+    _allow_null = False
+if _allow_null:
+    _WEB_ORIGINS_EXTRA.append("null")  # file:// origin — dev only
 for _o in _WEB_ORIGINS_EXTRA:
     if _o not in _allowed_origins:
         _allowed_origins.append(_o)
@@ -141,6 +149,52 @@ app.add_middleware(
 )
 
 
+
+# ─── Global per-IP rate limiter (sliding window, all authenticated endpoints) ─
+#
+# Defends against brute-force and DoS from a single source. The limit is
+# intentionally generous (default 120 req/min) so normal UI usage is never
+# affected; tighten via ``api.global_rate_limit_per_minute`` in config.
+#
+# The auth endpoint keeps its own stricter limiter (10 req/min) below.
+_GLOBAL_RATE_LIMIT_LOCK = threading.Lock()
+_GLOBAL_RATE_LIMIT_HITS: Dict[str, Deque[float]] = collections.defaultdict(collections.deque)
+_RATE_LIMIT_WINDOW_S = 60.0
+
+
+def _enforce_global_rate_limit(request: Request) -> None:
+    """Sliding-window per-IP global rate limiter (applied via middleware)."""
+    try:
+        from core.config_manager import config as _cfg
+        per_minute = int(_cfg.get("api.global_rate_limit_per_minute", 120))
+    except Exception:
+        per_minute = 120
+    if per_minute <= 0:
+        return  # disabled
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    with _GLOBAL_RATE_LIMIT_LOCK:
+        bucket = _GLOBAL_RATE_LIMIT_HITS[client_ip]
+        cutoff = now - _RATE_LIMIT_WINDOW_S
+        while bucket and bucket[0] < cutoff:
+            bucket.popleft()
+        if len(bucket) >= per_minute:
+            retry_after = int(_RATE_LIMIT_WINDOW_S - (now - bucket[0])) + 1
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded; too many requests.",
+                headers={"Retry-After": str(retry_after)},
+            )
+        bucket.append(now)
+
+
+@app.middleware("http")
+async def global_rate_limit_middleware(request: Request, call_next):
+    """Apply global per-IP rate limiting to all non-health endpoints."""
+    # Skip health/ping — they must always respond for load-balancer probes.
+    if request.url.path not in ("/health", "/ping", "/"):
+        _enforce_global_rate_limit(request)
+    return await call_next(request)
 
 
 # ─── Rate limiter for /auth/token (defends against credential stuffing) ───────

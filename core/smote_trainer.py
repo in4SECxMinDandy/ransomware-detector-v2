@@ -25,7 +25,13 @@ import numpy as np
 import warnings
 from typing import TYPE_CHECKING, Tuple, Dict
 
-warnings.filterwarnings("ignore")
+# Suppress imbalanced-learn warnings that are expected when SMOTE operates on
+# small datasets (e.g. k_neighbors > minority class size). These are benign in
+# the project context. A blanket "ignore" was used before; now we only silence
+# the specific message patterns to keep other warnings visible.
+warnings.filterwarnings("ignore", message=".*n_neighbors.*")
+warnings.filterwarnings("ignore", message=".*The number of samples.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="imblearn")
 
 # ─── Try import imbalanced-learn ───
 if TYPE_CHECKING:

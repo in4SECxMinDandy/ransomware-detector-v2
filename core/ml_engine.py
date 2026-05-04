@@ -64,7 +64,15 @@ from core.feedback_csv import (
 from core.security_utils import compute_sha256
 
 logger = logging.getLogger("core.ml_engine")
-warnings.filterwarnings("ignore")
+
+# Suppress specific sklearn warnings that are expected and benign in production:
+#   - UndefinedMetricWarning: fires on tiny/synthetic datasets during threshold search
+#   - ConvergenceWarning: calibration can hit iteration limits on small samples
+# Using targeted filters instead of the blanket "ignore" to preserve visibility
+# into genuine problems (e.g. deprecation warnings from dependency upgrades).
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+warnings.filterwarnings("ignore", message=".*UndefinedMetricWarning.*")
+warnings.filterwarnings("ignore", message=".*ConvergenceWarning.*")
 
 
 # ─── Model integrity verification ────────────────────────────────────────────

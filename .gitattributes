@@ -1,20 +1,23 @@
 # Git LFS tracking for large binary files
-# NOTE: Existing large files in history require 'git lfs migrate import'
-#       to be fully moved into LFS. This config prevents new files from
-#       bloating the repository.
+# NOTE: To apply LFS to EXISTING tracked files, run:
+#       git lfs migrate import --include="*.db,*.joblib,*.mp4,*.msi,*.elf,*.quarantined,*.sha256.txt,full.csv/**"
+#       This REWRITES history — coordinate with team before running.
+#
+# The rules below apply ONLY to NEW files added after this commit.
+# Existing tracked files remain as-is until migration is run.
 
-# Database & hash stores
+# Database & hash stores (new files only)
 *.db filter=lfs diff=lfs merge=lfs -text
-# ML model artifacts
+# ML model artifacts (new files only)
 *.joblib filter=lfs diff=lfs merge=lfs -text
 *.pkl filter=lfs diff=lfs merge=lfs -text
 *.pickle filter=lfs diff=lfs merge=lfs -text
-# Quarantine / malware samples
+# Quarantine / malware samples (new files only)
 *.quarantined filter=lfs diff=lfs merge=lfs -text
 *.elf filter=lfs diff=lfs merge=lfs -text
-# Media & installers
+# Media & installers (new files only)
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.msi filter=lfs diff=lfs merge=lfs -text
-# Large text datasets
+# Large text datasets (new files only)
 *.sha256.txt filter=lfs diff=lfs merge=lfs -text
 full.csv/** filter=lfs diff=lfs merge=lfs -text

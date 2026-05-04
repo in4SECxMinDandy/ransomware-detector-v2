@@ -42,19 +42,63 @@ from core.security_utils import atomic_write_json, compute_sha256, safe_read_jso
 
 logger = get_logger("scanner")
 
-def _check_local_hash(sha256: str) -> bool:
-    """Tra cứu nhanh hash trong CSDL cục bộ O(1)."""
-    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data/malware_hashes.db")
+# ─── SQLite thread-local connection pool for the malware hash DB ─────────────
+#
+# The previous implementation opened and closed a new sqlite3.Connection on
+# every call, which is expensive (disk seek + file open) at 8 threads × N
+# files/sec. Using thread-local storage gives each worker thread its own
+# persistent connection that is opened once and reused for the whole scan.
+#
+# sqlite3.connect() with check_same_thread=False would allow sharing across
+# threads but sqlite3 recommends per-thread connections for multi-threaded
+# readers. Thread-local is the safe, idiomatic choice.
+
+_HASH_DB_TLS = threading.local()
+_HASH_DB_PATH: Optional[str] = None
+
+
+def _get_hash_db_path() -> str:
+    global _HASH_DB_PATH
+    if _HASH_DB_PATH is None:
+        _HASH_DB_PATH = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "malware_hashes.db",
+        )
+    return _HASH_DB_PATH
+
+
+def _get_hash_db_conn() -> Optional[sqlite3.Connection]:
+    """Return (or lazily open) the thread-local DB connection."""
+    conn: Optional[sqlite3.Connection] = getattr(_HASH_DB_TLS, "conn", None)
+    if conn is not None:
+        return conn
+    db_path = _get_hash_db_path()
     if not os.path.exists(db_path):
+        return None
+    try:
+        conn = sqlite3.connect(db_path, check_same_thread=True, timeout=5)
+        # WAL mode allows concurrent readers without blocking each other.
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        _HASH_DB_TLS.conn = conn
+        return conn
+    except Exception:
+        return None
+
+
+def _check_local_hash(sha256: str) -> bool:
+    """Lookup hash in the local malware DB using a thread-local connection (O(1))."""
+    conn = _get_hash_db_conn()
+    if conn is None:
         return False
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM malicious_hashes WHERE hash = ?", (sha256.lower(),))
-        row = cursor.fetchone()
-        conn.close()
-        return bool(row)
+        cursor = conn.execute(
+            "SELECT 1 FROM malicious_hashes WHERE hash = ?", (sha256.lower(),)
+        )
+        return cursor.fetchone() is not None
     except Exception:
+        # Connection may be stale; clear it so the next call re-opens it.
+        _HASH_DB_TLS.conn = None
         return False
 
 
@@ -175,6 +219,23 @@ MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024  # 2 GB
 MIN_FILE_SIZE = 64                        # 64 bytes
 MAX_THREADS   = 8
 
+# ─── Inline probability adjustment constants ─────────────────────────────────
+# Centralised here so they are easy to tune and won't drift across the file.
+
+# Maximum probability assigned to text-like source files (py, js, csv …)
+# that the RF model was NOT trained on — avoids spurious HIGH scores for code.
+TEXT_FILE_PROB_CAP: float = 0.45
+
+# Discount multiplier for files whose magic bytes confirm a known high-entropy
+# format (PNG, ZIP, MP4 …). The model was trained predominantly on PE files so
+# its raw score for compressed/media is unreliable; this pulls it back down.
+KNOWN_FORMAT_DISCOUNT: float = 0.65
+
+# Extra boost added to the heuristic signal when PE injection indicators are
+# found (RWX sections, suspicious imports). Higher than the standard boost
+# because injection is a strong and specific ransomware indicator.
+INJECTION_BOOST: float = 0.20
+
 
 def apply_vt_risk_fusion(
     risk_level: str,
@@ -222,8 +283,13 @@ def apply_vt_risk_fusion(
     if vt_suspicious > fusion_max_suspicious:
         return risk_level, ""
 
-    # Nếu YARA match rule ransomware-specific → không downgrade dù VT sạch
-    if yara_boosted and yara_match_names:
+    # Nếu YARA match rule ransomware-specific → không downgrade dù VT sạch.
+    # Khi yara_boosted=True nhưng yara_match_names không có (None/empty),
+    # ta không biết rule nào match → fail-safe: không downgrade.
+    if yara_boosted:
+        if not yara_match_names:
+            # Unknown YARA match — play it safe, keep original risk.
+            return risk_level, ""
         matched_ransomware = set(yara_match_names) & _RANSOMWARE_SPECIFIC_RULES
         if matched_ransomware:
             return risk_level, ""
@@ -539,6 +605,28 @@ class Scanner:
         except Exception as e:
             result.ti_error = str(e)[:100]
 
+    def _apply_vt_results(self, result: "ScanResult", sha256: str) -> None:
+        """Query VirusTotal and write all VT fields onto *result* in-place.
+
+        Extracted from the three call-sites in ``_scan_single_file`` that each
+        previously duplicated the same ~12-line assignment block.  Callers are
+        responsible for deciding *whether* to call this method (i.e. checking
+        ``self._vt_enabled`` and ``should_vt`` flags); this method only handles
+        the *how*.
+        """
+        result.vt_pending = True
+        vt_mal, vt_susp, vt_total, vt_ratio, vt_perma, vt_cache, vt_err = \
+            self._query_virustotal(sha256)
+        result.vt_pending           = False
+        result.vt_malicious_count   = vt_mal
+        result.vt_suspicious_count  = vt_susp
+        result.vt_total_engines     = vt_total
+        result.vt_detection_ratio   = vt_ratio
+        result.vt_permalink         = vt_perma
+        result.vt_from_cache        = vt_cache
+        result.vt_error             = vt_err
+        result.vt_available         = bool(vt_total > 0 and not vt_err)
+
     def _compute_sha256(self, file_path: str) -> str:
         """Compute SHA256 of a file (streaming)."""
         return compute_sha256(file_path)
@@ -662,18 +750,7 @@ class Scanner:
                 ext = os.path.splitext(file_path)[1].lower()
                 binary_vt = ext in VT_BINARY_EXTENSIONS and self._vt_check_binaries
                 if self._vt_enabled and (self._vt_auto_check or binary_vt) and result.sha256:
-                    result.vt_pending = True
-                    vt_mal, vt_susp, vt_total, vt_ratio, vt_perma, vt_cache, vt_err = \
-                        self._query_virustotal(result.sha256)
-                    result.vt_pending = False
-                    result.vt_malicious_count    = vt_mal
-                    result.vt_suspicious_count   = vt_susp
-                    result.vt_total_engines      = vt_total
-                    result.vt_detection_ratio    = vt_ratio
-                    result.vt_permalink          = vt_perma
-                    result.vt_from_cache         = vt_cache
-                    result.vt_error              = vt_err
-                    result.vt_available = bool(vt_total > 0 and not vt_err)
+                    self._apply_vt_results(result, result.sha256)
                 result.scan_time_ms = (time.perf_counter() - t_start) * 1000
                 return result
 
@@ -685,19 +762,9 @@ class Scanner:
                 
                 # --- NEW: Fallback to VirusTotal if ML fails ---
                 if self._vt_enabled and result.sha256:
-                    result.vt_pending = True
-                    vt_mal, vt_susp, vt_total, vt_ratio, vt_perma, vt_cache, vt_err = \
-                        self._query_virustotal(result.sha256)
-                    result.vt_pending = False
-                    result.vt_malicious_count    = vt_mal
-                    result.vt_suspicious_count   = vt_susp
-                    result.vt_total_engines      = vt_total
-                    result.vt_detection_ratio    = vt_ratio
-                    result.vt_permalink          = vt_perma
-                    result.vt_from_cache         = vt_cache
-                    result.vt_error              = vt_err
-                    result.vt_available = bool(vt_total > 0 and not vt_err)
-
+                    self._apply_vt_results(result, result.sha256)
+                    vt_mal   = result.vt_malicious_count
+                    vt_total = result.vt_total_engines
                     if vt_mal >= self._vt_malicious_threshold:
                         result.risk_level = "CRITICAL"
                         result.label      = 1
@@ -739,9 +806,9 @@ class Scanner:
                 ".go", ".rb", ".php", ".pl", ".r", ".sql",
             }
             if ext in _TEXT_LIKE_EXT:
-                # Cap tại 0.45 (dưới threshold 0.65) trừ khi extension nghi ngờ
+                # Cap below threshold (TEXT_FILE_PROB_CAP) unless extension is suspicious
                 if ext not in SUSPICIOUS_EXTENSIONS:
-                    raw_proba = min(raw_proba, 0.45)
+                    raw_proba = min(raw_proba, TEXT_FILE_PROB_CAP)
                     result.raw_probability = raw_proba
             entropy_z = float(features[10]) if len(features) > 10 else 0.0
             compression_est = float(features[12]) if len(features) > 12 else 0.0
@@ -794,15 +861,15 @@ class Scanner:
                 from core.fp_reducer import check_magic_bytes as _cmb
                 _has_sig, _magic_valid = _cmb(file_path)
                 if _has_sig and _magic_valid:
-                    adjusted_proba = adjusted_proba * 0.65
-                    reduction_reason += " | known_format_discount(0.65)"
+                    adjusted_proba = adjusted_proba * KNOWN_FORMAT_DISCOUNT
+                    reduction_reason += f" | known_format_discount({KNOWN_FORMAT_DISCOUNT})"
 
             # Heuristic boost (không vượt quá 0.95, không ghi đè FP reducer)
             # Chỉ boost khi có entropy anomaly thực sự (đã loại trừ compressed/media)
             if heuristic_hit:
                 boost_val = profile["heuristic_boost"]
                 if injection_found:
-                    boost_val += 0.20  # Boost mạnh hơn nếu có dấu hiệu injection
+                    boost_val += INJECTION_BOOST  # Boost mạnh hơn nếu có dấu hiệu injection
                 adjusted_proba = min(max(adjusted_proba, raw_proba + boost_val), 0.95)
                 if not injection_found:
                     reduction_reason += " | heuristic_boost"
@@ -883,19 +950,11 @@ class Scanner:
                 or binary_vt
             )
             if self._vt_enabled and should_vt and result.sha256:
-                result.vt_pending = True
-                vt_mal, vt_susp, vt_total, vt_ratio, vt_perma, vt_cache, vt_err = \
-                    self._query_virustotal(result.sha256)
-                result.vt_pending = False
-                result.vt_malicious_count    = vt_mal
-                result.vt_suspicious_count   = vt_susp
-                result.vt_total_engines      = vt_total
-                result.vt_detection_ratio    = vt_ratio
-                result.vt_permalink          = vt_perma
-                result.vt_from_cache         = vt_cache
-                result.vt_error              = vt_err
-                # Chỉ coi là có báo cáo VT hợp lệ khi có engine count (không phải 404)
-                result.vt_available = bool(vt_total > 0 and not vt_err)
+                self._apply_vt_results(result, result.sha256)
+                vt_mal   = result.vt_malicious_count
+                vt_susp  = result.vt_suspicious_count
+                vt_total = result.vt_total_engines
+                vt_err   = result.vt_error
 
                 # Override risk level nếu VT rõ ràng là malicious
                 if vt_mal >= self._vt_malicious_threshold:

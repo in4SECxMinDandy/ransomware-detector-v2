@@ -158,13 +158,22 @@
   },
   "api": {
     "enabled": false,
-    "host": "0.0.0.0",
+    "host": "127.0.0.1",
     "port": 8000,
     "api_key": "",
     "jwt_secret": "",
     "jwt_algorithm": "HS256",
     "access_token_expire_minutes": 60,
-    "reload": false
+    "reload": false,
+    "allowed_origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+    "allowed_scan_roots": [],
+    "max_upload_mb": 50,
+    "auth_rate_limit_per_minute": 10,
+    "global_rate_limit_per_minute": 120,
+    "expose_internal_errors": false,
+    "cors_allow_null_origin": false,
+    "users": {},
+    "api_keys": {}
   },
   "ml_feedback": {
     "auto_retrain_threshold": 50,

@@ -35,6 +35,17 @@ jobs:
         # caught real bugs in the past (e.g. lambda-NameError in main_window.py).
         run: ruff check core api tests scripts gui main.py train_model.py
 
+      - name: Type check (pyright)
+        # Pyright is installed via pip (pyright package wraps the Node binary).
+        # Only core/ and api/ are in scope — gui/ uses PyQt5 stubs that are
+        # too incomplete to type-check reliably without custom typeshed entries.
+        # Failures are warnings only (continue-on-error) until the codebase
+        # reaches 100% annotation coverage; raise to hard-fail when ready.
+        run: |
+          pip install pyright
+          pyright core api
+        continue-on-error: true
+
       - name: Unit tests (pytest with coverage)
         # Coverage gate is a ratchet, not an aspiration. Current floor:
         #   45% (actual ~47%) — set just below current to catch regressions
