@@ -1,13 +1,13 @@
 {
   "ml": {
-    "default_threshold": 0.6000000000000001,
+    "default_threshold": 0.65,
     "min_threshold": 0.3,
     "max_threshold": 0.95,
     "target_precision": 0.95,
     "target_recall": 0.9,
     "max_fp_rate": 0.05,
     "class_weight_safe": 3.0,
-    "class_weight_enc": 1.0,
+    "class_weight_enc": 10.0,
     "cost_fp": 3.0,
     "cost_fn": 10.0,
     "rf_n_estimators": 300,

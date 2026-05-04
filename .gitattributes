@@ -1,8 +1,20 @@
+# Git LFS tracking for large binary files
+# NOTE: Existing large files in history require 'git lfs migrate import'
+#       to be fully moved into LFS. This config prevents new files from
+#       bloating the repository.
+
+# Database & hash stores
 *.db filter=lfs diff=lfs merge=lfs -text
+# ML model artifacts
 *.joblib filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.pickle filter=lfs diff=lfs merge=lfs -text
+# Quarantine / malware samples
+*.quarantined filter=lfs diff=lfs merge=lfs -text
+*.elf filter=lfs diff=lfs merge=lfs -text
+# Media & installers
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.msi filter=lfs diff=lfs merge=lfs -text
-*.elf filter=lfs diff=lfs merge=lfs -text
-*.quarantined filter=lfs diff=lfs merge=lfs -text
+# Large text datasets
 *.sha256.txt filter=lfs diff=lfs merge=lfs -text
 full.csv/** filter=lfs diff=lfs merge=lfs -text
